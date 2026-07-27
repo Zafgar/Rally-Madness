@@ -5,7 +5,11 @@ extends RefCounted
 ## machine, so four people on one couch keep four separate careers.
 
 ## XP needed to reach each level, cumulative index = level.
-const XP_CURVE_BASE := 800.0
+##
+## The base is what the first level-up costs, and it is deliberately low: the
+## opening events are gated on level, so a slow first rung means a new player
+## re-running the free shakedown five times before the calendar opens at all.
+const XP_CURVE_BASE := 500.0
 const XP_CURVE_EXPONENT := 1.35
 
 ## Starting rating for online matchmaking. Standard Elo-style scale.
@@ -31,6 +35,9 @@ var active_car_uid: String = ""
 
 var unlocked_events: Array[String] = []
 var completed_events: Array[String] = []
+## event_id -> how many times it has been finished. Prize money falls off with
+## repeats, so this is part of the economy, not just a statistic.
+var event_runs: Dictionary = {}
 ## event_id -> best time in seconds
 var best_times: Dictionary = {}
 
@@ -233,9 +240,16 @@ func unlock_event(event_id: String) -> bool:
 func complete_event(event_id: String, time_seconds: float) -> void:
 	if not completed_events.has(event_id):
 		completed_events.append(event_id)
+	event_runs[event_id] = times_completed(event_id) + 1
 	var previous: float = best_times.get(event_id, INF)
 	if time_seconds < previous:
 		best_times[event_id] = time_seconds
+
+
+## How many times this event has been finished. Feeds the repeat-entry discount:
+## an event you have already won is worth less the next time.
+func times_completed(event_id: String) -> int:
+	return int(event_runs.get(event_id, 0))
 
 
 # --- Online rating ----------------------------------------------------------
@@ -243,10 +257,21 @@ func complete_event(event_id: String, time_seconds: float) -> void:
 ## Elo update against the average rating of the field. K falls off as a player
 ## builds a record, so a veteran's rating is stable but a newcomer converges
 ## fast.
-func update_rating(field_average: int, placing: int, field_size: int) -> int:
+##
+## `weight` scales K. Career races against AI use less than 1: they still move
+## the rating — otherwise a solo player could never reach the classes that are
+## gated on it — but a win over a computer is worth less than a win over a
+## person, and the whole calendar cannot be worth as much as ranked racing.
+func update_rating(
+	field_average: int,
+	placing: int,
+	field_size: int,
+	weight: float = 1.0
+) -> int:
 	if field_size <= 1:
 		return 0
 	var k := 40.0 if rating_races < 15 else (24.0 if rating_races < 60 else 16.0)
+	k *= maxf(weight, 0.0)
 	var expected := 1.0 / (1.0 + pow(10.0, float(field_average - rating) / 400.0))
 	# Placing mapped to a 0..1 score: first is 1, last is 0.
 	var score := 1.0 - float(placing - 1) / float(field_size - 1)
@@ -287,6 +312,7 @@ func to_dict() -> Dictionary:
 		"active_car_uid": active_car_uid,
 		"unlocked_events": unlocked_events,
 		"completed_events": completed_events,
+		"event_runs": event_runs,
 		"best_times": best_times,
 		"sponsors": sponsors,
 		"stat_races": stat_races,
@@ -323,6 +349,13 @@ static func from_dict(d: Dictionary) -> PlayerProfile:
 		p.unlocked_events.append(String(e))
 	for e in d.get("completed_events", []):
 		p.completed_events.append(String(e))
+	for key in d.get("event_runs", {}):
+		p.event_runs[String(key)] = int(d["event_runs"][key])
+	# Saves written before repeat discounts existed only knew whether an event
+	# had been finished, so treat that as one run rather than none.
+	for e in p.completed_events:
+		if not p.event_runs.has(e):
+			p.event_runs[e] = 1
 	for key in d.get("best_times", {}):
 		p.best_times[String(key)] = float(d["best_times"][key])
 	return p

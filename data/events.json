@@ -1,205 +1,915 @@
 {
   "_comment": [
-    "Career calendar. 'requires_events' gates visibility, 'unlocks' opens the",
-    "next node, so the whole progression is a graph defined here.",
-    "Events with no requires_events and min_level 1 are the starting points.",
-    "entry_fee > 0 is the risk half of the risk/reward: the big payouts want",
-    "money up front."
+    "Career calendar, grouped into named series by competition class.",
+    "'series' is presentational: it groups the calendar screen and gives each",
+    "class a name a player can say out loud. 'class' is the one that carries the",
+    "entry rules - see data/classes.json.",
+    "",
+    "Unlocks are by series, not by single event: finishing any round of a series",
+    "opens the whole of the next one. A chain that depends on one specific event",
+    "is a trap, because a player can outgrow that event's class, or fail to field",
+    "a car for it, and lose the rest of the calendar with no way back. Pacing",
+    "comes from min_level, the class rating band and what the player can afford",
+    "to field - all of which a player can act on.",
+    "",
+    "Payouts are generated from the winner's cheque on a fixed share ladder, so",
+    "re-balancing an event means changing one number. Prize money also falls off",
+    "each time an event is re-entered (EventSpec.repeat_scale), which is what",
+    "makes the calendar, rather than one favourite event, the way to earn.",
+    "Run tests/career_sim.tscn after changing anything here."
   ],
   "events": [
     {
       "id": "shakedown",
       "name": "Pine Ridge Shakedown",
+      "series": "Pine Ridge Club Series",
       "track": "gravel_loop",
+      "class": "club_novice",
       "format": "sprint",
       "laps": 2,
       "description": "Two laps of the club loop. No entry fee, no excuses.",
       "min_level": 1,
-      "max_car_tier": 1,
       "entry_fee": 0,
-      "payouts": [4000, 2600, 1800, 1200, 800, 500],
-      "xp": 150,
+      "payouts": [
+        4000,
+        2300,
+        1450,
+        900,
+        500,
+        200
+      ],
+      "xp": 180,
       "ai_opponents": 5,
-      "ai_skill": 0.30,
-      "unlocks": ["club_night", "forest_dash"]
+      "ai_skill": 0.28,
+      "unlocks": [
+        "banger_night",
+        "club_night",
+        "clubman_finale",
+        "forest_dash",
+        "gravel_grind",
+        "quarry_clubman",
+        "scrapyard_derby",
+        "village_clubman"
+      ]
+    },
+    {
+      "id": "novice_night",
+      "name": "Harbour Novice Night",
+      "series": "Pine Ridge Club Series",
+      "track": "tarmac_circuit",
+      "class": "club_novice",
+      "format": "circuit",
+      "laps": 3,
+      "description": "Your first race on tarmac, under the harbour lights. Three laps, and the grip is a revelation.",
+      "min_level": 1,
+      "entry_fee": 0,
+      "payouts": [
+        4500,
+        2600,
+        1600,
+        1000,
+        550,
+        200
+      ],
+      "xp": 200,
+      "ai_opponents": 5,
+      "ai_skill": 0.3,
+      "unlocks": [
+        "banger_night",
+        "club_night",
+        "clubman_finale",
+        "forest_dash",
+        "gravel_grind",
+        "quarry_clubman",
+        "scrapyard_derby",
+        "village_clubman"
+      ]
+    },
+    {
+      "id": "village_novice",
+      "name": "Ahonpaa Village Trial",
+      "series": "Pine Ridge Club Series",
+      "track": "village_sprint",
+      "class": "club_novice",
+      "format": "stage",
+      "laps": 2,
+      "description": "Stone walls on both sides and a clock instead of rivals. Tidy beats brave.",
+      "min_level": 2,
+      "entry_fee": 250,
+      "payouts": [
+        5500,
+        3200,
+        2000,
+        1200,
+        650,
+        300
+      ],
+      "xp": 240,
+      "ai_opponents": 4,
+      "ai_skill": 0.32,
+      "unlocks": [
+        "banger_night",
+        "club_night",
+        "clubman_finale",
+        "forest_dash",
+        "gravel_grind",
+        "quarry_clubman",
+        "scrapyard_derby",
+        "village_clubman"
+      ]
+    },
+    {
+      "id": "quarry_novice",
+      "name": "Quarry Scramble",
+      "series": "Pine Ridge Club Series",
+      "track": "quarry_run",
+      "class": "club_novice",
+      "format": "sprint",
+      "laps": 1,
+      "description": "Loose gravel and two crests. A standard starter car will get airborne here whether you want it to or not.",
+      "min_level": 2,
+      "entry_fee": 250,
+      "payouts": [
+        6000,
+        3500,
+        2150,
+        1300,
+        700,
+        300
+      ],
+      "xp": 260,
+      "ai_opponents": 5,
+      "ai_skill": 0.34,
+      "unlocks": [
+        "banger_night",
+        "club_night",
+        "clubman_finale",
+        "forest_dash",
+        "gravel_grind",
+        "quarry_clubman",
+        "scrapyard_derby",
+        "village_clubman"
+      ],
+      "sponsor_offers": [
+        "nordkraft_fuels"
+      ]
+    },
+    {
+      "id": "club_finale",
+      "name": "Pine Ridge Club Final",
+      "series": "Pine Ridge Club Series",
+      "track": "gravel_loop",
+      "class": "club_novice",
+      "format": "elimination",
+      "laps": 5,
+      "description": "Last car each lap goes home. Win this and the club has taught you everything it can.",
+      "min_level": 3,
+      "entry_fee": 500,
+      "payouts": [
+        9000,
+        5200,
+        3250,
+        2000,
+        1100,
+        450
+      ],
+      "xp": 350,
+      "ai_opponents": 5,
+      "ai_skill": 0.38,
+      "unlocks": [
+        "banger_night",
+        "club_night",
+        "clubman_finale",
+        "forest_dash",
+        "gravel_grind",
+        "quarry_clubman",
+        "scrapyard_derby",
+        "village_clubman"
+      ]
     },
     {
       "id": "club_night",
       "name": "Club Night Circuit",
+      "series": "Regional Clubman Cup",
       "track": "tarmac_circuit",
+      "class": "clubman",
       "format": "circuit",
       "laps": 3,
-      "description": "Tarmac, three laps, close racing. Tire choice starts to matter.",
-      "min_level": 2,
-      "max_car_tier": 1,
+      "description": "Tarmac, three laps, close racing. Tyre choice starts to decide results.",
+      "min_level": 3,
       "entry_fee": 500,
-      "payouts": [7000, 4200, 2800, 1600, 900, 400],
-      "xp": 220,
+      "payouts": [
+        9000,
+        5200,
+        3250,
+        2000,
+        1100,
+        450
+      ],
+      "xp": 380,
       "ai_opponents": 5,
-      "ai_skill": 0.40,
-      "requires_events": ["shakedown"],
-      "unlocks": ["regional_rally"],
-      "sponsor_offers": ["nordkraft_fuels"]
+      "ai_skill": 0.42,
+      "unlocks": [
+        "coastal_national",
+        "lakeside_national",
+        "mountain_open",
+        "national_finale",
+        "regional_rally",
+        "winter_trial"
+      ],
+      "sponsor_offers": [
+        "nordkraft_fuels"
+      ]
     },
     {
       "id": "forest_dash",
       "name": "Blackwood Dash",
+      "series": "Regional Clubman Cup",
       "track": "forest_sprint",
+      "class": "clubman",
       "format": "stage",
       "laps": 1,
-      "description": "One run against the clock. Jumps, trees, and nobody to blame.",
-      "min_level": 2,
-      "max_car_tier": 2,
+      "description": "One run against the clock in the dark. Jumps, trees, and nobody to blame.",
+      "min_level": 3,
       "entry_fee": 0,
-      "payouts": [6000, 3800, 2400, 1400, 800, 400],
-      "xp": 200,
+      "payouts": [
+        8000,
+        4650,
+        2900,
+        1750,
+        950,
+        400
+      ],
+      "xp": 340,
       "ai_opponents": 4,
-      "ai_skill": 0.40,
-      "requires_events": ["shakedown"],
-      "unlocks": ["regional_rally", "gravel_grind"]
+      "ai_skill": 0.42,
+      "unlocks": [
+        "coastal_national",
+        "lakeside_national",
+        "mountain_open",
+        "national_finale",
+        "regional_rally",
+        "winter_trial"
+      ]
     },
     {
       "id": "gravel_grind",
       "name": "Gravel Grind",
+      "series": "Regional Clubman Cup",
       "track": "gravel_loop",
+      "class": "clubman",
       "format": "elimination",
       "laps": 6,
-      "description": "Last car every lap goes home. Do not be last.",
-      "min_level": 3,
-      "max_car_tier": 2,
+      "description": "Six laps, last car out every lap. A long way to be careful.",
+      "min_level": 4,
       "entry_fee": 1200,
-      "payouts": [12000, 6500, 3800, 2000, 900, 0],
-      "xp": 300,
+      "payouts": [
+        14000,
+        8100,
+        5050,
+        3100,
+        1700,
+        700
+      ],
+      "xp": 480,
       "ai_opponents": 5,
-      "ai_skill": 0.50,
-      "requires_events": ["forest_dash"],
-      "unlocks": ["mountain_open"]
+      "ai_skill": 0.46,
+      "unlocks": [
+        "coastal_national",
+        "lakeside_national",
+        "mountain_open",
+        "national_finale",
+        "regional_rally",
+        "winter_trial"
+      ]
+    },
+    {
+      "id": "village_clubman",
+      "name": "Ahonpaa Cup",
+      "series": "Regional Clubman Cup",
+      "track": "village_sprint",
+      "class": "clubman",
+      "format": "circuit",
+      "laps": 4,
+      "description": "The village again, four laps, and now with people alongside you between the walls.",
+      "min_level": 4,
+      "entry_fee": 1000,
+      "payouts": [
+        12000,
+        6950,
+        4300,
+        2650,
+        1450,
+        600
+      ],
+      "xp": 440,
+      "ai_opponents": 5,
+      "ai_skill": 0.46,
+      "unlocks": [
+        "coastal_national",
+        "lakeside_national",
+        "mountain_open",
+        "national_finale",
+        "regional_rally",
+        "winter_trial"
+      ],
+      "sponsor_offers": [
+        "torvald_suspension"
+      ]
+    },
+    {
+      "id": "quarry_clubman",
+      "name": "Granite Quarry Sprint",
+      "series": "Regional Clubman Cup",
+      "track": "quarry_run",
+      "class": "clubman",
+      "format": "sprint",
+      "laps": 2,
+      "description": "Two runs of the quarry with a full field. The crests are where the places change.",
+      "min_level": 5,
+      "entry_fee": 1200,
+      "payouts": [
+        15000,
+        8700,
+        5400,
+        3300,
+        1800,
+        750
+      ],
+      "xp": 500,
+      "ai_opponents": 5,
+      "ai_skill": 0.48,
+      "unlocks": [
+        "coastal_national",
+        "lakeside_national",
+        "mountain_open",
+        "national_finale",
+        "regional_rally",
+        "winter_trial"
+      ]
+    },
+    {
+      "id": "clubman_finale",
+      "name": "Clubman Cup Final",
+      "series": "Regional Clubman Cup",
+      "track": "coastal_tarmac",
+      "class": "clubman",
+      "format": "circuit",
+      "laps": 5,
+      "description": "Five laps of the sea wall to settle the cup. Fast corners: bring a car that stays settled.",
+      "min_level": 5,
+      "entry_fee": 2000,
+      "payouts": [
+        22000,
+        12750,
+        7900,
+        4850,
+        2650,
+        1100
+      ],
+      "xp": 700,
+      "ai_opponents": 5,
+      "ai_skill": 0.52,
+      "unlocks": [
+        "coastal_national",
+        "lakeside_national",
+        "mountain_open",
+        "national_finale",
+        "regional_rally",
+        "winter_trial"
+      ]
     },
     {
       "id": "regional_rally",
       "name": "Regional Rally",
+      "series": "National Rally Championship",
       "track": "mountain_stage",
+      "class": "national",
       "format": "stage",
       "laps": 1,
       "description": "A proper stage: mixed surfaces, long, and unforgiving of a soft setup.",
-      "min_level": 4,
-      "min_car_tier": 1,
-      "max_car_tier": 3,
+      "min_level": 6,
       "entry_fee": 2000,
-      "payouts": [22000, 13000, 8000, 4500, 2000, 0],
-      "xp": 450,
+      "payouts": [
+        26000,
+        15100,
+        9350,
+        5700,
+        3100,
+        1300
+      ],
+      "xp": 800,
       "ai_opponents": 5,
       "ai_skill": 0.55,
-      "requires_events": ["club_night"],
-      "unlocks": ["awd_invitational", "winter_trial"],
-      "sponsor_offers": ["torvald_suspension"]
+      "unlocks": [
+        "alpine_international",
+        "awd_invitational",
+        "coastal_international",
+        "international_finale",
+        "lakeside_international",
+        "winter_international"
+      ],
+      "sponsor_offers": [
+        "torvald_suspension"
+      ]
     },
     {
-      "id": "mountain_open",
-      "name": "Kaltavaara Open",
-      "track": "mountain_stage",
-      "format": "sprint",
-      "laps": 2,
-      "description": "Two laps of the mountain road with a full field. Wide open.",
-      "min_level": 5,
-      "min_car_tier": 1,
-      "max_car_tier": 3,
-      "entry_fee": 3500,
-      "payouts": [30000, 17000, 10000, 5500, 2500, 0],
-      "xp": 520,
+      "id": "coastal_national",
+      "name": "Saltmarsh Trophy",
+      "series": "National Rally Championship",
+      "track": "coastal_tarmac",
+      "class": "national",
+      "format": "circuit",
+      "laps": 5,
+      "description": "Five laps of open tarmac against national-level regulars. Nowhere to hide a slow car.",
+      "min_level": 6,
+      "entry_fee": 2500,
+      "payouts": [
+        30000,
+        17400,
+        10800,
+        6600,
+        3600,
+        1500
+      ],
+      "xp": 850,
       "ai_opponents": 5,
-      "ai_skill": 0.60,
-      "requires_events": ["gravel_grind"],
-      "unlocks": ["awd_invitational", "scrapyard_derby"]
-    },
-    {
-      "id": "awd_invitational",
-      "name": "Four-Wheel-Drive Invitational",
-      "track": "forest_sprint",
-      "format": "sprint",
-      "laps": 3,
-      "description": "AWD only. The surface rewards it and the entry fee assumes you have one.",
-      "min_level": 7,
-      "min_car_tier": 2,
-      "drivetrain_required": ["AWD"],
-      "entry_fee": 6000,
-      "payouts": [55000, 31000, 18000, 9000, 4000, 0],
-      "xp": 700,
-      "ai_opponents": 5,
-      "ai_skill": 0.65,
-      "requires_events": ["regional_rally"],
-      "unlocks": ["group_b_revival"],
-      "sponsor_offers": ["helix_tyres"]
+      "ai_skill": 0.56,
+      "unlocks": [
+        "alpine_international",
+        "awd_invitational",
+        "coastal_international",
+        "international_finale",
+        "lakeside_international",
+        "winter_international"
+      ]
     },
     {
       "id": "winter_trial",
       "name": "Frostfell Winter Trial",
+      "series": "National Rally Championship",
       "track": "snow_stage",
+      "class": "national",
       "format": "stage",
       "laps": 1,
-      "description": "Snow and ice. Turn up on the wrong tires and you will not finish.",
-      "min_level": 6,
-      "min_car_tier": 1,
-      "entry_fee": 4000,
-      "payouts": [40000, 23000, 14000, 7000, 3000, 0],
-      "xp": 620,
+      "description": "Snow and ice. Turn up on the wrong tyres and you will not finish.",
+      "min_level": 7,
+      "entry_fee": 3000,
+      "payouts": [
+        34000,
+        19700,
+        12250,
+        7500,
+        4100,
+        1700
+      ],
+      "xp": 950,
       "ai_opponents": 5,
-      "ai_skill": 0.62,
-      "requires_events": ["regional_rally"],
-      "unlocks": ["group_b_revival"],
-      "sponsor_offers": ["helix_tyres"]
+      "ai_skill": 0.58,
+      "unlocks": [
+        "alpine_international",
+        "awd_invitational",
+        "coastal_international",
+        "international_finale",
+        "lakeside_international",
+        "winter_international"
+      ],
+      "sponsor_offers": [
+        "helix_tyres"
+      ]
     },
     {
-      "id": "scrapyard_derby",
-      "name": "Scrapyard Derby",
-      "track": "derby_bowl",
-      "format": "derby",
+      "id": "lakeside_national",
+      "name": "Lakeside Night Stage",
+      "series": "National Rally Championship",
+      "track": "lakeside_night",
+      "class": "national",
+      "format": "stage",
       "laps": 1,
-      "description": "No finish line. Last car still running takes the money. Bring a cage.",
-      "min_level": 6,
-      "entry_fee": 2500,
-      "payouts": [45000, 12000, 6000, 3000, 1500, 0],
-      "xp": 550,
+      "description": "Dirt, dark, and a lake on one side. Your lights show you about as far as you can stop.",
+      "min_level": 7,
+      "entry_fee": 3000,
+      "payouts": [
+        36000,
+        20900,
+        12950,
+        7900,
+        4300,
+        1800
+      ],
+      "xp": 980,
+      "ai_opponents": 5,
+      "ai_skill": 0.58,
+      "unlocks": [
+        "alpine_international",
+        "awd_invitational",
+        "coastal_international",
+        "international_finale",
+        "lakeside_international",
+        "winter_international"
+      ]
+    },
+    {
+      "id": "mountain_open",
+      "name": "Kaltavaara Open",
+      "series": "National Rally Championship",
+      "track": "mountain_stage",
+      "class": "national",
+      "format": "sprint",
+      "laps": 2,
+      "description": "Two laps of the mountain road with a full field. Wide open, and quick enough to matter.",
+      "min_level": 8,
+      "entry_fee": 3500,
+      "payouts": [
+        40000,
+        23200,
+        14400,
+        8800,
+        4800,
+        2000
+      ],
+      "xp": 1050,
+      "ai_opponents": 5,
+      "ai_skill": 0.6,
+      "unlocks": [
+        "alpine_international",
+        "awd_invitational",
+        "coastal_international",
+        "international_finale",
+        "lakeside_international",
+        "winter_international"
+      ]
+    },
+    {
+      "id": "national_finale",
+      "name": "National Championship Final",
+      "series": "National Rally Championship",
+      "track": "quarry_run",
+      "class": "national",
+      "format": "elimination",
+      "laps": 6,
+      "description": "The title race. Six runs of the quarry, one car dropped each time.",
+      "min_level": 8,
+      "entry_fee": 5000,
+      "payouts": [
+        60000,
+        34800,
+        21600,
+        13200,
+        7200,
+        3000
+      ],
+      "xp": 1400,
+      "ai_opponents": 5,
+      "ai_skill": 0.63,
+      "unlocks": [
+        "alpine_international",
+        "awd_invitational",
+        "coastal_international",
+        "international_finale",
+        "lakeside_international",
+        "winter_international"
+      ],
+      "sponsor_offers": [
+        "helix_tyres"
+      ]
+    },
+    {
+      "id": "awd_invitational",
+      "name": "Four-Wheel-Drive Invitational",
+      "series": "International Rally Series",
+      "track": "forest_sprint",
+      "class": "international",
+      "format": "sprint",
+      "laps": 3,
+      "description": "AWD only. The surface rewards it and the entry fee assumes you already have one.",
+      "min_level": 9,
+      "entry_fee": 6000,
+      "payouts": [
+        70000,
+        40600,
+        25200,
+        15400,
+        8400,
+        3500
+      ],
+      "xp": 1600,
+      "ai_opponents": 5,
+      "ai_skill": 0.66,
+      "unlocks": [
+        "alpine_unlimited",
+        "arctic_unlimited",
+        "group_b_revival",
+        "madness_final"
+      ],
+      "sponsor_offers": [
+        "helix_tyres"
+      ],
+      "drivetrain_required": [
+        "AWD"
+      ]
+    },
+    {
+      "id": "alpine_international",
+      "name": "Hjelmstad Pass",
+      "series": "International Rally Series",
+      "track": "alpine_pass",
+      "class": "international",
+      "format": "stage",
+      "laps": 1,
+      "description": "Tarmac up, gravel over the top, tarmac down. One setup has to do all three.",
+      "min_level": 9,
+      "entry_fee": 7000,
+      "payouts": [
+        80000,
+        46400,
+        28800,
+        17600,
+        9600,
+        4000
+      ],
+      "xp": 1700,
+      "ai_opponents": 5,
+      "ai_skill": 0.68,
+      "unlocks": [
+        "alpine_unlimited",
+        "arctic_unlimited",
+        "group_b_revival",
+        "madness_final"
+      ]
+    },
+    {
+      "id": "coastal_international",
+      "name": "Saltmarsh International",
+      "series": "International Rally Series",
+      "track": "coastal_tarmac",
+      "class": "international",
+      "format": "circuit",
+      "laps": 6,
+      "description": "Six laps flat out against works cars. The straights are long enough to show exactly what you are missing.",
+      "min_level": 10,
+      "entry_fee": 8000,
+      "payouts": [
+        90000,
+        52200,
+        32400,
+        19800,
+        10800,
+        4500
+      ],
+      "xp": 1800,
+      "ai_opponents": 5,
+      "ai_skill": 0.7,
+      "unlocks": [
+        "alpine_unlimited",
+        "arctic_unlimited",
+        "group_b_revival",
+        "madness_final"
+      ]
+    },
+    {
+      "id": "lakeside_international",
+      "name": "Lakeside International",
+      "series": "International Rally Series",
+      "track": "lakeside_night",
+      "class": "international",
+      "format": "sprint",
+      "laps": 3,
+      "description": "Three runs of the lake road in the dark, wheel to wheel. Bring your nerve.",
+      "min_level": 10,
+      "entry_fee": 9000,
+      "payouts": [
+        100000,
+        58000,
+        36000,
+        22000,
+        12000,
+        5000
+      ],
+      "xp": 1900,
+      "ai_opponents": 5,
+      "ai_skill": 0.71,
+      "unlocks": [
+        "alpine_unlimited",
+        "arctic_unlimited",
+        "group_b_revival",
+        "madness_final"
+      ]
+    },
+    {
+      "id": "winter_international",
+      "name": "Arctic Challenge",
+      "series": "International Rally Series",
+      "track": "arctic_marathon",
+      "class": "international",
+      "format": "stage",
+      "laps": 1,
+      "description": "The long one. Forty kilometres of snow with no let-up and no second chance.",
+      "min_level": 11,
+      "entry_fee": 10000,
+      "payouts": [
+        120000,
+        69600,
+        43200,
+        26400,
+        14400,
+        6000
+      ],
+      "xp": 2100,
+      "ai_opponents": 5,
+      "ai_skill": 0.73,
+      "unlocks": [
+        "alpine_unlimited",
+        "arctic_unlimited",
+        "group_b_revival",
+        "madness_final"
+      ],
+      "sponsor_offers": [
+        "ironclad_garage"
+      ]
+    },
+    {
+      "id": "international_finale",
+      "name": "International Series Final",
+      "series": "International Rally Series",
+      "track": "alpine_pass",
+      "class": "international",
+      "format": "elimination",
+      "laps": 8,
+      "description": "Eight runs of the pass, one car gone each time, and a cheque that changes what you can afford.",
+      "min_level": 12,
+      "entry_fee": 15000,
+      "payouts": [
+        180000,
+        104400,
+        64800,
+        39600,
+        21600,
+        9000
+      ],
+      "xp": 2800,
       "ai_opponents": 7,
-      "ai_skill": 0.55,
-      "requires_events": ["mountain_open"],
-      "unlocks": ["madness_final"],
-      "sponsor_offers": ["ironclad_garage"]
+      "ai_skill": 0.76,
+      "unlocks": [
+        "alpine_unlimited",
+        "arctic_unlimited",
+        "group_b_revival",
+        "madness_final"
+      ]
     },
     {
       "id": "group_b_revival",
       "name": "Group B Revival",
+      "series": "Rally Madness Masters",
       "track": "mountain_stage",
+      "class": "works",
       "format": "sprint",
       "laps": 3,
-      "description": "Tier 4 machinery only. Enormous money, enormous entry fee, enormous risk.",
-      "min_level": 10,
-      "min_car_tier": 4,
+      "description": "Group B machinery only. Enormous money, enormous entry fee, enormous risk.",
+      "min_level": 13,
       "entry_fee": 25000,
-      "payouts": [220000, 120000, 70000, 35000, 15000, 0],
-      "xp": 1400,
+      "payouts": [
+        240000,
+        139200,
+        86400,
+        52800,
+        28800,
+        12000
+      ],
+      "xp": 3200,
       "ai_opponents": 5,
-      "ai_skill": 0.78,
-      "requires_events": ["awd_invitational"],
-      "unlocks": ["madness_final"],
-      "sponsor_offers": ["nordkraft_fuels", "ironclad_garage"]
+      "ai_skill": 0.8,
+      "sponsor_offers": [
+        "nordkraft_fuels",
+        "ironclad_garage"
+      ]
+    },
+    {
+      "id": "alpine_unlimited",
+      "name": "Hjelmstad Unlimited",
+      "series": "Rally Madness Masters",
+      "track": "alpine_pass",
+      "class": "works",
+      "format": "stage",
+      "laps": 1,
+      "description": "The pass with no power limit. The gravel section is where these cars stop making sense.",
+      "min_level": 14,
+      "entry_fee": 30000,
+      "payouts": [
+        280000,
+        162400,
+        100800,
+        61600,
+        33600,
+        14000
+      ],
+      "xp": 3600,
+      "ai_opponents": 5,
+      "ai_skill": 0.83
+    },
+    {
+      "id": "arctic_unlimited",
+      "name": "Arctic Marathon",
+      "series": "Rally Madness Masters",
+      "track": "arctic_marathon",
+      "class": "unlimited",
+      "format": "stage",
+      "laps": 1,
+      "description": "Six hundred horsepower on snow for forty kilometres. Finishing is the achievement.",
+      "min_level": 15,
+      "entry_fee": 35000,
+      "payouts": [
+        320000,
+        185600,
+        115200,
+        70400,
+        38400,
+        16000
+      ],
+      "xp": 4000,
+      "ai_opponents": 5,
+      "ai_skill": 0.86,
+      "sponsor_offers": [
+        "ironclad_garage"
+      ]
     },
     {
       "id": "madness_final",
       "name": "Rally Madness Final",
-      "track": "mountain_stage",
+      "series": "Rally Madness Masters",
+      "track": "alpine_pass",
+      "class": "unlimited",
       "format": "elimination",
       "laps": 8,
-      "description": "Everything the game has. Elimination, mixed surfaces, no tier limit.",
-      "min_level": 14,
-      "min_car_tier": 3,
+      "description": "Everything the game has. Elimination, mixed surfaces, no limit of any kind.",
+      "min_level": 16,
       "entry_fee": 50000,
-      "payouts": [500000, 260000, 150000, 80000, 30000, 0],
-      "xp": 3000,
+      "payouts": [
+        600000,
+        348000,
+        216000,
+        132000,
+        72000,
+        30000
+      ],
+      "xp": 6000,
       "ai_opponents": 7,
-      "ai_skill": 0.90,
-      "requires_events": ["group_b_revival"],
-      "unlocks": []
+      "ai_skill": 0.92
+    },
+    {
+      "id": "banger_night",
+      "name": "Banger Night",
+      "series": "Wildcard Events",
+      "track": "derby_bowl",
+      "class": "open",
+      "format": "derby",
+      "laps": 1,
+      "description": "Cheap cars, no rules, and a small cheque for the last one still moving.",
+      "min_level": 3,
+      "entry_fee": 1000,
+      "payouts": [
+        18000,
+        10450,
+        6500,
+        3950,
+        2150,
+        900
+      ],
+      "xp": 500,
+      "ai_opponents": 7,
+      "ai_skill": 0.45,
+      "requires_events": [
+        "shakedown"
+      ]
+    },
+    {
+      "id": "scrapyard_derby",
+      "name": "Scrapyard Derby",
+      "series": "Wildcard Events",
+      "track": "derby_bowl",
+      "class": "open",
+      "format": "derby",
+      "laps": 1,
+      "description": "No finish line. Last car still running takes the money. Bring a cage.",
+      "min_level": 7,
+      "entry_fee": 2500,
+      "payouts": [
+        45000,
+        26100,
+        16200,
+        9900,
+        5400,
+        2250
+      ],
+      "xp": 1100,
+      "ai_opponents": 7,
+      "ai_skill": 0.58,
+      "requires_events": [
+        "shakedown"
+      ],
+      "sponsor_offers": [
+        "ironclad_garage"
+      ]
     }
   ]
 }

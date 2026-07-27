@@ -44,6 +44,11 @@ var reference_top_speed_kmh: float = 0.0
 ## sitting on the right suspension.
 var stock_parts: Dictionary = {}
 
+## Lazily resolved and then kept: working these out means resolving the whole
+## parts catalogue against the chassis, and the showroom asks for them per frame.
+var _stock_index: float = -1.0
+var _potential_index: float = -1.0
+
 
 func display_name() -> String:
 	if manufacturer.is_empty():
@@ -161,3 +166,55 @@ func default_loadout() -> TuningLoadout:
 	for slot in stock_parts:
 		l.set_part(slot, stock_parts[slot])
 	return l
+
+
+## The best parts this chassis will accept, in every slot. What the car becomes
+## when someone with money is finished with it.
+func best_loadout() -> TuningLoadout:
+	var l := default_loadout()
+	for slot in PartSpec.SLOTS:
+		var best: PartSpec = null
+		for part in PartDatabase.for_slot(slot):
+			if not accepts_part(part):
+				continue
+			if best == null or part.price > best.price:
+				best = part
+		if best != null:
+			l.set_part(slot, best.id)
+	return l
+
+
+## What this car is worth showroom-standard, and what it is worth fully built.
+##
+## The second number is the one that decides whether a car is worth buying, and
+## it is not obvious from the first: a built hot hatch outscores a
+## showroom-standard four-wheel-drive car, but the four-wheel-drive car will
+## take parts the hatch's chassis refuses and ends up in a class above it. The
+## showroom shows both, because "it is slower than my current car and you should
+## buy it anyway" needs an explanation.
+func stock_index() -> float:
+	if _stock_index < 0.0:
+		_stock_index = TuningCalculator.resolve(self, default_loadout()).performance_index()
+	return _stock_index
+
+
+func potential_index() -> float:
+	if _potential_index < 0.0:
+		_potential_index = TuningCalculator.resolve(self, best_loadout()).performance_index()
+	return _potential_index
+
+
+## What it costs to take this car from the showroom to its ceiling — the second
+## half of the price, and usually the larger half.
+func full_build_cost() -> int:
+	var total := 0
+	var stock := default_loadout()
+	var best := best_loadout()
+	for slot in PartSpec.SLOTS:
+		var fitted := best.get_part(slot)
+		if fitted.is_empty() or fitted == stock.get_part(slot):
+			continue
+		var part := PartDatabase.get_part(fitted)
+		if part != null:
+			total += part.price
+	return total

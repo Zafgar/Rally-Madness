@@ -164,8 +164,14 @@ func _tire_choice_for(surface: TireModel.Surface) -> String:
 
 func _eligible_ai_cars() -> Array:
 	var pool := []
+	var band := event.effective_tier_range()
+	var cap := event.race_class().max_performance_index
 	for spec in CarDatabase.all():
-		if spec.tier < event.min_car_tier or spec.tier > event.max_car_tier:
+		if spec.tier < band.x or spec.tier > band.y:
+			continue
+		# Rivals obey the same performance cap the player does, so a class
+		# limit means something on both sides of the grid.
+		if spec.to_base_stats().performance_index() > cap:
 			continue
 		if not event.drivetrain_required.is_empty():
 			var dt: String = ["FWD", "RWD", "AWD"][spec.drivetrain]
@@ -471,14 +477,17 @@ func _apply_result(result: Dictionary) -> void:
 		return
 	var profile: PlayerProfile = entrant.profile
 
+	# Counted before the result is recorded, so the first run pays in full.
+	var repeats := profile.times_completed(event.id)
 	var payout := 0
 	var xp := 0
 	if not entrant.dnf:
-		payout = event.payout_for(entrant.position)
-		xp = int(event.xp_reward * lerpf(1.0, 1.6, _position_score(entrant)))
+		payout = event.payout_for(entrant.position, repeats)
+		xp = int(event.xp_reward * lerpf(1.0, 1.6, _position_score(entrant))
+			* EventSpec.repeat_scale(repeats))
 	else:
 		# A DNF still pays a token amount so a wreck is a setback, not a wall.
-		payout = int(event.payout_for(entrants.size()) * 0.25)
+		payout = int(event.payout_for(entrants.size(), repeats) * 0.25)
 		xp = int(event.xp_reward * 0.2)
 		profile.stat_wrecks += 1
 
@@ -506,11 +515,17 @@ func _apply_result(result: Dictionary) -> void:
 		result["sponsor_offers"] = EventDatabase.sponsor_offers_for(
 			profile, event.sponsor_offers)
 
-	# Rating only moves in online races; career results are against AI.
+	# Online races move the rating at full weight against the real field.
+	# Career races move it too, at reduced weight against what the AI field is
+	# worth — several classes are gated on rating, and a player who never goes
+	# online still has to be able to reach them.
 	if NetManager.is_online():
-		var field_avg := _field_average_rating()
 		result["rating_delta"] = profile.update_rating(
-			field_avg, entrant.position, entrants.size())
+			_field_average_rating(), entrant.position, entrants.size())
+	else:
+		result["rating_delta"] = profile.update_rating(
+			event.field_rating(), entrant.position, entrants.size(),
+			EventSpec.CAREER_RATING_WEIGHT)
 
 	result["payout"] = payout
 	result["xp"] = xp

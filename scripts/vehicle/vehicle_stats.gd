@@ -226,11 +226,16 @@ func clone() -> VehicleStats:
 	return s
 
 
-## Single headline number used for matchmaking, event entry requirements and
-## AI field generation. Deliberately crude but monotonic.
+## Single headline number used for class limits, matchmaking and AI field
+## generation.
+##
+## Built from power-to-weight rather than raw torque, because torque alone says
+## nothing without the revs it is made at — and because multiplying by
+## turbo_boost, as this used to, double-counts a figure that already includes
+## boost. Grip and brakes matter too: a car that cannot use its power is not
+## fast, whatever the engine says.
 func performance_index() -> float:
-	var power_to_weight := (engine_torque_nm * turbo_boost) / maxf(mass_kg, 1.0) * 1000.0
-	var grip := (grip_lat + grip_long) * 0.5 * 100.0
-	var nitro := nitro_capacity * 0.15
-	var brakes := brake_force * 20.0
-	return power_to_weight * 1.6 + grip * 0.9 + nitro + brakes
+	var hp_per_tonne := PerformanceModel.peak_power_hp(self) / maxf(mass_kg / 1000.0, 0.1)
+	var grip := (grip_lat + grip_long) * 0.5
+	var nitro := nitro_capacity * nitro_power * 0.02
+	return hp_per_tonne + grip * 60.0 + brake_force * 25.0 + nitro

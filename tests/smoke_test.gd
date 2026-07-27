@@ -46,6 +46,7 @@ func _ready() -> void:
 	_test_haptics()
 	_test_damage_and_economy()
 	_test_progression()
+	_test_classes_and_economy()
 	_test_command_encoding()
 	_start_test_race()
 
@@ -127,7 +128,11 @@ func _test_tuning() -> void:
 
 	var stock := TuningCalculator.resolve(spec, spec.default_loadout())
 	var loadout := spec.default_loadout()
-	loadout.set_part("turbo", "turbo_big")
+	# The biggest turbo the chassis will accept, rather than a named part: the
+	# upgrade ceiling decides what fits, and hard-coding a part id here makes
+	# this test fail whenever the ceilings are re-balanced rather than when the
+	# turbo model breaks.
+	loadout.set_part("turbo", "turbo_ball_bearing")
 	loadout.set_part("tires", "tires_gravel")
 	loadout.set_part("weight", "weight_strip_full")
 	var tuned := TuningCalculator.resolve(spec, loadout)
@@ -590,12 +595,14 @@ func _test_upgrade_ceiling() -> void:
 					"a built tier %d car stays behind the best built tier %d one" % [
 						tier, tier + 2])
 
-	# Building an old car has to cost more than buying a newer one, or the
-	# showroom is pointless.
+	# Building a car has to be a real second purchase — comparable to the price
+	# of the car — without being so far beyond it that the showroom becomes
+	# irrelevant and every career is decided by the parts catalogue.
 	var cosworth := CarDatabase.get_car("sierra_cosworth")
-	var build_cost := _max_legal_loadout(cosworth).total_value()
-	_check(build_cost > cosworth.price * 3,
-		"a full build costs far more than the car (%d vs %d)" % [build_cost, cosworth.price])
+	var build_cost := cosworth.full_build_cost()
+	_check(build_cost > cosworth.price * 0.5 and build_cost < cosworth.price * 2.5,
+		"a full build costs about what the car does (%d vs %d)" % [
+			build_cost, cosworth.price])
 	print("  Lada accepts up to tier %d parts, Group B up to tier %d" % [
 		starter.upgrade_ceiling, group_b.upgrade_ceiling])
 
@@ -1112,6 +1119,91 @@ func _test_progression() -> void:
 
 	SaveSystem.delete_profile("smoketest")
 	SaveSystem.delete_profile("smoketest2")
+
+
+func _test_classes_and_economy() -> void:
+	_section("classes and economy")
+
+	# --- The class ladder ---------------------------------------------------
+	var classes := RaceClass.all()
+	_check(classes.size() >= 5, "the class ladder is loaded")
+
+	# Every class must be somewhere a car can actually be. A class nobody can
+	# field a car for is content no player will ever see.
+	var populated := {}
+	for spec in CarDatabase.all():
+		populated[RaceClass.best_fit_spec(spec).id] = true
+	for c in classes:
+		if c.id == "open":
+			continue   # the fallback, and correctly empty when every car has a home
+		_check(populated.has(c.id), "the %s class has cars that fit it" % c.display_name)
+
+	# The caps have to be ordered, or "moving up a class" means nothing.
+	var previous := -1.0
+	for c in classes:
+		if c.id == "open":
+			continue
+		_check(c.max_performance_index > previous,
+			"%s allows more than the class below it" % c.display_name)
+		previous = c.max_performance_index
+
+	# A built cheap car must be pushed out of the novice class. This is the
+	# whole reason the performance cap exists alongside the tier gate.
+	var starter := CarDatabase.default_starter()
+	if starter != null:
+		_check(starter.stock_index() <= RaceClass.by_id("club_novice").max_performance_index,
+			"a showroom starter is legal for novices")
+		_check(starter.potential_index() > starter.stock_index(),
+			"and building it makes it quicker")
+
+	# --- Repeat entries -----------------------------------------------------
+	var event := EventDatabase.get_event("shakedown")
+	if event != null:
+		var first := event.payout_for(1, 0)
+		var second := event.payout_for(1, 1)
+		var tenth := event.payout_for(1, 9)
+		_check(second < first, "re-entering an event pays less than the first run")
+		_check(tenth > 0, "but never nothing, so a broke player can always earn")
+		_check(tenth <= second, "and it keeps falling to a floor")
+
+	# An event that costs money to enter must never decay into a trap: winning
+	# has to cover the entry, however many times you have won it before.
+	for e in EventDatabase.all_events():
+		if e.entry_fee <= 0:
+			continue
+		_check(e.payout_for(1, 50) >= e.entry_fee,
+			"winning %s always covers its entry fee" % e.display_name)
+
+	# --- The safety net -----------------------------------------------------
+	# The failure this exists to prevent: broke, and holding only cars that no
+	# open event will accept.
+	var stranded := PlayerProfile.create_new("smoketest_stranded", "Stranded")
+	for uid in stranded.garage.keys():
+		stranded.remove_car(uid)
+	stranded.money = 0
+	_check(not EventDatabase.can_enter_anything(stranded),
+		"a player with no car and no money has nothing to enter")
+	_check(EventDatabase.ensure_entry_possible(stranded),
+		"so the safety net steps in")
+	_check(EventDatabase.can_enter_anything(stranded),
+		"and afterwards there is something to enter")
+	SaveSystem.delete_profile("smoketest_stranded")
+
+	# --- Rating against an AI field -----------------------------------------
+	# Career races have to move the rating, or the classes gated on it are
+	# unreachable for anyone who never goes online.
+	var novice := EventDatabase.get_event("shakedown")
+	var expert := EventDatabase.get_event("madness_final")
+	if novice != null and expert != null:
+		_check(expert.field_rating() > novice.field_rating(),
+			"a harder event fields better-rated drivers")
+	var climber := PlayerProfile.create_new("smoketest_rating", "Climber")
+	var start := climber.rating
+	for i in 20:
+		climber.update_rating(1500, 1, 6, EventSpec.CAREER_RATING_WEIGHT)
+	_check(climber.rating > start + 50,
+		"winning career races raises the rating (%d to %d)" % [start, climber.rating])
+	SaveSystem.delete_profile("smoketest_rating")
 
 
 func _test_command_encoding() -> void:

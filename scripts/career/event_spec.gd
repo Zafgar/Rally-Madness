@@ -6,6 +6,28 @@ extends RefCounted
 ## own unlock edges, so the whole progression graph is data. Adding a
 ## championship means editing events.json, not writing code.
 
+## What an AI field is worth on the rating scale. `ai_skill` 0 is a driver who
+## should not be on the road; 1 is a works driver. Mapping it onto Elo linearly
+## gives every event a rating opponent without authoring a second number that
+## could drift out of step with the first.
+const AI_RATING_FLOOR := 700
+const AI_RATING_SPAN := 1500
+
+## How much of a full Elo swing a career race against AI is worth. Racing the
+## calendar moves your rating, but slowly; the classes gated on rating are meant
+## to take a season, not an afternoon.
+const CAREER_RATING_WEIGHT := 0.5
+
+## Repeat-entry purse decay, and the floor it settles at. The floor is low on
+## purpose: re-running an event you have already won should cover a repair bill,
+## not fund a career. Moving up the calendar is what pays.
+const REPEAT_DECAY := 0.55
+const REPEAT_FLOOR := 0.15
+
+## However far the purse has decayed, winning still pays this multiple of the
+## entry fee. An event you can win must never cost more than it returns.
+const WIN_TO_FEE_FLOOR := 2.5
+
 enum Format {
 	SPRINT,       ## point to point, fastest wins
 	STAGE,        ## rally stage against the clock, no rivals on track
@@ -17,6 +39,12 @@ enum Format {
 var id: String = ""
 var display_name: String = ""
 var track_id: String = ""
+## The championship this event belongs to. Presentational: it groups the
+## calendar screen and gives each rung of the ladder a name.
+var series: String = ""
+## Which competition class this event runs under. The class carries the tier,
+## performance and rating gates, so a whole series is balanced in one place.
+var class_id: String = "open"
 var format: Format = Format.SPRINT
 var laps: int = 1
 var description: String = ""
@@ -53,6 +81,8 @@ static func from_dict(d: Dictionary) -> EventSpec:
 	e.id = String(d.get("id", ""))
 	e.display_name = String(d.get("name", e.id))
 	e.track_id = String(d.get("track", ""))
+	e.series = String(d.get("series", ""))
+	e.class_id = String(d.get("class", "open"))
 	e.laps = int(d.get("laps", 1))
 	e.description = String(d.get("description", ""))
 	e.entry_fee = int(d.get("entry_fee", 0))
@@ -85,23 +115,73 @@ static func from_dict(d: Dictionary) -> EventSpec:
 	return e
 
 
-func payout_for(position: int) -> int:
+func race_class() -> RaceClass:
+	return RaceClass.by_id(class_id)
+
+
+## The rating this event's AI field represents, used as the Elo reference when
+## a career result is scored. Deliberately derived from ai_skill rather than
+## from the class band: the band is wide on purpose — a class holds drivers of
+## very different ability — and its midpoint is nobody in particular.
+func field_rating() -> int:
+	return AI_RATING_FLOOR + int(round(clampf(ai_skill, 0.0, 1.0) * AI_RATING_SPAN))
+
+
+## Prize money for a finishing position. `repeats` is how many times the driver
+## has already finished this event; the purse falls off so the calendar, not one
+## favourite event, is the way to make money.
+func payout_for(position: int, repeats: int = 0) -> int:
 	if payouts.is_empty():
 		return 0
 	var idx := clampi(position - 1, 0, payouts.size() - 1)
 	# Anyone finishing outside the paid places still gets the last listed
 	# amount, so a bad race is not a total loss.
-	return payouts[idx]
+	return int(payouts[idx] * race_class().purse_scale * _effective_repeat_scale(repeats))
+
+
+## The repeat discount, held back from ever making an event a trap.
+##
+## Winning always pays at least WIN_TO_FEE_FLOOR times what it cost to enter.
+## Without that, a paid-entry event decays into something you lose money on even
+## when you beat everyone, which is not a discount — it is a punishment for
+## liking a race.
+func _effective_repeat_scale(repeats: int) -> float:
+	var scale := repeat_scale(repeats)
+	if entry_fee <= 0 or payouts.is_empty() or payouts[0] <= 0:
+		return scale
+	var needed := float(entry_fee) * WIN_TO_FEE_FLOOR / float(payouts[0])
+	return maxf(scale, minf(needed, 1.0))
+
+
+## How much of the advertised purse a repeat entry pays.
+##
+## It decays but never reaches zero: an event you have already won stays worth
+## running when you are broke — that is the safety net that stops a career
+## dead-ending — but it stops being the best thing on the calendar after the
+## first couple of visits.
+static func repeat_scale(repeats: int) -> float:
+	if repeats <= 0:
+		return 1.0
+	return maxf(REPEAT_FLOOR, pow(REPEAT_DECAY, float(repeats)))
 
 
 ## Whether a profile is allowed to enter at all, ignoring the car.
 func profile_can_enter(profile: PlayerProfile) -> bool:
+	return profile_rejection_reason(profile).is_empty()
+
+
+## Why a driver cannot enter, or an empty string if they can. Phrased for the
+## player, because "this event is greyed out" without a reason is the most
+## annoying thing a career screen can do.
+func profile_rejection_reason(profile: PlayerProfile) -> String:
 	if profile.level < min_level:
-		return false
+		return "Reach level %d (you are %d)" % [min_level, profile.level]
 	for required in requires_events:
 		if not profile.completed_events.has(required):
-			return false
-	return true
+			var prerequisite := EventDatabase.get_event(required)
+			var name := prerequisite.display_name if prerequisite != null else required
+			return "Finish %s first" % name
+	return race_class().driver_rejection_reason(profile)
 
 
 ## Whether a specific car is eligible. Returns an empty string if it is, or a
@@ -112,6 +192,10 @@ func car_ineligible_reason(car: OwnedCar) -> String:
 		return "Unknown car"
 	if not car.is_driveable():
 		return "Car is wrecked"
+	# Class gates first: they are the ones a player is meant to plan around.
+	var class_reason := race_class().car_rejection_reason(car)
+	if not class_reason.is_empty():
+		return class_reason
 	if spec.tier < min_car_tier:
 		return "Requires a tier %d car or better" % min_car_tier
 	if spec.tier > max_car_tier:
@@ -127,6 +211,12 @@ func car_ineligible_reason(car: OwnedCar) -> String:
 
 func can_afford_entry(profile: PlayerProfile) -> bool:
 	return profile.money >= entry_fee
+
+
+## Effective car tier band, folding the class limits into the event's own.
+func effective_tier_range() -> Vector2i:
+	var c := race_class()
+	return Vector2i(maxi(min_car_tier, c.min_car_tier), mini(max_car_tier, c.max_car_tier))
 
 
 func format_name() -> String:

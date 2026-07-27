@@ -99,6 +99,43 @@ func available_for(profile: PlayerProfile) -> Array[EventSpec]:
 	return out
 
 
+## Is there anything at all this profile can enter right now, with the money and
+## the cars it actually has?
+func can_enter_anything(profile: PlayerProfile) -> bool:
+	for e in available_for(profile):
+		if e.entry_fee > profile.money:
+			continue
+		for uid in profile.garage:
+			if e.car_ineligible_reason(profile.garage[uid]).is_empty():
+				return true
+	return false
+
+
+## The safety net: a career must never dead-end.
+##
+## A player who spends everything on a fast car, wrecks it and cannot pay the
+## bill would otherwise be stuck with no way to earn. So: repair whatever is
+## free to repair, and if there is still nothing to enter, issue a bottom-tier
+## car at no cost. The entry-level events charge nothing, so a starter car is
+## always enough to start earning again.
+##
+## Returns true if it had to intervene.
+func ensure_entry_possible(profile: PlayerProfile) -> bool:
+	if can_enter_anything(profile):
+		return false
+
+	profile.ensure_driveable_car()
+	if can_enter_anything(profile):
+		return true
+
+	var starter := CarDatabase.default_starter()
+	if starter == null:
+		return false
+	var granted := profile.add_car(starter)
+	profile.active_car_uid = granted.uid
+	return true
+
+
 ## Applied after a career race: pushes the unlock edges into the profile and
 ## returns the ids that were newly opened, for the results screen to celebrate.
 func apply_unlocks(profile: PlayerProfile, event_id: String) -> Array[String]:

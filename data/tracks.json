@@ -1,11 +1,11 @@
 {
   "_comment": [
-      "Tracks are a centreline plus a width, in metres. The builder derives the",
-      "road surface, the barriers, the checkpoints, the start grid and the",
-      "surface patches from that line, so a new track is just a list of points.",
-      "'ramps' and 'surface_overrides' index into the waypoint list.",
-      "closed: true joins the last waypoint back to the first (a circuit);",
-      "false leaves it as a point-to-point stage."
+    "Tracks are a centreline plus a width, in metres. The builder derives the",
+    "road surface, the barriers, the checkpoints, the start grid and the",
+    "surface patches from that line, so a new track is just a list of points.",
+    "'ramps' and 'surface_overrides' index into the waypoint list.",
+    "closed: true joins the last waypoint back to the first (a circuit);",
+    "false leaves it as a point-to-point stage."
   ],
   "tracks": [
     {
@@ -17,11 +17,53 @@
       "width": 15,
       "checkpoint_spacing": 110,
       "waypoints": [
-        [0, 0], [200, -40], [380, -20], [480, 90], [460, 240],
-        [330, 330], [150, 350], [-40, 300], [-140, 180], [-110, 50]
+        [
+          0,
+          0
+        ],
+        [
+          200,
+          -40
+        ],
+        [
+          380,
+          -20
+        ],
+        [
+          480,
+          90
+        ],
+        [
+          460,
+          240
+        ],
+        [
+          330,
+          330
+        ],
+        [
+          150,
+          350
+        ],
+        [
+          -40,
+          300
+        ],
+        [
+          -140,
+          180
+        ],
+        [
+          -110,
+          50
+        ]
       ],
       "ramps": [
-        { "at": 4, "launch": 5.5, "length": 9 }
+        {
+          "at": 4,
+          "launch": 5.5,
+          "length": 9
+        }
       ]
     },
     {
@@ -34,18 +76,83 @@
       "checkpoint_spacing": 130,
       "night": true,
       "waypoints": [
-        [0, 0], [140, -30], [290, -70], [430, -60], [560, -120],
-        [700, -170], [850, -160], [980, -100], [1110, -120], [1240, -180],
-        [1370, -190], [1490, -140]
+        [
+          0,
+          0
+        ],
+        [
+          140,
+          -30
+        ],
+        [
+          290,
+          -70
+        ],
+        [
+          430,
+          -60
+        ],
+        [
+          560,
+          -120
+        ],
+        [
+          700,
+          -170
+        ],
+        [
+          850,
+          -160
+        ],
+        [
+          980,
+          -100
+        ],
+        [
+          1110,
+          -120
+        ],
+        [
+          1240,
+          -180
+        ],
+        [
+          1370,
+          -190
+        ],
+        [
+          1490,
+          -140
+        ]
       ],
       "ramps": [
-        { "at": 3, "launch": 7.5, "length": 10 },
-        { "at": 6, "launch": 8.5, "length": 12 },
-        { "at": 9, "launch": 6.5, "length": 9 }
+        {
+          "at": 3,
+          "launch": 7.5,
+          "length": 10
+        },
+        {
+          "at": 6,
+          "launch": 8.5,
+          "length": 12
+        },
+        {
+          "at": 9,
+          "launch": 6.5,
+          "length": 9
+        }
       ],
       "surface_overrides": [
-        { "from": 0, "to": 1, "surface": "tarmac" },
-        { "from": 7, "to": 8, "surface": "mud" }
+        {
+          "from": 0,
+          "to": 1,
+          "surface": "tarmac"
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "surface": "mud"
+        }
       ]
     },
     {
@@ -57,9 +164,50 @@
       "width": 16,
       "checkpoint_spacing": 100,
       "waypoints": [
-        [0, 0], [180, 10], [340, 60], [430, 170], [400, 280],
-        [270, 340], [140, 320], [20, 330], [-90, 260], [-130, 140],
-        [-70, 30]
+        [
+          0,
+          0
+        ],
+        [
+          180,
+          10
+        ],
+        [
+          340,
+          60
+        ],
+        [
+          430,
+          170
+        ],
+        [
+          400,
+          280
+        ],
+        [
+          270,
+          340
+        ],
+        [
+          140,
+          320
+        ],
+        [
+          20,
+          330
+        ],
+        [
+          -90,
+          260
+        ],
+        [
+          -130,
+          140
+        ],
+        [
+          -70,
+          30
+        ]
       ],
       "ramps": []
     },
@@ -72,19 +220,111 @@
       "width": 12.5,
       "checkpoint_spacing": 140,
       "waypoints": [
-        [0, 0], [160, -70], [330, -50], [470, -160], [640, -140],
-        [780, -240], [930, -190], [1040, -60], [1080, 100], [990, 240],
-        [830, 300], [660, 270], [520, 340], [360, 380], [200, 330],
-        [60, 380], [-90, 300], [-160, 150], [-110, 20]
+        [
+          0,
+          0
+        ],
+        [
+          160,
+          -70
+        ],
+        [
+          330,
+          -50
+        ],
+        [
+          470,
+          -160
+        ],
+        [
+          640,
+          -140
+        ],
+        [
+          780,
+          -240
+        ],
+        [
+          930,
+          -190
+        ],
+        [
+          1040,
+          -60
+        ],
+        [
+          1080,
+          100
+        ],
+        [
+          990,
+          240
+        ],
+        [
+          830,
+          300
+        ],
+        [
+          660,
+          270
+        ],
+        [
+          520,
+          340
+        ],
+        [
+          360,
+          380
+        ],
+        [
+          200,
+          330
+        ],
+        [
+          60,
+          380
+        ],
+        [
+          -90,
+          300
+        ],
+        [
+          -160,
+          150
+        ],
+        [
+          -110,
+          20
+        ]
       ],
       "ramps": [
-        { "at": 5, "launch": 9, "length": 12 },
-        { "at": 12, "launch": 7, "length": 10 },
-        { "at": 15, "launch": 8, "length": 11 }
+        {
+          "at": 5,
+          "launch": 9,
+          "length": 12
+        },
+        {
+          "at": 12,
+          "launch": 7,
+          "length": 10
+        },
+        {
+          "at": 15,
+          "launch": 8,
+          "length": 11
+        }
       ],
       "surface_overrides": [
-        { "from": 7, "to": 10, "surface": "tarmac" },
-        { "from": 13, "to": 14, "surface": "mud" }
+        {
+          "from": 7,
+          "to": 10,
+          "surface": "tarmac"
+        },
+        {
+          "from": 13,
+          "to": 14,
+          "surface": "mud"
+        }
       ]
     },
     {
@@ -96,15 +336,65 @@
       "width": 16,
       "checkpoint_spacing": 130,
       "waypoints": [
-        [0, 0], [150, -40], [300, -40], [440, -100], [590, -140],
-        [730, -130], [870, -70], [1010, -60], [1150, -110], [1280, -150]
+        [
+          0,
+          0
+        ],
+        [
+          150,
+          -40
+        ],
+        [
+          300,
+          -40
+        ],
+        [
+          440,
+          -100
+        ],
+        [
+          590,
+          -140
+        ],
+        [
+          730,
+          -130
+        ],
+        [
+          870,
+          -70
+        ],
+        [
+          1010,
+          -60
+        ],
+        [
+          1150,
+          -110
+        ],
+        [
+          1280,
+          -150
+        ]
       ],
       "ramps": [
-        { "at": 5, "launch": 6, "length": 10 }
+        {
+          "at": 5,
+          "launch": 6,
+          "length": 10
+        }
       ],
       "surface_overrides": [
-        { "from": 3, "to": 4, "surface": "ice" },
-        { "from": 7, "to": 8, "surface": "ice" }
+        {
+          "from": 3,
+          "to": 4,
+          "surface": "ice"
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "surface": "ice"
+        }
       ]
     },
     {
@@ -116,10 +406,448 @@
       "width": 90,
       "checkpoint_spacing": 200,
       "waypoints": [
-        [0, 0], [90, -30], [150, 40], [120, 140], [20, 170],
-        [-70, 110], [-80, 20]
+        [
+          0,
+          0
+        ],
+        [
+          90,
+          -30
+        ],
+        [
+          150,
+          40
+        ],
+        [
+          120,
+          140
+        ],
+        [
+          20,
+          170
+        ],
+        [
+          -70,
+          110
+        ],
+        [
+          -80,
+          20
+        ]
       ],
       "ramps": []
+    },
+    {
+      "id": "village_sprint",
+      "name": "Ahonpaa Village Sprint",
+      "description": "Two kilometres of village tarmac between stone walls. Narrow, fast and completely unforgiving of a wide line.",
+      "surface": "tarmac",
+      "closed": true,
+      "width": 11,
+      "checkpoint_spacing": 90,
+      "waypoints": [
+        [
+          0,
+          0
+        ],
+        [
+          120,
+          -10
+        ],
+        [
+          190,
+          -60
+        ],
+        [
+          240,
+          -20
+        ],
+        [
+          300,
+          40
+        ],
+        [
+          300,
+          140
+        ],
+        [
+          220,
+          200
+        ],
+        [
+          100,
+          210
+        ],
+        [
+          10,
+          160
+        ],
+        [
+          -40,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "quarry_run",
+      "name": "Granite Quarry Run",
+      "description": "Loose gravel across a working quarry, with two crests that will have you off the ground whether you meant it or not.",
+      "surface": "gravel",
+      "closed": false,
+      "width": 16,
+      "checkpoint_spacing": 120,
+      "waypoints": [
+        [
+          0,
+          0
+        ],
+        [
+          160,
+          20
+        ],
+        [
+          300,
+          -40
+        ],
+        [
+          430,
+          -30
+        ],
+        [
+          540,
+          60
+        ],
+        [
+          600,
+          190
+        ],
+        [
+          560,
+          320
+        ],
+        [
+          430,
+          390
+        ],
+        [
+          290,
+          380
+        ],
+        [
+          170,
+          430
+        ],
+        [
+          60,
+          520
+        ]
+      ],
+      "ramps": [
+        {
+          "at": 3,
+          "launch": 7.0,
+          "length": 12
+        },
+        {
+          "at": 7,
+          "launch": 5.5,
+          "length": 9
+        }
+      ]
+    },
+    {
+      "id": "coastal_tarmac",
+      "name": "Saltmarsh Coast",
+      "description": "Long, open sea-wall tarmac. The corners are quick rather than tight, so it rewards a car that stays settled at speed.",
+      "surface": "tarmac",
+      "closed": true,
+      "width": 14,
+      "checkpoint_spacing": 130,
+      "waypoints": [
+        [
+          0,
+          0
+        ],
+        [
+          220,
+          -60
+        ],
+        [
+          430,
+          -70
+        ],
+        [
+          620,
+          10
+        ],
+        [
+          720,
+          150
+        ],
+        [
+          700,
+          320
+        ],
+        [
+          560,
+          430
+        ],
+        [
+          350,
+          470
+        ],
+        [
+          150,
+          440
+        ],
+        [
+          -20,
+          340
+        ],
+        [
+          -90,
+          190
+        ],
+        [
+          -70,
+          60
+        ]
+      ]
+    },
+    {
+      "id": "lakeside_night",
+      "name": "Lakeside Night Stage",
+      "description": "Dirt along the lake shore after dark. Your headlights are the only thing between you and the water.",
+      "surface": "dirt",
+      "closed": false,
+      "width": 12,
+      "checkpoint_spacing": 110,
+      "night": true,
+      "waypoints": [
+        [
+          0,
+          0
+        ],
+        [
+          130,
+          60
+        ],
+        [
+          250,
+          40
+        ],
+        [
+          330,
+          -50
+        ],
+        [
+          440,
+          -70
+        ],
+        [
+          560,
+          10
+        ],
+        [
+          610,
+          140
+        ],
+        [
+          560,
+          270
+        ],
+        [
+          430,
+          330
+        ],
+        [
+          300,
+          300
+        ],
+        [
+          180,
+          340
+        ],
+        [
+          80,
+          440
+        ]
+      ],
+      "ramps": [
+        {
+          "at": 4,
+          "launch": 6.0,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "alpine_pass",
+      "name": "Hjelmstad Pass",
+      "description": "A mountain pass that starts and ends on tarmac and loses its surface in the middle. One stage, two very different cars needed.",
+      "surface": "tarmac",
+      "closed": false,
+      "width": 12,
+      "checkpoint_spacing": 140,
+      "waypoints": [
+        [
+          0,
+          0
+        ],
+        [
+          150,
+          -40
+        ],
+        [
+          300,
+          -30
+        ],
+        [
+          420,
+          40
+        ],
+        [
+          470,
+          170
+        ],
+        [
+          420,
+          300
+        ],
+        [
+          300,
+          380
+        ],
+        [
+          160,
+          400
+        ],
+        [
+          40,
+          470
+        ],
+        [
+          -20,
+          600
+        ],
+        [
+          40,
+          730
+        ],
+        [
+          180,
+          800
+        ],
+        [
+          330,
+          800
+        ],
+        [
+          460,
+          860
+        ],
+        [
+          540,
+          970
+        ],
+        [
+          560,
+          1110
+        ]
+      ],
+      "surface_overrides": [
+        {
+          "from": 5,
+          "to": 11,
+          "surface": "gravel"
+        }
+      ],
+      "ramps": [
+        {
+          "at": 9,
+          "launch": 6.5,
+          "length": 11
+        }
+      ]
+    },
+    {
+      "id": "arctic_marathon",
+      "name": "Arctic Marathon",
+      "description": "The longest stage in the game, on snow the whole way. Nothing about it is difficult; all of it is difficult for long enough.",
+      "surface": "snow",
+      "closed": false,
+      "width": 18,
+      "checkpoint_spacing": 160,
+      "waypoints": [
+        [
+          0,
+          0
+        ],
+        [
+          180,
+          -60
+        ],
+        [
+          380,
+          -40
+        ],
+        [
+          540,
+          50
+        ],
+        [
+          620,
+          200
+        ],
+        [
+          600,
+          370
+        ],
+        [
+          480,
+          490
+        ],
+        [
+          300,
+          540
+        ],
+        [
+          130,
+          520
+        ],
+        [
+          -30,
+          570
+        ],
+        [
+          -130,
+          700
+        ],
+        [
+          -100,
+          860
+        ],
+        [
+          40,
+          950
+        ],
+        [
+          220,
+          970
+        ],
+        [
+          390,
+          930
+        ],
+        [
+          540,
+          1000
+        ],
+        [
+          620,
+          1140
+        ]
+      ]
     }
   ]
 }

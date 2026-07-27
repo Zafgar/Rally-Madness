@@ -21,7 +21,7 @@ func _ready() -> void:
 
 	print("=== Rally Madness spec bench ===")
 	print("%-28s %-5s %11s %11s %13s %13s %7s %7s" % [
-		"car", "tier", "power hp", "(real)", "top km/h", "(real)", "0-100", "hp/t"])
+		"car", "tier", "power hp", "(real)", "top km/h", "(real)", "0-100", "index"])
 
 	var power_off := 0
 	var speed_off := 0
@@ -53,7 +53,7 @@ func _ready() -> void:
 			s["power_hp"], spec.reference_power_hp,
 			s["top_speed_kmh"], spec.reference_top_speed_kmh,
 			("%.1f" % zero_to_100) if zero_to_100 < 60.0 else "-",
-			s["hp_per_tonne"], power_note, speed_note])
+			stats.performance_index(), power_note, speed_note])
 
 	print("\n%d cars off on power, %d off on top speed, %d without reference figures" % [
 		power_off, speed_off, missing])
