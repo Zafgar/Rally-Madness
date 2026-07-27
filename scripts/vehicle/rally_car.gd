@@ -471,8 +471,12 @@ func _integrate_grounded(
 	# whether any of it has finally had enough.
 	var load_fraction := clampf(throttle * engine.torque_fraction(transmission.rpm), 0.0, 1.0)
 	var power_w := absf(crank_torque) * transmission.rpm * TAU / 60.0
+	# The handbrake counts too — it is a cable to the rear pads, and a driver
+	# who steers the car on it all stage should be buying pads more often than
+	# one who does not.
+	var pad_work := clampf(brake + (0.6 if command.handbrake else 0.0), 0.0, 1.0)
 	mechanical.update(delta, absf(v_local.x), transmission.rpm, load_fraction,
-		power_w, _rng, global_position)
+		power_w, _rng, global_position, pad_work)
 
 
 ## Standing still: decide direction from the pedals rather than making the

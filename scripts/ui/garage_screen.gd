@@ -76,14 +76,8 @@ func _build() -> void:
 	body.add_child(left)
 	left.add_child(UiTheme.section("Your cars"))
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	left.add_child(scroll)
-	_list = VBoxContainer.new()
-	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_list = UiTheme.scroller(left)
 	_list.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)
-	scroll.add_child(_list)
 
 	# The car and what you do to it in the middle; what it is made of on the
 	# right. Stacking the spec sheet under the picture left it in a short
@@ -115,13 +109,7 @@ func _build() -> void:
 	right.add_theme_constant_override("separation", UiTheme.GAP)
 	body.add_child(right)
 
-	var detail_scroll := ScrollContainer.new()
-	detail_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	detail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	right.add_child(detail_scroll)
-	var detail_row := VBoxContainer.new()
-	detail_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail_scroll.add_child(detail_row)
+	var detail_row := UiTheme.scroller(right)
 	_details = UiTheme.reading_column(detail_row, 540)
 	_details.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)
 

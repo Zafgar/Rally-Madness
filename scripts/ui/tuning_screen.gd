@@ -88,14 +88,8 @@ func _build() -> void:
 	slots_column.add_theme_constant_override("separation", UiTheme.GAP)
 	body.add_child(slots_column)
 	slots_column.add_child(UiTheme.section("Component"))
-	var slot_scroll := ScrollContainer.new()
-	slot_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	slot_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	slots_column.add_child(slot_scroll)
-	_slot_list = VBoxContainer.new()
-	_slot_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_slot_list = UiTheme.scroller(slots_column)
 	_slot_list.add_theme_constant_override("separation", 2)
-	slot_scroll.add_child(_slot_list)
 
 	# --- Parts in the chosen slot -------------------------------------------
 	var parts_column := VBoxContainer.new()
@@ -103,14 +97,8 @@ func _build() -> void:
 	parts_column.add_theme_constant_override("separation", UiTheme.GAP)
 	body.add_child(parts_column)
 	parts_column.add_child(UiTheme.section("Catalogue"))
-	var part_scroll := ScrollContainer.new()
-	part_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	part_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	parts_column.add_child(part_scroll)
-	_part_list = VBoxContainer.new()
-	_part_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_part_list = UiTheme.scroller(parts_column)
 	_part_list.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)
-	part_scroll.add_child(_part_list)
 
 	# --- The car, and the free setup ----------------------------------------
 	var right := VBoxContainer.new()
@@ -124,14 +112,8 @@ func _build() -> void:
 	_preview = CarPreview.new()
 	preview_card.add_child(_preview)
 
-	var right_scroll := ScrollContainer.new()
-	right_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	right.add_child(right_scroll)
-	var right_column := VBoxContainer.new()
-	right_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var right_column := UiTheme.scroller(right)
 	right_column.add_theme_constant_override("separation", UiTheme.GAP)
-	right_scroll.add_child(right_column)
 
 	_summary = VBoxContainer.new()
 	_summary.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)

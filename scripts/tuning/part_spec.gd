@@ -10,7 +10,7 @@ extends RefCounted
 ## Every slot accepts exactly one part. Order here is the order shown in the
 ## garage UI.
 const SLOTS := [
-	"engine", "intake", "exhaust", "turbo", "ecu", "cooling",
+	"engine", "internals", "intake", "exhaust", "turbo", "ecu", "cooling", "fuel",
 	"gearbox", "clutch", "differential",
 	"suspension", "springs", "dampers", "antiroll", "brakes", "electronics",
 	"tires", "wheels",

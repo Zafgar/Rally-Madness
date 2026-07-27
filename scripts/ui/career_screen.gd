@@ -62,14 +62,8 @@ func _build() -> void:
 	_status = UiTheme.caption("")
 	column.add_child(_status)
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	column.add_child(scroll)
-	_list = VBoxContainer.new()
-	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_list = UiTheme.scroller(column)
 	_list.add_theme_constant_override("separation", UiTheme.GAP)
-	scroll.add_child(_list)
 
 
 func refresh() -> void:

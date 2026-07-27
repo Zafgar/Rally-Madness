@@ -71,6 +71,14 @@ const BASE_RATE_PUNCTURE := 2.50
 ## Oil leaks put a slick on the road. One drop this often, in seconds.
 const OIL_DROP_INTERVAL := 0.35
 
+## Fraction of a set of pads used per unit of braking work, where the work is
+## pedal pressure times metres travelled. Set so that a mid-size car driven
+## hard through a four-minute stage — roughly a fifth of the time on the brakes
+## at rally speeds — uses about a quarter of a set. Four or five hard events
+## between pad changes: often enough that the service menu is a real decision,
+## rare enough that it is not a chore after every race.
+const BRAKE_WEAR_PER_JOULE := 0.00021
+
 ## Wear below this contributes nothing to any failure rate.
 ##
 ## Without a threshold, a perfectly maintained car has a small chance of failing
@@ -141,9 +149,12 @@ func _init(p_stats: VehicleStats, p_damage: DamageModel) -> void:
 
 
 ## Tank size scaled off the car's mass, because that is the only proxy the data
-## has for how big the thing is, and it is a decent one.
+## has for how big the thing is, and it is a decent one. A fitted cell adds to
+## or takes away from that, which is the trade a rally team actually makes:
+## less fuel is less weight and a bet on the stage being short.
 func _tank_size() -> float:
-	return clampf(stats.mass_kg * 0.045, 28.0, 110.0)
+	return maxf(clampf(stats.mass_kg * 0.045, 28.0, 110.0)
+		+ stats.fuel_capacity_bonus_l, 12.0)
 
 
 ## Loads the wear a car is carrying into the race.
@@ -211,6 +222,7 @@ func engine_stress() -> float:
 
 ## `load_fraction` is throttle times how much of peak torque the engine is
 ## actually making, 0..1. `power_w` is what it is producing right now.
+## `brake_fraction` is how hard the brake pedal is being pressed, 0..1.
 func update(
 	delta: float,
 	speed_ms: float,
@@ -218,12 +230,13 @@ func update(
 	load_fraction: float,
 	power_w: float,
 	rng: RandomNumberGenerator,
-	position: Vector2
+	position: Vector2,
+	brake_fraction: float = 0.0
 ) -> void:
 	_accumulate_distance(delta, speed_ms)
 	_burn_fuel(delta, power_w)
 	_update_temperatures(delta, speed_ms, load_fraction)
-	_wear_parts(delta, speed_ms, load_fraction, rpm)
+	_wear_parts(delta, speed_ms, load_fraction, rpm, brake_fraction)
 	_roll_for_failures(delta, rng, rpm)
 	_leak_oil(delta, position)
 	_publish_levels()
@@ -241,7 +254,8 @@ func _burn_fuel(delta: float, power_w: float) -> void:
 	if failed.has(System.FUEL):
 		return
 	var litres_per_second := maxf(power_w, 0.0) / 1000.0 \
-		* BSFC_G_PER_KWH / 1000.0 / PETROL_KG_PER_L / 3600.0
+		* BSFC_G_PER_KWH / 1000.0 / PETROL_KG_PER_L / 3600.0 \
+		* maxf(stats.fuel_burn_rate, 0.1)
 	# Idle and overrun still use a trickle, or a car coasting a long stage
 	# arrives with a full tank.
 	litres_per_second += 0.00035
@@ -254,7 +268,7 @@ func _burn_fuel(delta: float, power_w: float) -> void:
 ## heat rejection, which is what makes that failure matter rather than being a
 ## message on the dash.
 func _update_temperatures(delta: float, speed_ms: float, load_fraction: float) -> void:
-	var cooling_capacity := 1.0
+	var cooling_capacity := maxf(stats.cooling_capacity, 0.2)
 	if failed.has(System.COOLING):
 		cooling_capacity = 0.12
 	var airflow := 0.35 + clampf(speed_ms / 45.0, 0.0, 1.0) * 0.65
@@ -269,8 +283,12 @@ func _update_temperatures(delta: float, speed_ms: float, load_fraction: float) -
 	# Everything above that is bought with the boost and limiter sliders, and
 	# maximum on both lands right on the warning line.
 	var coolant_target := 86.0 + load_fraction * 8.0
-	coolant_target += maxf(boost_setting, 0.0) * 14.0
-	coolant_target += maxf(rev_limit_setting, 0.0) * 8.0
+	# A bigger radiator does not make a car run below its thermostat — it makes
+	# the *extra* heat the driver has asked for go away. So capacity divides the
+	# terms the boost and limiter sliders add, and leaves the base alone.
+	var shed := 1.0 / maxf(stats.cooling_capacity, 0.2)
+	coolant_target += maxf(boost_setting, 0.0) * 14.0 * shed
+	coolant_target += maxf(rev_limit_setting, 0.0) * 8.0 * shed
 	# Airflow is what actually rejects the heat, so a car sitting still in a
 	# gravel trap cooks and a car at speed does not.
 	coolant_target -= (airflow - 0.7) * 12.0
@@ -291,19 +309,47 @@ func _update_temperatures(delta: float, speed_ms: float, load_fraction: float) -
 	oil_c = move_toward(oil_c, oil_target, (1.4 * airflow + 0.6) * delta)
 
 
-func _wear_parts(delta: float, speed_ms: float, load_fraction: float, rpm: float) -> void:
+func _wear_parts(delta: float, speed_ms: float, load_fraction: float, rpm: float,
+		brake_fraction: float) -> void:
 	var hours := delta / 3600.0
 	# Oil degrades with heat and revs. A gentle stage barely touches it; a long
 	# hot one uses most of a service interval.
 	var rev_fraction := clampf(rpm / maxf(stats.redline_rpm, 1000.0), 0.0, 1.2)
 	var oil_load := 0.4 + load_fraction * 0.8 + maxf(rev_fraction - 0.8, 0.0) * 2.0
 	oil_load *= 1.0 + clampf((oil_c - OIL_WARN_C) / 40.0, 0.0, 1.5)
-	oil_life = maxf(oil_life - oil_load * hours * 0.9, 0.0)
+	oil_life = maxf(oil_life - oil_load * hours * 0.9 * maxf(stats.oil_wear_rate, 0.0), 0.0)
 
 	if stats.turbo_boost > 1.001:
 		var turbo_load := load_fraction * (1.0 + maxf(boost_setting, 0.0) * 1.4)
 		turbo_load *= 1.0 + clampf((oil_c - OIL_WARN_C) / 30.0, 0.0, 2.0)
-		turbo_life = maxf(turbo_life - turbo_load * hours * 0.55, 0.0)
+		turbo_life = maxf(
+			turbo_life - turbo_load * hours * 0.55 * maxf(stats.turbo_wear_rate, 0.0), 0.0)
+
+	_wear_brakes(delta, speed_ms, brake_fraction)
+
+
+## Pads and discs, worn by the work they do.
+##
+## Brake life was read everywhere — the fade model, the failure roll, the
+## garage bill, the used-car listing — and written nowhere, so a set of pads
+## lasted forever and the "new brakes" line in the service menu bought nothing.
+## The fix is the physical quantity: braking work is force times distance, so
+## pedal pressure times road speed times time is exactly the energy going into
+## the discs, and a heavy car late-braking from 200 km/h eats a set in a way
+## that a hatchback trickling round a village stage never will.
+func _wear_brakes(delta: float, speed_ms: float, brake_fraction: float) -> void:
+	if brake_fraction <= 0.01 or speed_ms < 1.0:
+		return
+	var work := clampf(brake_fraction, 0.0, 1.0) * speed_ms * delta
+	# Mass relative to a mid-size car, because stopping two tonnes costs twice
+	# as much pad as stopping one.
+	var heft := clampf(stats.mass_kg / 1200.0, 0.5, 2.2)
+	# Fade is not just a symptom: hot brakes wear far faster than cool ones,
+	# which is why the second half of a long descent is where a set dies.
+	var heat := 1.0 + clampf((oil_c - OIL_WARN_C) / 60.0, 0.0, 0.8)
+	brake_life = maxf(
+		brake_life - work * heft * heat * BRAKE_WEAR_PER_JOULE
+			* maxf(stats.brake_wear_rate, 0.0), 0.0)
 
 
 ## One Poisson trial per system per step. Rates are per hour, so a step at
@@ -312,6 +358,10 @@ func _wear_parts(delta: float, speed_ms: float, load_fraction: float, rpm: float
 func _roll_for_failures(delta: float, rng: RandomNumberGenerator, rpm: float) -> void:
 	var hours := delta / 3600.0
 	var stress := engine_stress()
+	# What a proper build buys. It is applied to the hours rather than to each
+	# rate so that nothing can be made *more* fragile by a rounding accident in
+	# one system while another is untouched.
+	hours /= maxf(stats.reliability, 0.05)
 
 	if not failed.has(System.TURBO) and stats.turbo_boost > 1.001:
 		var rate := BASE_RATE_TURBO * _past_threshold(turbo_wear()) * stress

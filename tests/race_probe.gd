@@ -232,6 +232,20 @@ func _report(results: Array) -> void:
 	for why in causes:
 		print("  %-40s %d" % [why, causes[why]])
 
+	# What the stage actually consumed, driven rather than assumed. The service
+	# probe answers this from a made-up duty cycle; this answers it from the
+	# pedals the AI genuinely used, which is the only version that can be wrong
+	# in a way worth knowing about.
+	print("\n%-22s %8s %8s %8s %8s" % ["driver", "oil left", "pads", "tyres", "fuel"])
+	for e in _director.entrants:
+		if e.car == null or e.car.mechanical == null:
+			continue
+		var m := e.car.mechanical
+		print("%-22s %7.0f%% %7.0f%% %7.0f%% %7.0f%%" % [
+			e.display_name, m.oil_life * 100.0, m.brake_life * 100.0,
+			float(e.car.damage.integrity.get("tires", 1.0)) * 100.0,
+			m.fuel_l / maxf(m.tank_l, 1.0) * 100.0])
+
 	var contacts := 0
 	var wrecked := 0
 	for e in _director.entrants:

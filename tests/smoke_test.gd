@@ -1604,6 +1604,80 @@ func _test_mechanical_model() -> void:
 	_check(healthy_broke == 0,
 		"a well kept one over the same distance never does (%d of 12)" % healthy_broke)
 
+	# --- Brakes are a consumable, not a decoration --------------------------
+	# For a long time brake_life was read by the fade model, the failure roll,
+	# the garage bill and the used-car listing, and written by nothing at all:
+	# a set of pads lasted forever and the "Replace brakes" button bought air.
+	var braked := MechanicalModel.new(stats, DamageModel.new(stats))
+	for i in 12000:   # 200 seconds, a fifth of it hard on the pedal
+		var on_pedal := fmod(float(i) / 60.0, 5.0) > 4.0
+		braked.update(1.0 / 60.0, 32.0, stats.redline_rpm * 0.6, 0.5, 60000.0,
+			rng, Vector2.ZERO, 1.0 if on_pedal else 0.0)
+	_check(braked.brake_life < 0.97,
+		"braking wears the pads out (%.0f%% left after a stage)" % (braked.brake_life * 100.0))
+	_check(braked.brake_life > 0.5,
+		"but one stage does not use a whole set (%.0f%% left)" % (braked.brake_life * 100.0))
+
+	var coasted := MechanicalModel.new(stats, DamageModel.new(stats))
+	for i in 12000:
+		coasted.update(1.0 / 60.0, 32.0, stats.redline_rpm * 0.6, 0.5, 60000.0,
+			rng, Vector2.ZERO, 0.0)
+	_check(is_equal_approx(coasted.brake_life, 1.0),
+		"and a car that never brakes never needs pads")
+
+	# --- Reliability is something a player can buy ---------------------------
+	# Every part below claims a number in its description. The claim is only
+	# worth printing if it reaches the model, so each one is checked against
+	# the same car driven the same way.
+	# The top of the shelf only bolts to a chassis that will take it, so this
+	# runs on a Group B car rather than the Impreza used above — which accepts
+	# tier 2 and would silently refuse every part here.
+	var big_car := CarDatabase.get_car("delta_s4")
+	var big_stock := TuningCalculator.resolve(big_car, big_car.default_loadout())
+
+	var hard := TuningLoadout.new()
+	hard.set_part("internals", "internals_dry_sump")
+	var protected := TuningCalculator.resolve(big_car, hard)
+	_check(protected.oil_wear_rate < 0.5, "a dry sump halves how fast the oil ages")
+	_check(protected.reliability > 2.0, "and makes the engine far less likely to let go")
+
+	var pads := TuningLoadout.new()
+	pads.set_part("brakes", "brakes_4pot")
+	_check(TuningCalculator.resolve(big_car, pads).brake_wear_rate < 0.8,
+		"race calipers make a set of pads last longer")
+
+	var antilag := TuningLoadout.new()
+	antilag.set_part("exhaust", "exhaust_antilag")
+	_check(TuningCalculator.resolve(big_car, antilag).turbo_wear_rate > 1.4,
+		"and anti-lag eats turbos, which is exactly what it does in life")
+
+	var oil_a := MechanicalModel.new(big_stock, DamageModel.new(big_stock))
+	var oil_b := MechanicalModel.new(protected, DamageModel.new(protected))
+	for i in 6000:
+		oil_a.update(1.0 / 60.0, 40.0, big_stock.redline_rpm * 0.85, 1.0, 150000.0,
+			rng, Vector2.ZERO)
+		oil_b.update(1.0 / 60.0, 40.0, protected.redline_rpm * 0.85, 1.0, 150000.0,
+			rng, Vector2.ZERO)
+	_check(oil_b.oil_life > oil_a.oil_life + 0.01,
+		"and the difference shows up over a stage (%.0f%% left against %.0f%%)"
+			% [oil_b.oil_life * 100.0, oil_a.oil_life * 100.0])
+
+	# --- How much fuel you choose to carry ----------------------------------
+	var big := TuningLoadout.new()
+	big.set_part("fuel", "fuel_long_range")
+	var small := TuningLoadout.new()
+	small.set_part("fuel", "fuel_cell_light")
+	var big_tank := MechanicalModel.new(TuningCalculator.resolve(big_car, big), null)
+	var small_tank := MechanicalModel.new(TuningCalculator.resolve(big_car, small), null)
+	var stock_tank := MechanicalModel.new(big_stock, null)
+	_check(big_tank.tank_l > stock_tank.tank_l,
+		"a long-range tank carries more fuel (%.0f L against %.0f)" % [
+			big_tank.tank_l, stock_tank.tank_l])
+	_check(small_tank.tank_l < stock_tank.tank_l,
+		"and a light cell carries less, for less weight (%.0f L)" % small_tank.tank_l)
+	_check(TuningCalculator.resolve(big_car, small).mass_kg < big_stock.mass_kg,
+		"which is the whole reason to fit one")
+
 	# --- What a failure does ------------------------------------------------
 	var punctured := MechanicalModel.new(stats, DamageModel.new(stats))
 	punctured.punctured_axle = 0

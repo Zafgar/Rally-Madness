@@ -208,6 +208,34 @@ static func expander() -> Control:
 	return c
 
 
+## Width to keep clear for a vertical scrollbar.
+const SCROLLBAR_WIDTH := 16
+
+
+## A scrolling column, added to `parent`, whose contents are inset from the
+## scrollbar. Returns the column to put things in.
+##
+## Godot draws a ScrollContainer's scrollbar *over* the content rather than
+## beside it, so the right-hand strip of every row underneath is hidden. On a
+## screen full of right-aligned figures that means the last character of every
+## number — "216 km/h" reading as "216 km/" — which looks like a text bug and
+## is really a layout one. Everything that scrolls goes through here.
+static func scroller(parent: Control) -> VBoxContainer:
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	parent.add_child(scroll)
+	var inset := MarginContainer.new()
+	inset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inset.add_theme_constant_override("margin_right", SCROLLBAR_WIDTH)
+	scroll.add_child(inset)
+	var column := VBoxContainer.new()
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inset.add_child(column)
+	return column
+
+
 ## A label/value pair on one line, value right-aligned. The workhorse of every
 ## spec sheet in the game.
 static func stat_row(name: String, value: String, colour: Color = TEXT) -> Control:

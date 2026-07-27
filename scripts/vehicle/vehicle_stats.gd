@@ -26,6 +26,8 @@ const STAT_KEYS := [
 	"nitro_capacity", "nitro_power", "nitro_regen", "nitro_heat",
 	"durability_body", "durability_engine", "durability_suspension", "crash_resistance",
 	"awd_front_bias", "diff_lock_front", "diff_lock_rear", "suspension_travel",
+	"oil_wear_rate", "brake_wear_rate", "turbo_wear_rate", "cooling_capacity",
+	"reliability", "fuel_capacity_bonus_l", "fuel_burn_rate",
 ]
 
 # --- Identity (not tunable) ---
@@ -136,6 +138,36 @@ var durability_engine: float = 100.0
 var durability_suspension: float = 100.0
 ## Scales incoming impact damage. Roll cages and armour lower this.
 var crash_resistance: float = 1.0
+
+# --- Servicing and reliability ---
+## Everything below is a multiplier on how fast a consumable is used up or how
+## likely a system is to let go, and every one of them is a thing a player can
+## buy. That matters: without them, breaking down is something that happens
+## *to* you, and the only answer is to pay the bill afterwards. With them, a
+## driver who keeps grenading engines has a shelf of parts to go and look at.
+##
+## They are also the honest place for the trade a rally car actually makes — a
+## dry sump costs money and weight and buys you an engine that survives being
+## sideways; a big radiator costs drag and buys you the boost you wanted.
+
+## How fast the oil degrades. Coolers and dry sumps lower it.
+var oil_wear_rate: float = 1.0
+## How fast pads and discs are used up.
+var brake_wear_rate: float = 1.0
+## How fast the turbo is worn out.
+var turbo_wear_rate: float = 1.0
+## How much heat the cooling system sheds, relative to standard. Above 1 the
+## car runs cooler for the same work, which is what buys headroom for boost.
+var cooling_capacity: float = 1.0
+## Scales every mechanical hazard rate. Forged internals do not make a car
+## faster — they make it finish.
+var reliability: float = 1.0
+## Litres of tank over and above the standard one. An offset rather than an
+## absolute figure so that a long-range tank means the same thing on a Trabant
+## as on a Group B car, instead of quietly halving one and doubling the other.
+var fuel_capacity_bonus_l: float = 0.0
+## Multiplier on fuel consumption for the same power.
+var fuel_burn_rate: float = 1.0
 
 # --- Drivetrain detail ---
 ## For AWD only: share of drive torque sent forward.
