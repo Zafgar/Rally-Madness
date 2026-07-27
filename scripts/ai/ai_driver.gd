@@ -30,6 +30,13 @@ const MOOD_INTERVAL := 2.5
 ## How far off line a driver pulls to make a pass, in metres.
 const OVERTAKE_OFFSET_M := 3.2
 
+## How far past the tyre's peak slip ratio counts as fully lit up. Beyond this
+## much extra spin the driver is backing off as hard as they are going to.
+const TRACTION_SPIN_SPAN := 0.55
+## And how far they will back off. Never to nothing: lifting completely in the
+## middle of a slide unloads the driven axle and makes it worse.
+const TRACTION_FLOOR := 0.25
+
 var car: RallyCar
 var track: TrackBuilder
 var profile: DriverProfile
@@ -177,6 +184,19 @@ func update(delta: float) -> VehicleCommand:
 		_command.brake = clampf((speed - target_speed) / 8.0, 0.0, 1.0)
 		_command.throttle = 0.0
 
+	# --- Traction -----------------------------------------------------------
+	# A driver feels the wheels light up and eases off. Without this the AI held
+	# the pedal flat from rest, the tyres spun at three times road speed and a
+	# 500 hp car left the line slower than a shopping hatchback — which is how
+	# a start grid turned into a queue of cars going nowhere.
+	var spin := car.driven_slip_ratio()
+	if spin > TireModel.BASE_PEAK_SLIP_RATIO:
+		var over := (spin - TireModel.BASE_PEAK_SLIP_RATIO) / TRACTION_SPIN_SPAN
+		# How quickly they catch it is throttle discipline, which is what the
+		# words mean: a clumsy driver sits in the wheelspin far longer.
+		var catch_rate := lerpf(0.40, 1.00, profile.throttle_discipline)
+		_command.throttle *= clampf(1.0 - over * catch_rate, TRACTION_FLOOR, 1.0)
+
 	# Grip spent on turning is grip not available for driving. Holding full
 	# throttle at full lock just pushes the car wide, so ease off as the
 	# steering loads up — the same thing a good driver does without thinking,
@@ -272,6 +292,13 @@ func _apply_traffic(target_speed: float, speed: float) -> float:
 	var follow_speed: float = awareness.speed_ahead + (gap - wanted) * 0.9
 	if awareness.ahead_braking:
 		follow_speed = minf(follow_speed, awareness.speed_ahead)
+	# Matching the car ahead holds the gap exactly where it is, so a driver who
+	# merely wants more room than they have should ease off rather than stop.
+	# Without this floor, wanting a bigger gap than the road is currently
+	# giving you is enough to brake to a standstill — and the car behind then
+	# does the same, and so on down the field.
+	if gap > RivalAwareness.STANDING_GAP_M:
+		follow_speed = maxf(follow_speed, awareness.speed_ahead * 0.85)
 	return minf(target_speed, maxf(follow_speed, 0.0))
 
 

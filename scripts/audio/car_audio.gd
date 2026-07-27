@@ -42,6 +42,12 @@ var _puncture: AudioStreamWAV
 var _impacts: Array[AudioStreamWAV] = []
 var _surface_streams: Dictionary = {}
 
+## Set once the voices exist. The loops cannot be started until both this is
+## true and the node is in the tree, and which of those happens first depends
+## on the caller — so both paths ask.
+var _built: bool = false
+var _loops_started: bool = false
+
 var _previous_throttle: float = 0.0
 var _previous_boost: float = 1.0
 var _audible: bool = true
@@ -64,20 +70,22 @@ func setup(p_car: RallyCar, layout: EngineLayout, loadout: TuningLoadout) -> voi
 	voice = EngineVoice.bake(car.stats, layout, exhaust_tier, intake_tier)
 
 	for band in voice.on_load.size():
-		_engine_on.append(_make_player(voice.on_load[band], "Engine", -80.0))
-		_engine_off.append(_make_player(voice.off_load[band], "Engine", -80.0))
+		_engine_on.append(_make_player(voice.on_load[band], "Engine", -80.0,
+			"EngineOn%d" % band))
+		_engine_off.append(_make_player(voice.off_load[band], "Engine", -80.0,
+			"EngineOff%d" % band))
 
 	if car.stats.turbo_boost > 1.02:
 		_turbo = _make_player(
 			EffectVoices.bake_turbo_whistle(car.stats.turbo_boost, car.stats.turbo_lag, rng),
-			"Engine", -80.0)
+			"Engine", -80.0, "Turbo")
 		_blow_off = EffectVoices.bake_blow_off(
 			car.stats.turbo_boost, car.stats.turbo_lag, rng)
 		_flutter = EffectVoices.bake_flutter(car.stats.turbo_lag, rng)
 
-	_tyre = _make_player(EffectVoices.bake_tyre_squeal(rng), "Tyres", -80.0)
+	_tyre = _make_player(EffectVoices.bake_tyre_squeal(rng), "Tyres", -80.0, "TyreSqueal")
 	_surface = _make_player(EffectVoices.bake_surface_scrub(
-		TireModel.Surface.TARMAC, rng), "Tyres", -80.0)
+		TireModel.Surface.TARMAC, rng), "Tyres", -80.0, "SurfaceScrub")
 	# One scrub loop per surface, swapped as the car crosses zones. Baking all
 	# of them up front costs a few kilobytes and avoids a hitch at the moment a
 	# car leaves the road, which is the worst possible moment for one.
@@ -86,7 +94,7 @@ func setup(p_car: RallyCar, layout: EngineLayout, loadout: TuningLoadout) -> voi
 			TireModel.Surface.GRASS, TireModel.Surface.MUD]:
 		_surface_streams[surface] = EffectVoices.bake_surface_scrub(surface, rng)
 
-	_one_shot = _make_player(null, "Impacts", 0.0)
+	_one_shot = _make_player(null, "Impacts", 0.0, "OneShot")
 	_gear_change = EffectVoices.bake_gear_change(car.stats.shift_time, rng)
 	_turbo_failure = EffectVoices.bake_turbo_failure(rng)
 	_engine_failure = EffectVoices.bake_engine_failure(rng)
@@ -96,7 +104,8 @@ func setup(p_car: RallyCar, layout: EngineLayout, loadout: TuningLoadout) -> voi
 	for severity in [0.15, 0.5, 0.95]:
 		_impacts.append(EffectVoices.bake_impact(severity, rng))
 
-	_start_loops()
+	_built = true
+	_maybe_start_loops()
 	car.landed.connect(_on_landed)
 	EventBus.car_gear_changed.connect(_on_gear_changed)
 	EventBus.car_failed.connect(_on_car_failed)
@@ -110,8 +119,10 @@ static func _part_tier(loadout: TuningLoadout, slot: String) -> int:
 
 
 func _make_player(stream: AudioStream, bus: String,
-		volume_db: float) -> AudioStreamPlayer2D:
+		volume_db: float, name_hint: String = "") -> AudioStreamPlayer2D:
 	var player := AudioStreamPlayer2D.new()
+	if not name_hint.is_empty():
+		player.name = name_hint
 	player.stream = stream
 	player.volume_db = volume_db
 	player.bus = bus if AudioServer.get_bus_index(bus) >= 0 else "Master"
@@ -125,7 +136,23 @@ func _make_player(stream: AudioStream, bus: String,
 	return player
 
 
-func _start_loops() -> void:
+func _ready() -> void:
+	_maybe_start_loops()
+
+
+## Starts every continuous voice, once there is somewhere for it to play.
+##
+## A car is configured before it is added to the world — the race builds it,
+## sets it up and then parents it — and an AudioStreamPlayer2D outside the tree
+## refuses to play and does not remember that it was asked. So every engine,
+## turbo and tyre loop in the game was told to start exactly once, at the only
+## moment it could not, and the entire game ran silent apart from the one-shots.
+## Hence asking from both ends rather than from whichever one happens to be
+## later today.
+func _maybe_start_loops() -> void:
+	if _loops_started or not _built or not is_inside_tree():
+		return
+	_loops_started = true
 	for player in _engine_on + _engine_off:
 		player.play()
 	if _turbo != null:
@@ -135,8 +162,9 @@ func _start_loops() -> void:
 
 
 func _process(delta: float) -> void:
-	if car == null or not is_instance_valid(car) or car.stats == null:
+	if not _built or car == null or not is_instance_valid(car) or car.stats == null:
 		return
+	_maybe_start_loops()
 	_update_audibility()
 	if not _audible:
 		return
@@ -161,6 +189,7 @@ func _update_audibility() -> void:
 				player.play()
 			else:
 				player.stop()
+		_loops_started = audible
 	if detailed != _detailed:
 		_detailed = detailed
 		for player in [_turbo, _tyre, _surface]:

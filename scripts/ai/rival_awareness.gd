@@ -28,6 +28,29 @@ const ALONGSIDE_REACH := 5.5
 ## car is going rather than where it is now is most of what "seeing" means.
 const PROJECTION_SECONDS := 0.6
 
+## The room a driver leaves when nothing is moving — roughly a car length.
+##
+## A following distance is a time, not a distance. Two cars queueing sit a
+## metre apart; two at 200 km/h need sixty. Written as a fixed number of metres,
+## every driver on the start grid wanted more room than a grid gives them,
+## braked for the stationary car in front, and since that car was doing the same
+## thing the entire field deadlocked before it had moved. Which is exactly what
+## it looked like: cars sitting on the line going nowhere.
+const STANDING_GAP_M := 4.0
+## Seconds of headway on top of that, from the most cautious driver to the
+## boldest. Two seconds is the road-safety number; racing drivers use far less.
+const HEADWAY_MAX := 1.25
+const HEADWAY_MIN := 0.55
+## Closer than this and the gap matters whatever the closing speed, because at
+## this range a twitch is a contact.
+const CONTACT_GAP_M := 3.0
+## Below this the car in front has stopped being traffic and started being
+## scenery. Walking pace.
+const CRAWLING_MS := 2.0
+## How close you have to be to a stopped car before going around it is a plan
+## rather than an intention.
+const OBSTACLE_PASS_RANGE_M := 45.0
+
 # --- Refreshed picture of the field ---
 ## Nearest rival directly ahead, or null.
 var car_ahead: RallyCar = null
@@ -77,7 +100,9 @@ func scan_interval() -> float:
 ## also does not dare sit on someone's bumper.
 func desired_gap() -> float:
 	var boldness := (_profile.commitment + _profile.aggression) * 0.5
-	return lerpf(22.0, 5.0, clampf(boldness, 0.0, 1.0))
+	var headway := lerpf(HEADWAY_MAX, HEADWAY_MIN, clampf(boldness, 0.0, 1.0))
+	var speed := _car.speed_ms if _car != null and is_instance_valid(_car) else 0.0
+	return STANDING_GAP_M + speed * headway
 
 
 func update(delta: float) -> void:
@@ -172,6 +197,15 @@ func side_blocked(side: float) -> bool:
 func wants_to_overtake() -> bool:
 	if car_ahead == null:
 		return false
+	# A car that is not moving is an obstacle, not a rival. Once you have
+	# slowed to match it you are both stationary, closing speed is zero and it
+	# can never become anything else — so a rule that needs closing speed to
+	# justify a pass will queue the entire field behind one crashed car and
+	# leave it there. Anyone with any nerve at all goes around a parked car.
+	if speed_ahead < CRAWLING_MS:
+		# Near enough that the move is now. Committing to a line around
+		# something forty metres up the road is not a decision yet.
+		return gap_ahead < OBSTACLE_PASS_RANGE_M and _profile.aggression > 0.2
 	if closing_speed <= 0.5:
 		return false
 	if gap_ahead > desired_gap() * 2.0:
@@ -186,5 +220,14 @@ func wants_to_overtake() -> bool:
 func emergency() -> bool:
 	if car_ahead == null:
 		return false
+	# Only a gap that is actually shrinking is an emergency. A car sitting a
+	# few metres behind a stationary one is not about to hit it, and calling
+	# that a panic stop is half of what pinned the field to the start line.
+	# A car in front that is slowing while still moving is a gap about to
+	# shrink, so it counts even before the closing speed shows it. A car that
+	# has stopped and is sitting on its brakes is not.
+	var slowing_ahead := ahead_braking and speed_ahead > CRAWLING_MS
+	if closing_speed <= 0.0 and gap_ahead > CONTACT_GAP_M and not slowing_ahead:
+		return false
 	var margin := lerpf(2.2, 0.9, _profile.recovery)
-	return time_to_contact < margin or (ahead_braking and gap_ahead < desired_gap())
+	return time_to_contact < margin or (slowing_ahead and gap_ahead < desired_gap())

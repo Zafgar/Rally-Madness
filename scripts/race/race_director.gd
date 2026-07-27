@@ -136,6 +136,10 @@ func _spawn_ai() -> void:
 			loadout.set_part("tires", ai_tires)
 		var car := _make_car(spec, loadout, {}, grid_index)
 		car.is_locally_controlled = false
+		# Holding the brake to select reverse is a pad convenience. An AI that
+		# wants to reverse asks for the gear; leaving this on turns any moment
+		# of sitting on the brakes into a car driving itself backwards.
+		car.auto_reverse = false
 
 		var entrant := RaceEntrant.new()
 		entrant.car = car

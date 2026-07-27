@@ -44,6 +44,7 @@ func _ready() -> void:
 	_test_rival_awareness()
 	_test_visuals()
 	_test_direction_selection()
+	_test_grid_launch()
 	_test_haptics()
 	_test_damage_and_economy()
 	_test_progression()
@@ -732,6 +733,11 @@ func _test_rival_awareness() -> void:
 	var timid_view := RivalAwareness.new(car, timid)
 	var quick_view := RivalAwareness.new(car, quick)
 
+	# At a road speed, because a following distance is a time: standing still,
+	# every driver alive leaves the same car length and there is nothing to
+	# tell them apart.
+	car.speed_ms = 30.0
+
 	# The headline behaviour: a worse driver is more cautious, because they
 	# dare not run close.
 	_check(timid_view.desired_gap() > quick_view.desired_gap(),
@@ -749,6 +755,9 @@ func _test_rival_awareness() -> void:
 		view.car_ahead = rival
 		view.gap_ahead = 12.0
 		view.closing_speed = 4.0
+		# A rival being caught, not a parked one: those are different decisions
+		# and leaving this at zero was quietly testing the second.
+		view.speed_ahead = 26.0
 	_check(quick_view.wants_to_overtake(), "a works driver takes a chance to pass")
 	_check(not timid_view.wants_to_overtake(),
 		"a nervous one is faster and stays behind anyway")
@@ -982,6 +991,90 @@ func _test_direction_selection() -> void:
 
 	car.queue_free()
 	stopping.queue_free()
+
+
+## Getting off the start line.
+##
+## Cars were reported sitting on the grid going nowhere, and they were: a
+## following distance was written as a fixed number of metres, so every driver
+## on the grid wanted more room than a grid gives them, braked for the
+## stationary car in front, and since that car was doing the same the field
+## deadlocked before it moved. These are the claims that make a start work.
+func _test_grid_launch() -> void:
+	_section("getting off the line")
+
+	var car := _make_bench_car("golf_gti_mk2", "elec_none")
+	add_child(car)
+	var rival := _make_bench_car("golf_gti_mk2", "elec_none")
+	add_child(rival)
+	var view := RivalAwareness.new(car, _archetype("clubman"))
+
+	# A following distance is a time, so it collapses to a car length at rest
+	# and opens out with speed.
+	var standing := view.desired_gap()
+	_check(standing <= RivalAwareness.STANDING_GAP_M + 0.01,
+		"a stationary driver wants only a car length of room (%.1f m)" % standing)
+	_check(standing < 6.0, "which is less than a start grid gives them")
+	car.speed_ms = 40.0
+	var moving := view.desired_gap()
+	_check(moving > standing * 4.0,
+		"at 144 km/h they want far more (%.0f m)" % moving)
+	car.speed_ms = 0.0
+
+	# Two stationary cars are not an emergency however close they are parked,
+	# short of touching.
+	view.car_ahead = rival
+	view.gap_ahead = 8.5
+	view.speed_ahead = 0.0
+	view.closing_speed = 0.0
+	view.time_to_contact = INF
+	_check(not view.emergency(),
+		"a car stopped 8.5 m behind another stopped car is not an emergency")
+
+	# But it does want to go around it, because a parked car is scenery and
+	# waiting for a closing speed that can never appear is waiting forever.
+	_check(view.wants_to_overtake(),
+		"and it goes around rather than queueing behind it")
+
+	# A car ahead that is genuinely pulling away is neither.
+	view.speed_ahead = 30.0
+	view.closing_speed = -8.0
+	view.gap_ahead = 20.0
+	_check(not view.emergency() and not view.wants_to_overtake(),
+		"a rival pulling away is left alone")
+
+	# Wheelspin has to reach the right foot, or a powerful car leaves the line
+	# slower than a shopping hatchback.
+	var launcher := _make_bench_car("impreza_gc8", "elec_none")
+	add_child(launcher)
+	launcher.axle_front.slip_ratio = 0.9
+	launcher.axle_rear.slip_ratio = 0.9
+	_check(launcher.driven_slip_ratio() > 0.5,
+		"a car with its driven wheels spinning reports it")
+	# And a locked wheel under braking is not wheelspin, or the AI would lift
+	# in the middle of a stop.
+	launcher.axle_front.slip_ratio = -0.9
+	launcher.axle_rear.slip_ratio = -0.9
+	_check(is_equal_approx(launcher.driven_slip_ratio(), 0.0),
+		"a locked wheel is not reported as wheelspin")
+
+	# An AI must never be handed the pad convenience that makes the brake pedal
+	# drive the car backwards: a computer sitting on the brakes behind a stopped
+	# rival would select reverse and drive itself back down the stage.
+	var robot := _make_bench_car("golf_gti_mk2", "elec_none")
+	add_child(robot)
+	robot.auto_reverse = false
+	robot.transmission.engage_for(1)
+	for i in 120:
+		robot._auto_engage_gear(1.0 / 60.0, 0.0, 0.0, 1.0)
+	_check(robot.transmission.gear > 0,
+		"two seconds of held brake never puts an AI car into reverse")
+
+	robot.queue_free()
+	car.queue_free()
+	rival.queue_free()
+	launcher.queue_free()
+	view = null
 
 
 func _test_haptics() -> void:

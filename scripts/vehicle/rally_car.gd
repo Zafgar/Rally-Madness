@@ -30,6 +30,13 @@ const DRAG_CONSTANT := 0.6125
 
 @export var car_id: int = 0
 @export var is_locally_controlled: bool = true
+## Whether holding the brake at a standstill selects reverse. It is a
+## convenience for somebody holding a pad, who has no other way to ask; an AI
+## that wants reverse selects it. Left on for an AI it is actively harmful,
+## because in reverse the brake pedal is what drives the car — a computer
+## sitting on the brakes behind a stopped rival would select reverse and then
+## drive itself backwards down the stage.
+@export var auto_reverse: bool = true
 
 var stats: VehicleStats
 var spec: CarSpec
@@ -478,7 +485,9 @@ func _auto_engage_gear(delta: float, forward_speed: float, throttle: float,
 		brake: float) -> void:
 	if transmission.mode != Transmission.Mode.AUTOMATIC:
 		return
-	if absf(forward_speed) > REVERSE_ENGAGE_SPEED or throttle > 0.1:
+	if not auto_reverse:
+		_reverse_dwell = 0.0
+	elif absf(forward_speed) > REVERSE_ENGAGE_SPEED or throttle > 0.1:
 		_reverse_dwell = 0.0
 	elif brake > 0.5:
 		_reverse_dwell += delta
@@ -487,7 +496,7 @@ func _auto_engage_gear(delta: float, forward_speed: float, throttle: float,
 		return
 	if throttle > 0.1:
 		transmission.engage_for(1)
-	elif brake > 0.5 and _reverse_dwell >= REVERSE_ENGAGE_DWELL:
+	elif auto_reverse and brake > 0.5 and _reverse_dwell >= REVERSE_ENGAGE_DWELL:
 		transmission.engage_for(-1)
 
 
@@ -754,6 +763,23 @@ func traction_control_engaged() -> bool:
 
 ## Worst longitudinal slip across the axles, signed: negative is locking up,
 ## positive is spinning up.
+## How much the driven wheels are spinning up, 0 upwards. Positive slip only:
+## a locked wheel under braking is a different problem with a different answer,
+## and folding the two together would have a driver lift off mid-stop.
+##
+## Only axles that are actually driven count. A front-wheel-drive car sliding
+## its rears is not wheelspinning; it is going sideways.
+func driven_slip_ratio() -> float:
+	if axle_front == null or stats == null:
+		return 0.0
+	var worst := 0.0
+	if stats.front_torque_share() > 0.01:
+		worst = maxf(worst, axle_front.slip_ratio)
+	if stats.front_torque_share() < 0.99:
+		worst = maxf(worst, axle_rear.slip_ratio)
+	return maxf(worst, 0.0)
+
+
 func worst_slip_ratio() -> float:
 	if axle_front == null:
 		return 0.0
