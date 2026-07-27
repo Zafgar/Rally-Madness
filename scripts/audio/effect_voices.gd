@@ -194,6 +194,59 @@ static func bake_impact(severity: float, rng: RandomNumberGenerator) -> AudioStr
 
 # --- Transmission -----------------------------------------------------------
 
+## The horn.
+##
+## A real car horn is two horns, tuned a minor third or so apart and sounded
+## together — the beating between them is what makes it carry, and a single
+## tone sounds like a doorbell instead. The pitch comes from the car: a big
+## saloon has a deep one and a small hatchback a shrill one, and mass is a
+## perfectly good stand-in for how much horn a manufacturer fitted.
+##
+## Rendered as a loop, because a horn lasts exactly as long as somebody is
+## leaning on it.
+static func bake_horn(mass_kg: float, year: int,
+		rng: RandomNumberGenerator) -> AudioStreamWAV:
+	# 500 kg gets about 500 Hz, two and a half tonnes about 300. Modern cars
+	# are a little higher and cleaner than period ones.
+	var low_hz := clampf(620.0 - mass_kg * 0.13, 250.0, 560.0)
+	if year >= 2000:
+		low_hz *= 1.06
+	# A minor third above, which is the interval most twin horns are tuned to.
+	var high_hz := low_hz * 1.19
+
+	# A whole number of cycles of the beat frequency, so the loop joins where
+	# the two tones are back in the phase they started in.
+	var beat_hz := high_hz - low_hz
+	var duration := clampf(4.0 / maxf(beat_hz, 1.0), 0.08, 0.5)
+	var samples := int(duration * AudioSynth.MIX_RATE)
+	var buffer := PackedFloat32Array()
+	buffer.resize(samples)
+
+	var low_phase := 0.0
+	var high_phase := 0.0
+	for i in samples:
+		var value := 0.0
+		# A horn is a diaphragm being driven hard: lots of harmonics, and the
+		# odd ones dominate. Six of them is plenty to sound like brass rather
+		# than a sine wave.
+		for harmonic in range(1, 7):
+			var weight := 1.0 / float(harmonic * harmonic)
+			if harmonic % 2 == 1:
+				weight *= 1.7
+			value += sin(TAU * low_phase * float(harmonic)) * weight
+			value += sin(TAU * high_phase * float(harmonic)) * weight * 0.85
+		buffer[i] = value * 0.12
+		low_phase += low_hz / AudioSynth.MIX_RATE
+		high_phase += high_hz / AudioSynth.MIX_RATE
+
+	# A touch of noise for the air being pushed, at a level you would never
+	# pick out on its own.
+	for i in samples:
+		buffer[i] += rng.randf_range(-1.0, 1.0) * 0.012
+	AudioSynth.normalise(buffer, 0.72)
+	return AudioSynth.to_stream(buffer, true)
+
+
 ## A gearchange. A synchromesh box thunks; a dog box cracks. `shift_seconds` is
 ## how quick the change is, which is exactly what separates the two.
 static func bake_gear_change(shift_seconds: float,

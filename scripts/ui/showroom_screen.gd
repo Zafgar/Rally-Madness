@@ -32,6 +32,8 @@ var _paint_choice: Color = Color.from_string("#c8272d", Color.RED)
 
 
 func _ready() -> void:
+	# Being sold something.
+	AudioDirector.music.play("showroom")
 	theme = UiTheme.theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build()

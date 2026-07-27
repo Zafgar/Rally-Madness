@@ -23,6 +23,8 @@ var _status: Label
 
 
 func _ready() -> void:
+	# Reading the calendar.
+	AudioDirector.music.play("garage")
 	theme = UiTheme.theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build()

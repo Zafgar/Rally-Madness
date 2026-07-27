@@ -13,6 +13,8 @@ var _tracks: Dictionary = {}
 var _results_shown: bool = false
 var _overlay: RaceOverlay
 var _paused: bool = false
+## The last thing the countdown said, so each number is announced once.
+var _countdown_spoken: String = ""
 
 
 func _ready() -> void:
@@ -77,6 +79,12 @@ func _ready() -> void:
 	_overlay.pause_toggled.connect(_toggle_pause)
 	overlay_layer.add_child(_overlay)
 
+	# Music down but not off while driving: twelve engines have to get past it,
+	# and a soundtrack that vanishes the moment the action starts is one nobody
+	# ever hears.
+	AudioDirector.duck_music(true)
+	AudioDirector.music.play("grid")
+
 	_countdown_message(RaceDirector.COUNTDOWN_SECONDS)
 
 
@@ -139,6 +147,7 @@ func _retire_all_players() -> void:
 ## worded as abandoning and retiring is not.
 func _return_to_menu() -> void:
 	get_tree().paused = false
+	AudioDirector.duck_music(false)
 	AudioDirector.clear_local_cars()
 	PlayerManager.release_haptics()
 	var packed: PackedScene = load(MENU_SCENE_PATH)
@@ -181,6 +190,15 @@ func _countdown_message(remaining: float) -> void:
 	var text := "GO!" if remaining <= 0.5 else str(int(ceil(remaining - 0.5)))
 	for view in split.views:
 		view["hud"].show_status(text, 0.6, Color(1, 0.95, 0.4))
+	# One beep per number and a higher one for GO. Called every frame during
+	# the countdown, so it only fires when the number on screen changes.
+	if text != _countdown_spoken:
+		_countdown_spoken = text
+		if AudioDirector.interface != null:
+			AudioDirector.interface.play("go" if text == "GO!" else "countdown")
+		# And the tense grid loop stops the moment the race does not need it.
+		if text == "GO!":
+			AudioDirector.music.play("")
 
 
 func _on_race_complete(results: Array) -> void:
@@ -209,6 +227,9 @@ func _on_race_complete(results: Array) -> void:
 	if _overlay != null:
 		var name := director.event.display_name if director != null else "Race"
 		_overlay.show_results(name, results, own)
+	# The one screen the music is allowed to be pleased on.
+	AudioDirector.duck_music(false)
+	AudioDirector.music.play("results")
 
 
 func _results_table(results: Array) -> String:

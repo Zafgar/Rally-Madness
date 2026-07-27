@@ -13,6 +13,10 @@ var shift_up: bool = false    # edge-triggered
 var shift_down: bool = false  # edge-triggered
 var toggle_gearbox: bool = false
 var respawn: bool = false
+## Edge-triggered: the lights come on and stay on until asked again.
+var toggle_lights: bool = false
+## Held, not edge-triggered — a horn sounds for as long as you lean on it.
+var horn: bool = false
 
 
 func clear() -> void:
@@ -25,6 +29,8 @@ func clear() -> void:
 	shift_down = false
 	toggle_gearbox = false
 	respawn = false
+	toggle_lights = false
+	horn = false
 
 
 ## Compact form for network replication. Analogue axes are quantised to a byte
@@ -43,6 +49,8 @@ func encode() -> PackedByteArray:
 	flags |= 8 if shift_down else 0
 	flags |= 16 if toggle_gearbox else 0
 	flags |= 32 if respawn else 0
+	flags |= 64 if toggle_lights else 0
+	flags |= 128 if horn else 0
 	buf[3] = flags
 	return buf
 
@@ -61,6 +69,8 @@ func decode(buf: PackedByteArray) -> void:
 	shift_down = (flags & 8) != 0
 	toggle_gearbox = (flags & 16) != 0
 	respawn = (flags & 32) != 0
+	toggle_lights = (flags & 64) != 0
+	horn = (flags & 128) != 0
 
 
 func duplicate_command() -> VehicleCommand:
@@ -74,4 +84,6 @@ func duplicate_command() -> VehicleCommand:
 	c.shift_down = shift_down
 	c.toggle_gearbox = toggle_gearbox
 	c.respawn = respawn
+	c.toggle_lights = toggle_lights
+	c.horn = horn
 	return c

@@ -1737,6 +1737,68 @@ func _test_audio() -> void:
 	rig.queue_free()
 	wired_car.queue_free()
 
+	# --- Lights and horn ------------------------------------------------------
+	var switched := _make_bench_car("golf_gti_mk2", "elec_none")
+	add_child(switched)
+	var was_lit := switched.lights_on
+	switched.command.toggle_lights = true
+	switched._physics_process(1.0 / 60.0)
+	_check(switched.lights_on != was_lit, "the light switch turns the lights on")
+	switched._physics_process(1.0 / 60.0)
+	_check(switched.lights_on == was_lit, "and pressing it again turns them off")
+
+	# A horn is two horns a minor third apart, and its pitch is the car's: a
+	# two-tonne pickup does not sound like a Trabant.
+	var horn_rng := RandomNumberGenerator.new()
+	horn_rng.seed = 4
+	var light_horn := EffectVoices.bake_horn(600.0, 1975, horn_rng)
+	var heavy_horn := EffectVoices.bake_horn(2500.0, 2021, horn_rng)
+	_check(light_horn.data.size() > 0 and heavy_horn.data.size() > 0,
+		"every car has a horn")
+	_check(AudioSynth.spectral_centroid(_wav_samples(light_horn))
+		> AudioSynth.spectral_centroid(_wav_samples(heavy_horn)),
+		"and a small car's is higher than a big one's")
+	_check(light_horn.loop_mode == AudioStreamWAV.LOOP_FORWARD,
+		"a horn sounds for as long as it is held")
+	switched.queue_free()
+
+	# --- The music ------------------------------------------------------------
+	# Checked in full by music_bench; what matters here is that the theory the
+	# whole thing rests on is sound, because every part is generated from it and
+	# a wrong scale puts every note in the game in the wrong place.
+	for scale_name in MusicTheory.SCALES:
+		var steps: Array = MusicTheory.SCALES[scale_name]
+		var ascending := true
+		for i in range(1, steps.size()):
+			if int(steps[i]) <= int(steps[i - 1]):
+				ascending = false
+		_check(ascending and int(steps[0]) == 0 and int(steps[-1]) < 12,
+			"'%s' is a scale: ascending, rooted at zero, inside an octave" % scale_name)
+		var size := steps.size()
+		_check(MusicTheory.degree_to_midi(60, scale_name, size)
+			- MusicTheory.degree_to_midi(60, scale_name, 0) == 12,
+			"'%s' spans exactly an octave" % scale_name)
+		# The one that catches integer division on negatives, which would put
+		# the note below the root on top of the root.
+		_check(MusicTheory.degree_to_midi(60, scale_name, 0)
+			- MusicTheory.degree_to_midi(60, scale_name, -size) == 12,
+			"'%s' walks downwards correctly too" % scale_name)
+	_check(is_equal_approx(MusicTheory.midi_to_hz(69.0), 440.0),
+		"A above middle C is 440 Hz")
+	_check(is_equal_approx(MusicTheory.midi_to_hz(81.0), 880.0),
+		"and an octave above it is 880")
+
+	# Every chord in every progression has to come out of its own scale.
+	for progression in MusicTheory.PROGRESSIONS:
+		for bar in 4:
+			var notes := MusicTheory.chord_notes(60, "minor", progression, bar, true)
+			_check(notes.size() == 4, "'%s' bar %d is a four-note chord" % [progression, bar])
+			var in_key := true
+			for note in notes:
+				if MusicTheory.nearest_in_scale(60, "minor", note) != note:
+					in_key = false
+			_check(in_key, "and every note of it is in the key")
+
 	# --- Every loop in the game -----------------------------------------------
 	for surface in [TireModel.Surface.TARMAC, TireModel.Surface.GRAVEL,
 			TireModel.Surface.SNOW]:
@@ -1758,6 +1820,14 @@ static func _pcm_of(stream: AudioStreamWAV) -> PackedFloat32Array:
 	out.resize(data.size() / 2)
 	for i in out.size():
 		out[i] = float(data.decode_s16(i * 2)) / 32768.0
+	return out
+
+
+func _wav_samples(stream: AudioStreamWAV) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	out.resize(stream.data.size() / 2)
+	for i in out.size():
+		out[i] = float(stream.data.decode_s16(i * 2)) / 32767.0
 	return out
 
 

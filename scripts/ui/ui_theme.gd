@@ -317,6 +317,23 @@ static func list_row(height: int = 72) -> Button:
 	b.add_theme_stylebox_override("hover_pressed", _row_style(SURFACE_RAISED, ACCENT))
 	b.add_theme_stylebox_override("focus", _row_style(SURFACE_RAISED, Color.WHITE))
 	b.add_theme_stylebox_override("disabled", _row_style(SURFACE_SUNKEN, LINE))
+	return _give_voice(b, "select")
+
+
+## Gives a button its noises. Every button in the game goes through one of the
+## factories in this file, so hanging the sounds here means the front end is
+## audible everywhere rather than wherever somebody remembered.
+##
+## Focus rather than hover for the tick: with a pad there is no hover, and a
+## menu that only clicks for mouse users is a menu that is silent for half the
+## people playing.
+static func _give_voice(b: Button, press_sound: String) -> Button:
+	b.focus_entered.connect(func():
+		if AudioDirector.interface != null:
+			AudioDirector.interface.play("move"))
+	b.pressed.connect(func():
+		if AudioDirector.interface != null:
+			AudioDirector.interface.play("deny" if b.disabled else press_sound))
 	return b
 
 
@@ -340,7 +357,7 @@ static func primary_button(text: String) -> Button:
 	b.add_theme_color_override("font_hover_color", Color.WHITE)
 	b.add_theme_color_override("font_pressed_color", Color(0.1, 0.08, 0.04))
 	b.add_theme_font_size_override("font_size", SIZE_LABEL)
-	return b
+	return _give_voice(b, "confirm")
 
 
 static func money(amount: int) -> String:

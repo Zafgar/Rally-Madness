@@ -27,6 +27,8 @@ var _career_hub: CareerHub = null
 
 
 func _ready() -> void:
+	# The front end.
+	AudioDirector.music.play("menu")
 	theme = UiTheme.theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	PlayerManager.accepting_joins = true
@@ -124,12 +126,14 @@ func _build_controls(column: VBoxContainer) -> void:
 	var keyboard := [
 		["Steer", "A / D"], ["Accelerate", "W"], ["Brake and reverse", "S"],
 		["Handbrake", "Space"], ["Nitro", "Shift"], ["Change gear", "Q / E"],
-		["Manual gearbox", "T"], ["Back on the road", "R"], ["Pause", "Esc"]]
+		["Manual gearbox", "T"], ["Back on the road", "R"],
+		["Headlights", "L"], ["Horn", "H"], ["Pause", "Esc"]]
 	var pad := [
 		["Steer", "Left stick"], ["Accelerate", "R2"], ["Brake and reverse", "L2"],
 		["Handbrake", "Cross"], ["Nitro", "Circle"], ["Change gear", "L1 / R1"],
-		["Manual gearbox", "Triangle"], ["Back on the road", "Square"],
-		["Pause", "Options"]]
+		["Manual gearbox", "Triangle"], ["Back on the road", "Options"],
+		["Headlights", "Square"], ["Horn", "Stick click"],
+		["Pause", "Esc / Start"]]
 
 	for pair in [["Keyboard", keyboard], ["Controller", pad]]:
 		var card := UiTheme.card()

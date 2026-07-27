@@ -18,6 +18,11 @@ const BTN_TRIANGLE := JOY_BUTTON_Y
 const BTN_L1 := JOY_BUTTON_LEFT_SHOULDER
 const BTN_R1 := JOY_BUTTON_RIGHT_SHOULDER
 const BTN_OPTIONS := JOY_BUTTON_START
+## The sticks, clicked. Nothing else uses them and a horn wants a button you
+## can lean on without letting go of the wheel — which is exactly where a real
+## horn is.
+const BTN_L3 := JOY_BUTTON_LEFT_STICK
+const BTN_R3 := JOY_BUTTON_RIGHT_STICK
 
 const STICK_DEADZONE := 0.15
 const TRIGGER_DEADZONE := 0.06
@@ -30,6 +35,7 @@ var _digital_triggers: bool = false
 var _prev_shift_up: bool = false
 var _prev_shift_down: bool = false
 var _prev_toggle: bool = false
+var _prev_lights: bool = false
 var _prev_respawn: bool = false
 
 var _command := VehicleCommand.new()
@@ -79,16 +85,22 @@ func _poll_pad() -> void:
 	var down := Input.is_joy_button_pressed(device_id, BTN_L1)
 	var toggle := Input.is_joy_button_pressed(device_id, BTN_TRIANGLE)
 	var respawn := Input.is_joy_button_pressed(device_id, BTN_OPTIONS)
+	var lights := Input.is_joy_button_pressed(device_id, BTN_SQUARE)
+	# The horn is held, not tapped: leaning on it is the point of a horn.
+	c.horn = Input.is_joy_button_pressed(device_id, BTN_L3) \
+		or Input.is_joy_button_pressed(device_id, BTN_R3)
 
 	c.shift_up = up and not _prev_shift_up
 	c.shift_down = down and not _prev_shift_down
 	c.toggle_gearbox = toggle and not _prev_toggle
 	c.respawn = respawn and not _prev_respawn
+	c.toggle_lights = lights and not _prev_lights
 
 	_prev_shift_up = up
 	_prev_shift_down = down
 	_prev_toggle = toggle
 	_prev_respawn = respawn
+	_prev_lights = lights
 
 
 func _poll_keyboard() -> void:
@@ -105,16 +117,20 @@ func _poll_keyboard() -> void:
 	var down := Input.is_key_pressed(KEY_Q)
 	var toggle := Input.is_key_pressed(KEY_T)
 	var respawn := Input.is_key_pressed(KEY_R)
+	var lights := Input.is_key_pressed(KEY_L)
+	c.horn = Input.is_key_pressed(KEY_H)
 
 	c.shift_up = up and not _prev_shift_up
 	c.shift_down = down and not _prev_shift_down
 	c.toggle_gearbox = toggle and not _prev_toggle
 	c.respawn = respawn and not _prev_respawn
+	c.toggle_lights = lights and not _prev_lights
 
 	_prev_shift_up = up
 	_prev_shift_down = down
 	_prev_toggle = toggle
 	_prev_respawn = respawn
+	_prev_lights = lights
 
 
 static func _apply_deadzone(value: float, dead: float) -> float:

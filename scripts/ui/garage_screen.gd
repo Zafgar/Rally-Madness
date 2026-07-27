@@ -26,6 +26,8 @@ var _actions: VBoxContainer
 
 
 func _ready() -> void:
+	# Working on the car.
+	AudioDirector.music.play("garage")
 	theme = UiTheme.theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build()

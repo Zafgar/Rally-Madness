@@ -107,5 +107,36 @@ func _process(_delta: float) -> void:
 		get_tree().quit(1)
 		return
 
+	# The horn is a car's own note: a big saloon has a deep one and a small
+	# hatchback a shrill one.
+	var horn := audio.get_node_or_null("Horn") as AudioStreamPlayer2D
+	if horn == null or horn.stream == null:
+		print("FAIL: no horn")
+		get_tree().quit(1)
+		return
+
+	# The front end has to make a noise too. It made none at all.
+	print("\ninterface:")
+	for name in ["move", "select", "back", "confirm", "deny", "purchase",
+			"unlock", "countdown", "go"]:
+		AudioDirector.interface.play(name)
+	var voices := 0
+	for child in AudioDirector.interface.get_children():
+		var p := child as AudioStreamPlayer
+		if p != null and p.stream != null:
+			voices += 1
+	print("  %d interface players hold a baked sound" % voices)
+	if voices == 0:
+		print("FAIL: the menus are silent")
+		get_tree().quit(1)
+		return
+
+	print("\nbuses: %s" % str(AudioDirector.BUSES))
+	for bus in AudioDirector.BUSES:
+		if AudioServer.get_bus_index(bus) < 0:
+			print("FAIL: bus '%s' was never created" % bus)
+			get_tree().quit(1)
+			return
+
 	print("OK")
 	get_tree().quit(0)

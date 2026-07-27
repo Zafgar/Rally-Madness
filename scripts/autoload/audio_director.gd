@@ -10,7 +10,7 @@ extends Node
 
 ## Bus names. Separating them means a player can turn the engines down without
 ## losing the tyres, and it gives the mix somewhere to compress.
-const BUSES := ["Engine", "Tyres", "Impacts"]
+const BUSES := ["Engine", "Tyres", "Impacts", "Music", "Interface"]
 
 ## Default levels, in decibels relative to each bus's own full scale. Engines
 ## sit below the effects because they are continuous and everything else is
@@ -20,6 +20,10 @@ const DEFAULT_LEVELS := {
 	"Engine": -6.0,
 	"Tyres": -9.0,
 	"Impacts": -4.0,
+	# Music sits under everything: it is what you notice when you stop paying
+	# attention, not what you are listening to. In a race it ducks further.
+	"Music": -13.0,
+	"Interface": -8.0,
 }
 
 ## Every local player's car. The listener resolves against these.
@@ -27,11 +31,29 @@ var local_cars: Array[RallyCar] = []
 
 var _last_listener := Vector2.ZERO
 
+## The soundtrack, and the clicks the menus make. Both live here because both
+## outlive any one screen and neither belongs to a car.
+var music: MusicPlayer
+var interface: InterfaceSounds
+
 
 func _ready() -> void:
 	_ensure_buses()
 	for bus in DEFAULT_LEVELS:
 		set_bus_volume(bus, float(DEFAULT_LEVELS[bus]))
+	music = MusicPlayer.new()
+	music.name = "Music"
+	add_child(music)
+	interface = InterfaceSounds.new()
+	interface.name = "Interface"
+	add_child(interface)
+
+
+## Music down while a race is running. It is still there — a soundtrack that
+## vanishes the moment the action starts is a soundtrack nobody hears — but
+## twelve engines have to be able to get past it.
+func duck_music(ducked: bool) -> void:
+	set_bus_volume("Music", float(DEFAULT_LEVELS["Music"]) + (-9.0 if ducked else 0.0))
 
 
 ## Creates the buses if the project does not already have them, so the audio

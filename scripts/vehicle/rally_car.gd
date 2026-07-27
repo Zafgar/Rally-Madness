@@ -234,6 +234,8 @@ func _physics_process(delta: float) -> void:
 		_respawn_cooldown -= delta
 	if command.respawn and _respawn_cooldown <= 0.0:
 		respawn()
+	if command.toggle_lights:
+		lights_on = not lights_on
 	_update_height(delta)
 	_update_visual()
 	if damage != null:

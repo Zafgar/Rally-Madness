@@ -41,6 +41,8 @@ var _slot: String = "engine"
 
 
 func _ready() -> void:
+	# Still the garage.
+	AudioDirector.music.play("garage")
 	theme = UiTheme.theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build()

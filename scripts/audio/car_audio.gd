@@ -29,6 +29,7 @@ var voice: EngineVoice
 var _engine_on: Array[AudioStreamPlayer2D] = []
 var _engine_off: Array[AudioStreamPlayer2D] = []
 var _turbo: AudioStreamPlayer2D
+var _horn: AudioStreamPlayer2D
 var _tyre: AudioStreamPlayer2D
 var _surface: AudioStreamPlayer2D
 var _one_shot: AudioStreamPlayer2D
@@ -56,6 +57,7 @@ var _detailed: bool = true
 var _tyre_level: float = 0.0
 var _surface_level: float = 0.0
 var _turbo_level: float = 0.0
+var _horn_level: float = 0.0
 
 
 ## Builds every voice for one car. Called once, when the car is configured —
@@ -82,6 +84,12 @@ func setup(p_car: RallyCar, layout: EngineLayout, loadout: TuningLoadout) -> voi
 		_blow_off = EffectVoices.bake_blow_off(
 			car.stats.turbo_boost, car.stats.turbo_lag, rng)
 		_flutter = EffectVoices.bake_flutter(car.stats.turbo_lag, rng)
+
+	# The horn, on the impacts bus rather than the engine one: it has to cut
+	# through, which is the entire purpose of a horn.
+	_horn = _make_player(EffectVoices.bake_horn(
+		car.stats.mass_kg, car.spec.year if car.spec != null else 1990, rng),
+		"Impacts", -80.0, "Horn")
 
 	_tyre = _make_player(EffectVoices.bake_tyre_squeal(rng), "Tyres", -80.0, "TyreSqueal")
 	_surface = _make_player(EffectVoices.bake_surface_scrub(
@@ -157,6 +165,8 @@ func _maybe_start_loops() -> void:
 		player.play()
 	if _turbo != null:
 		_turbo.play()
+	if _horn != null:
+		_horn.play()
 	_tyre.play()
 	_surface.play()
 
@@ -171,6 +181,21 @@ func _process(delta: float) -> void:
 	_update_engine(delta)
 	_update_turbo(delta)
 	_update_tyres(delta)
+	_update_horn(delta)
+
+
+## The horn runs as a silent loop and is faded in when it is pressed, rather
+## than started and stopped. Restarting a loop every press gives every parp the
+## same attack transient, and a horn that is leaned on twice in a second should
+## sound like one horn, not two.
+func _update_horn(delta: float) -> void:
+	if _horn == null:
+		return
+	var wanted := 0.62 if car.command.horn else 0.0
+	# Fast, but not instant: a real horn takes a few milliseconds to come up to
+	# pressure and it is audible when it does not.
+	_horn_level = move_toward(_horn_level, wanted, delta * 14.0)
+	_horn.volume_db = linear_to_db(maxf(_horn_level, 0.0001))
 
 
 ## Stops everything on a car nobody can hear. A stopped player costs nothing,
@@ -192,7 +217,7 @@ func _update_audibility() -> void:
 		_loops_started = audible
 	if detailed != _detailed:
 		_detailed = detailed
-		for player in [_turbo, _tyre, _surface]:
+		for player in [_turbo, _tyre, _surface, _horn]:
 			if player == null:
 				continue
 			if detailed and audible:

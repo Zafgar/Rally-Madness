@@ -18,6 +18,8 @@ var _summary: VBoxContainer
 
 
 func _ready() -> void:
+	# The hub is still the front end.
+	AudioDirector.music.play("menu")
 	theme = UiTheme.theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build()
