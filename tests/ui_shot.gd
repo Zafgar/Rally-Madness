@@ -43,6 +43,22 @@ func _ready() -> void:
 			var s := ShowroomScreen.new()
 			s.profile = profile
 			screen = s
+		"showroom_marque":
+			var s := ShowroomScreen.new()
+			s.profile = profile
+			# Opened on a badge, which is the second level of the list and the
+			# one a screenshot of the first level never shows.
+			s.ready.connect(func():
+				s._marque = "Lancia"
+				s.refresh(), CONNECT_ONE_SHOT)
+			screen = s
+		"used":
+			var s := ShowroomScreen.new()
+			s.profile = profile
+			s.ready.connect(func():
+				s._lot = ShowroomScreen.Lot.USED
+				s.refresh(), CONNECT_ONE_SHOT)
+			screen = s
 		_:
 			var s := CareerHub.new()
 			s.profile = profile

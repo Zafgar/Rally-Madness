@@ -16,6 +16,11 @@ signal closed()
 const PREVIEW_HEIGHT := 300
 
 enum Filter { ALL, AFFORDABLE, UPGRADE }
+## Two dealerships, not one list with a checkbox. A new car is a model at a
+## price; a used car is a specific vehicle with a history, and the questions a
+## buyer asks about the two are different enough that mixing them makes both
+## worse.
+enum Lot { NEW, USED }
 
 var profile: PlayerProfile
 
@@ -28,6 +33,17 @@ var _filter_row: HBoxContainer
 var _actions: VBoxContainer
 var _selected: CarSpec = null
 var _filter: Filter = Filter.ALL
+var _lot: Lot = Lot.NEW
+## Which manufacturer's models are open. Empty means the list is showing the
+## manufacturers themselves.
+##
+## Seventy-five cars in one scrolling column is a spreadsheet. A buyer thinks
+## "what does Lancia make that I can afford", so the list asks that first and
+## then shows the models, grouped by tier inside the marque.
+var _marque: String = ""
+var _lot_row: HBoxContainer
+var _listing: UsedCarMarket.Listing = null
+var _stock: Array = []
 var _paint_choice: Color = Color.from_string("#c8272d", Color.RED)
 
 
@@ -77,6 +93,12 @@ func _build() -> void:
 	left.custom_minimum_size = Vector2(480, 0)
 	left.add_theme_constant_override("separation", UiTheme.GAP)
 	body.add_child(left)
+
+	_lot_row = HBoxContainer.new()
+	_lot_row.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)
+	left.add_child(_lot_row)
+	_add_lot("New cars", Lot.NEW)
+	_add_lot("Used cars", Lot.USED)
 
 	_filter_row = HBoxContainer.new()
 	_filter_row.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)
@@ -134,6 +156,18 @@ func _build() -> void:
 	_details.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)
 
 
+func _add_lot(text: String, lot: Lot) -> void:
+	var b := UiTheme.list_row(40)
+	b.text = text
+	b.pressed.connect(func():
+		_lot = lot
+		_marque = ""
+		_selected = null
+		_listing = null
+		refresh())
+	_lot_row.add_child(b)
+
+
 func _add_filter(text: String, mode: Filter) -> void:
 	var b := Button.new()
 	b.text = text
@@ -151,7 +185,16 @@ func refresh() -> void:
 	_money_label.text = UiTheme.money(profile.money)
 	for i in _filter_row.get_child_count():
 		(_filter_row.get_child(i) as Button).button_pressed = i == _filter
-	_rebuild_list()
+	for i in _lot_row.get_child_count():
+		(_lot_row.get_child(i) as Button).button_pressed = i == _lot
+	# The filters are about a catalogue. A forecourt of nine specific cars is
+	# short enough to read, so they only get in the way there.
+	_filter_row.visible = _lot == Lot.NEW
+	if _lot == Lot.USED:
+		_stock = UsedCarMarket.stock(profile)
+		_rebuild_used_list()
+	else:
+		_rebuild_list()
 	_rebuild_details()
 
 
@@ -192,12 +235,183 @@ func _rebuild_list() -> void:
 	if _selected == null or not shown.has(_selected):
 		_selected = shown[0]
 
-	var current_tier := -1
+	# One level up: the manufacturers, with what they have and what it costs.
+	if _marque.is_empty():
+		_rebuild_marque_list(shown)
+		return
+
+	_list.add_child(_back_to_marques())
+	_list.add_child(UiTheme.title(_marque))
+	var mine: Array[CarSpec] = []
 	for spec in shown:
+		if spec.manufacturer == _marque:
+			mine.append(spec)
+	if mine.is_empty():
+		_list.add_child(UiTheme.label("Nothing from %s matches." % _marque,
+			UiTheme.SIZE_LABEL, UiTheme.TEXT_DIM))
+		return
+	if _selected == null or not mine.has(_selected):
+		_selected = mine[0]
+
+	# Within a marque, by tier: that is the ladder a buyer is climbing, and it
+	# puts the cheap one and the fast one in the same sentence.
+	var current_tier := -1
+	for spec in mine:
 		if spec.tier != current_tier:
 			current_tier = spec.tier
-			_list.add_child(UiTheme.section("Tier %d" % current_tier))
+			_list.add_child(UiTheme.section(_tier_name(current_tier)))
 		_list.add_child(_car_row(spec))
+
+
+## What a tier means in words. "Tier 3" is a database column; "Group A" is a
+## kind of car, and a buyer browsing a marque is thinking in the second.
+func _tier_name(tier: int) -> String:
+	match tier:
+		0: return "Tier 0 — shopping cars"
+		1: return "Tier 1 — hot hatches and coupes"
+		2: return "Tier 2 — Group A"
+		3: return "Tier 3 — modern performance"
+		4: return "Tier 4 — Group B"
+		_: return "Tier 5 — anything goes"
+
+
+func _back_to_marques() -> Control:
+	var b := UiTheme.list_row(40)
+	b.text = "< All manufacturers"
+	b.pressed.connect(func():
+		_marque = ""
+		refresh())
+	return b
+
+
+## The manufacturers, each with how many models it has here and what they cost.
+## A buyer with nine thousand credits wants to know which badges are even worth
+## opening, and that is two numbers per marque rather than seventy-five rows.
+func _rebuild_marque_list(shown: Array[CarSpec]) -> void:
+	var by_marque := {}
+	for spec in shown:
+		if not by_marque.has(spec.manufacturer):
+			by_marque[spec.manufacturer] = []
+		(by_marque[spec.manufacturer] as Array).append(spec)
+
+	var names := by_marque.keys()
+	names.sort()
+	for name in names:
+		var models: Array = by_marque[name]
+		var cheapest := 999999999
+		var dearest := 0
+		var affordable := 0
+		for spec in models:
+			cheapest = mini(cheapest, spec.price)
+			dearest = maxi(dearest, spec.price)
+			if spec.price <= profile.money:
+				affordable += 1
+
+		var row := UiTheme.list_row(58)
+		row.pressed.connect(func():
+			_marque = String(name)
+			_selected = null
+			refresh())
+		_list.add_child(row)
+
+		var inner := HBoxContainer.new()
+		inner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		inner.add_theme_constant_override("separation", UiTheme.GAP)
+		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(inner)
+		inner.add_child(UiTheme.spacer(UiTheme.GAP_TIGHT))
+
+		var text := VBoxContainer.new()
+		text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		inner.add_child(text)
+		text.add_child(UiTheme.label(String(name), UiTheme.SIZE_LABEL, UiTheme.TEXT))
+		text.add_child(UiTheme.label(
+			"%d model%s   %s" % [models.size(), "" if models.size() == 1 else "s",
+				("%s – %s" % [UiTheme.money(cheapest), UiTheme.money(dearest)])
+					if cheapest != dearest else UiTheme.money(cheapest)],
+			UiTheme.SIZE_SMALL, UiTheme.TEXT_DIM))
+
+		inner.add_child(UiTheme.expander())
+		# How many you could actually drive away in, which is the number that
+		# decides whether this badge is worth opening at all.
+		inner.add_child(UiTheme.label(
+			"%d in reach" % affordable if affordable > 0 else "none in reach",
+			UiTheme.SIZE_SMALL,
+			UiTheme.POSITIVE if affordable > 0 else UiTheme.TEXT_DIM))
+		inner.add_child(UiTheme.spacer(UiTheme.GAP_TIGHT))
+
+
+## The forecourt. Nine specific cars, each with its own mileage and its own
+## story, sorted by asking price.
+##
+## Deliberately not filtered or grouped: it is short enough to read top to
+## bottom, and reading all of it is how you spot the one that is cheap for what
+## it is. A filter would hide exactly the car worth finding.
+func _rebuild_used_list() -> void:
+	for child in _list.get_children():
+		child.queue_free()
+
+	if _stock.is_empty():
+		_list.add_child(UiTheme.label("The forecourt is empty today.",
+			UiTheme.SIZE_LABEL, UiTheme.TEXT_DIM))
+		return
+	if _listing == null or not _stock.has(_listing):
+		_listing = _stock[0]
+		_selected = _listing.spec
+
+	_list.add_child(UiTheme.caption(UsedCarMarket.rotation_hint(profile)))
+	for listing in _stock:
+		_list.add_child(_used_row(listing))
+
+
+func _used_row(listing: UsedCarMarket.Listing) -> Control:
+	var car: OwnedCar = listing.car
+	var row := UiTheme.list_row(84)
+	row.button_pressed = listing == _listing
+	row.pressed.connect(func():
+		_listing = listing
+		_selected = listing.spec
+		refresh())
+
+	var inner := HBoxContainer.new()
+	inner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	inner.add_theme_constant_override("separation", UiTheme.GAP)
+	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(inner)
+	inner.add_child(UiTheme.spacer(UiTheme.GAP_TIGHT))
+
+	var text := VBoxContainer.new()
+	text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inner.add_child(text)
+	text.add_child(UiTheme.label(listing.spec.display_name(), UiTheme.SIZE_LABEL,
+		UiTheme.TEXT))
+	# The two numbers that decide it, on one line: how far it has gone and how
+	# much of it is left.
+	text.add_child(UiTheme.label(
+		"%s km   ·   %d%% condition" % [
+			UiTheme.thousands(int(car.odometer_km)),
+			int(round(car.condition() * 100.0))],
+		UiTheme.SIZE_SMALL,
+		UiTheme.TEXT_DIM if car.condition() > 0.7 else UiTheme.WARNING))
+	text.add_child(UiTheme.label(listing.note, UiTheme.SIZE_SMALL, UiTheme.TEXT_DIM))
+
+	inner.add_child(UiTheme.expander())
+	var money := VBoxContainer.new()
+	money.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	money.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inner.add_child(money)
+	var price := UiTheme.label(UiTheme.money(listing.price), UiTheme.SIZE_LABEL,
+		UiTheme.ACCENT if listing.price <= profile.money else UiTheme.NEGATIVE)
+	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	money.add_child(price)
+	var saving := UiTheme.label("%s new" % UiTheme.money(listing.new_price),
+		UiTheme.SIZE_SMALL, UiTheme.TEXT_DIM)
+	saving.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	money.add_child(saving)
+	inner.add_child(UiTheme.spacer(UiTheme.GAP_TIGHT))
+	return row
 
 
 func _car_row(spec: CarSpec) -> Control:
@@ -267,8 +481,18 @@ func _rebuild_details() -> void:
 		return
 
 	var spec := _selected
-	_preview.show_spec(spec, _paint_choice)
-	var stats := TuningCalculator.resolve(spec, spec.default_loadout())
+	# A used car is shown as itself: the paint the last owner chose, the parts
+	# they fitted, and the mileage they put on it. Describing the model instead
+	# had the list saying 316,500 km and the panel beside it saying 217,500 —
+	# two different cars on one screen.
+	var used: OwnedCar = _listing.car if _lot == Lot.USED and _listing != null else null
+	_paint.visible = used == null
+	if used != null:
+		_preview.show_owned(used)
+	else:
+		_preview.show_spec(spec, _paint_choice)
+	var stats := TuningCalculator.resolve(spec,
+		used.loadout if used != null else spec.default_loadout())
 	var summary: Dictionary = PerformanceModel.summary(stats)
 	var stock_class := RaceClass.best_fit_spec(spec)
 	var built_class := RaceClass.best_fit_spec(spec, spec.potential_index())
@@ -281,14 +505,37 @@ func _rebuild_details() -> void:
 	_details.add_child(title_row)
 	_details.add_child(UiTheme.wrapped(spec.description, UiTheme.SIZE_SMALL, UiTheme.TEXT_DIM))
 
-	_details.add_child(UiTheme.section("As it leaves the showroom"))
+	_details.add_child(UiTheme.section(
+		"This car, as it stands" if used != null else "As it leaves the showroom"))
 	_details.add_child(UiTheme.stat_row("Power", "%d hp" % int(summary["power_hp"])))
 	_details.add_child(UiTheme.stat_row("Torque", "%d Nm" % int(summary["torque_nm"])))
 	_details.add_child(UiTheme.stat_row("Weight", "%d kg" % int(stats.mass_kg)))
 	# Nothing here is sold new. What it has already done is half the price.
-	var km := spec.showroom_km()
+	var km := used.odometer_km if used != null else spec.showroom_km()
 	_details.add_child(UiTheme.stat_row("Mileage", "%s km" % UiTheme.thousands(int(km)),
 		UiTheme.WARNING if km > MechanicalModel.ENGINE_FRESH_KM else UiTheme.TEXT))
+	if used != null:
+		# The engine can be younger than the car, and on a used forecourt that
+		# is one of the few things genuinely worth paying more for.
+		if used.engine_km < used.odometer_km * 0.9:
+			_details.add_child(UiTheme.stat_row("Engine since new",
+				"%s km" % UiTheme.thousands(int(used.engine_km)), UiTheme.POSITIVE))
+		_details.add_child(UiTheme.stat_row("Condition",
+			"%d%%" % int(round(used.condition() * 100.0)),
+			UiTheme.POSITIVE if used.condition() > 0.85
+				else (UiTheme.WARNING if used.condition() > 0.6 else UiTheme.NEGATIVE)))
+		_details.add_child(UiTheme.section("What the last owner did"))
+		var fitted := FieldPreview.preparation_text(spec, used.loadout)
+		_details.add_child(UiTheme.wrapped(fitted, UiTheme.SIZE_SMALL, UiTheme.TEXT_DIM))
+		for pair in [["Oil", used.oil_life], ["Brakes", used.brake_life],
+				["Turbo", used.turbo_life]]:
+			var life: float = pair[1]
+			if pair[0] == "Turbo" and stats.turbo_boost <= 1.01:
+				continue
+			_details.add_child(UiTheme.stat_row(String(pair[0]),
+				"%d%% left" % int(round(life * 100.0)),
+				UiTheme.NEGATIVE if life < 0.3
+					else (UiTheme.WARNING if life < 0.6 else UiTheme.TEXT_DIM)))
 	_details.add_child(UiTheme.stat_row("Top speed",
 		"%d km/h" % int(summary["top_speed_kmh"])))
 	var zero_to_100: float = summary["zero_to_100"]
@@ -344,6 +591,9 @@ func _comparison(name: String, mine: float, theirs: float) -> Control:
 
 
 func _build_actions(spec: CarSpec) -> void:
+	if _lot == Lot.USED:
+		_build_used_actions()
+		return
 	var owned := profile.owns_model(spec.id)
 	var affordable := spec.price <= profile.money
 
@@ -374,3 +624,46 @@ func _build_actions(spec: CarSpec) -> void:
 		short.disabled = true
 		_actions.add_child(short)
 
+
+
+## Buying the specific car in front of you, not the model.
+##
+## The paint shop is deliberately not offered here: a used car is the colour
+## somebody else chose, and having to live with that — or pay to change it in
+## the garage — is part of what buying second hand is.
+func _build_used_actions() -> void:
+	if _listing == null:
+		return
+	var affordable: bool = _listing.price <= profile.money
+	if not affordable:
+		var short := Button.new()
+		short.text = "Need %s more" % UiTheme.money(_listing.price - profile.money)
+		short.disabled = true
+		_actions.add_child(short)
+		return
+
+	var buy := UiTheme.primary_button("Buy this one  %s"
+		% UiTheme.money(_listing.price))
+	buy.pressed.connect(func():
+		var bought := profile.buy_used_car(_listing.car, _listing.price)
+		if bought != null:
+			profile.active_car_uid = bought.uid
+			# Off the forecourt: somebody bought it, and it was this one.
+			_stock.erase(_listing)
+			_listing = null
+			refresh())
+	_actions.add_child(buy)
+
+	# What it will cost to put right, which is the number a used-car buyer
+	# actually has to add to the asking price.
+	var work: int = _listing.car.repair_cost()
+	for item in OwnedCar.SERVICE_ITEMS:
+		work += _listing.car.service_cost(item)
+	if work > 0:
+		_actions.add_child(UiTheme.label(
+			"Needs about %s of work" % UiTheme.money(work),
+			UiTheme.SIZE_SMALL,
+			UiTheme.WARNING if work > _listing.price / 3 else UiTheme.TEXT_DIM))
+		_actions.add_child(UiTheme.label(
+			"All in: %s" % UiTheme.money(_listing.price + work),
+			UiTheme.SIZE_SMALL, UiTheme.TEXT_DIM))

@@ -182,6 +182,22 @@ func buy_car(spec: CarSpec) -> OwnedCar:
 	return add_car(spec)
 
 
+## Buying a specific second-hand car, history and all.
+##
+## Unlike a new car this is not built from the model — the mileage, the wear,
+## the damage and whatever the last owner bolted to it come with it, because
+## that is the entire point of buying used. Only the identity is reissued, so
+## two of the same car in one garage stay distinguishable.
+func buy_used_car(listing_car: OwnedCar, price: int) -> OwnedCar:
+	if listing_car == null or not spend(price):
+		return null
+	var uid := "%s_%d" % [listing_car.spec_id, _next_uid]
+	_next_uid += 1
+	listing_car.uid = uid
+	garage[uid] = listing_car
+	return listing_car
+
+
 func sell_car(uid: String) -> int:
 	var car: OwnedCar = garage.get(uid)
 	if car == null:

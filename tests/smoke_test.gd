@@ -47,6 +47,7 @@ func _ready() -> void:
 	_test_grid_launch()
 	_test_haptics()
 	_test_damage_and_economy()
+	_test_used_market()
 	_test_progression()
 	_test_classes_and_economy()
 	_test_mechanical_model()
@@ -1289,6 +1290,70 @@ func _test_damage_and_economy() -> void:
 	_check(TuningCalculator.repair_cost(spec, spec.default_loadout(),
 		{"body": 0.2, "engine": 0.2, "suspension": 0.2, "tires": 0.2}) > 0,
 		"a wrecked top-tier car is not")
+
+
+## The two dealerships.
+##
+## A forecourt that is generated rather than stored has one thing that must be
+## true above all others: the same moment produces the same nine cars. If it
+## does not, a player who leaves a screen and comes back finds the car they
+## were about to buy has vanished.
+func _test_used_market() -> void:
+	_section("the used forecourt")
+
+	var profile := PlayerProfile.create_new("used_test", "Buyer",
+		CarDatabase.default_starter(), 0)
+	profile.money = 40000
+
+	var first := UsedCarMarket.stock(profile)
+	var again := UsedCarMarket.stock(profile)
+	_check(first.size() > 0, "the forecourt has stock (%d cars)" % first.size())
+	_check(first.size() == again.size(), "and asking twice gives the same number")
+	var identical := true
+	for i in first.size():
+		if first[i].spec.id != again[i].spec.id or first[i].price != again[i].price:
+			identical = false
+	_check(identical, "with the same cars at the same prices")
+
+	# Rotating means rotating: a different period is a different forecourt.
+	var later := PlayerProfile.create_new("used_later", "Buyer",
+		CarDatabase.default_starter(), 0)
+	later.money = 40000
+	later.event_runs["shakedown"] = UsedCarMarket.RACES_PER_ROTATION * 3
+	var rotated := UsedCarMarket.stock(later)
+	var changed := false
+	for i in mini(first.size(), rotated.size()):
+		if first[i].spec.id != rotated[i].spec.id:
+			changed = true
+	_check(changed, "and a few races later the stock has turned over")
+
+	# Every listing has to be a coherent car, or the panel beside it lies.
+	for listing in first:
+		_check(listing.price > 0, "'%s' has a price" % listing.spec.id)
+		_check(listing.car != null and listing.car.spec_id == listing.spec.id,
+			"'%s' listing carries the car it advertises" % listing.spec.id)
+		_check(listing.car.odometer_km > 0.0,
+			"'%s' has been somewhere" % listing.spec.id)
+		# The whole point of used: it is cheaper than new.
+		_check(listing.price < listing.new_price,
+			"'%s' is cheaper than new (%d vs %d)" % [
+				listing.spec.id, listing.price, listing.new_price])
+		_check(listing.car.condition() > 0.0 and listing.car.condition() <= 1.0,
+			"'%s' has a condition between nothing and perfect" % listing.spec.id)
+
+	# Buying takes the specific car, history and all — not a fresh one.
+	var target = first[0]
+	var before := profile.money
+	var bought := profile.buy_used_car(target.car, target.price)
+	_check(bought != null, "the car can be bought")
+	if bought != null:
+		_check(profile.money == before - target.price, "and it costs the asking price")
+		_check(is_equal_approx(bought.odometer_km, target.car.odometer_km),
+			"and arrives with its mileage on it, not a fresh odometer")
+		_check(profile.garage.has(bought.uid), "and lands in the garage")
+
+	SaveSystem.delete_profile("used_test")
+	SaveSystem.delete_profile("used_later")
 
 
 func _test_progression() -> void:
