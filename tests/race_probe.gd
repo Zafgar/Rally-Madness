@@ -217,6 +217,21 @@ func _report(results: Array) -> void:
 	for t in _committed:
 		attacking += t
 	print("time spent committed to a pass, across the field: %.0f s" % attacking)
+	# What actually ended each car's race. Guessing at this cost two rounds of
+	# fixes aimed at the wrong thing.
+	var causes := {}
+	for e in _director.entrants:
+		var why := "still running"
+		if e.car != null and e.car.damage != null and e.car.damage.wrecked:
+			why = "wrecked"
+		elif e.car != null and e.car.mechanical != null \
+				and not e.car.mechanical.failed.is_empty():
+			why = e.car.mechanical.failure_text()
+		causes[why] = int(causes.get(why, 0)) + 1
+	print("\nwhat ended each race:")
+	for why in causes:
+		print("  %-40s %d" % [why, causes[why]])
+
 	var contacts := 0
 	var wrecked := 0
 	for e in _director.entrants:

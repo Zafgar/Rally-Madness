@@ -192,11 +192,13 @@ func _event_card(event: EventSpec) -> Control:
 		UiTheme.NEGATIVE if event.entry_fee > profile.money else UiTheme.TEXT_DIM))
 	right.add_child(UiTheme.stat_row("Rivals",
 		"%d, rated ~%d" % [event.ai_opponents, event.field_rating()], UiTheme.TEXT_DIM))
+	_build_entry_list(right, event, profile)
 	if repeats > 0:
 		right.add_child(UiTheme.caption("Repeat entry pays %d%% of the advertised purse"
 			% int(EventSpec.repeat_scale(repeats) * 100.0)))
 
 	var enter := UiTheme.primary_button("Enter") if enterable else Button.new()
+
 	if not enterable:
 		enter.text = "Locked"
 		enter.disabled = true
@@ -219,3 +221,54 @@ func _best_car_for(event: EventSpec) -> OwnedCar:
 			best_index = index
 			best = car
 	return best
+
+
+## Who is entered, once the player is known well enough to be told.
+##
+## Two ratings per rival and they are not the same thing. A driver rating is
+## how good the person is; a car rating is what they turned up in. A works
+## driver in a tired hatchback and a novice in a Group A car are completely
+## different races, and one combined number for "difficulty" hides precisely
+## the thing worth knowing before you decide what to spend money on.
+func _build_entry_list(column: VBoxContainer, event: EventSpec,
+		profile: PlayerProfile) -> void:
+	if not FieldPreview.visible_to(profile.rating):
+		column.add_child(UiTheme.caption(
+			"Entry list withheld — reach %d to be told who is entered"
+				% FieldPreview.ENTRY_LIST_RATING))
+		return
+	var entries := FieldPreview.build(event)
+	if entries.is_empty():
+		return
+
+	column.add_child(UiTheme.spacer(UiTheme.GAP_TIGHT))
+	column.add_child(UiTheme.section("Entry list"))
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)
+	column.add_child(header)
+	header.add_child(UiTheme.label("Driver", UiTheme.SIZE_SMALL, UiTheme.TEXT_DIM))
+	header.add_child(UiTheme.expander())
+	header.add_child(UiTheme.label("drv / car", UiTheme.SIZE_SMALL, UiTheme.TEXT_DIM))
+
+	# Sorted by the car, because that is the order a player scans an entry list
+	# in: what is the quickest thing here, and who is driving it.
+	entries.sort_custom(func(a, b): return a.car_rating > b.car_rating)
+	for entry in entries:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)
+		column.add_child(row)
+		var who := UiTheme.label(entry.car.display_name(), UiTheme.SIZE_SMALL,
+			UiTheme.TEXT)
+		who.tooltip_text = "%s — %s" % [entry.archetype_name, entry.prepared]
+		row.add_child(who)
+		row.add_child(UiTheme.expander())
+		# The driver first, then the car, in the colour of whichever is the
+		# bigger threat relative to the player.
+		row.add_child(UiTheme.label("%d" % entry.driver_rating, UiTheme.SIZE_SMALL,
+			UiTheme.WARNING if entry.driver_rating > profile.rating
+				else UiTheme.TEXT_DIM))
+		row.add_child(UiTheme.label("/", UiTheme.SIZE_SMALL, UiTheme.TEXT_DIM))
+		row.add_child(UiTheme.label("%d" % entry.car_rating, UiTheme.SIZE_SMALL,
+			UiTheme.TEXT_DIM))
+		column.add_child(UiTheme.caption("   %s · %s"
+			% [entry.archetype_name, entry.prepared]))

@@ -199,6 +199,36 @@ func default_loadout() -> TuningLoadout:
 	return l
 
 
+## A car prepared to a given standard, 0 for showroom stock and 1 for the best
+## the chassis will take.
+##
+## Rivals arrive in cars somebody has actually worked on. A field of showroom
+## stock is not a rally entry list, it is a car park — and it also meant a
+## player who spent money on parts walked away from opponents who never had
+## any. The build is deterministic from the seed, so a given rival's car is
+## the same car every time that race is run.
+func prepared_loadout(standard: float, rng: RandomNumberGenerator) -> TuningLoadout:
+	var l := default_loadout()
+	var reach := clampf(standard, 0.0, 1.0)
+	for slot in PartSpec.SLOTS:
+		var options: Array = []
+		for part in PartDatabase.for_slot(slot):
+			if accepts_part(part):
+				options.append(part)
+		if options.is_empty():
+			continue
+		# Cheapest first, so "standard" reads along the same axis as money.
+		options.sort_custom(func(a, b): return a.price < b.price)
+		# Not every slot gets touched even on a well-funded car: a real
+		# privateer spends where it matters and leaves the rest alone.
+		if rng.randf() > 0.35 + reach * 0.55:
+			continue
+		var top := int(round(float(options.size() - 1) * reach))
+		var pick: int = rng.randi_range(maxi(0, top - 1), top)
+		l.set_part(slot, (options[pick] as PartSpec).id)
+	return l
+
+
 ## The best parts this chassis will accept, in every slot. What the car becomes
 ## when someone with money is finished with it.
 func best_loadout() -> TuningLoadout:

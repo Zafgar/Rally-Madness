@@ -25,6 +25,10 @@ const STALL_TIMEOUT_SECONDS := 45.0
 const PLAYER_FINISH_GRACE := 5.0
 ## Distance (in pixels along the centreline) that counts as having moved.
 const STALL_PROGRESS_EPSILON := 40.0
+## A broken car is classified once it is down to this, in m/s. Walking pace:
+## slow enough that it is plainly not going anywhere, fast enough that a car
+## still rolling to a stop is left alone to do it.
+const COASTING_SPEED_MS := 3.0
 
 enum State { SETUP, COUNTDOWN, RACING, FINISHED }
 
@@ -132,7 +136,13 @@ func _spawn_ai() -> void:
 
 	for i in event.ai_opponents:
 		var spec: CarSpec = pool[rng.randi_range(0, pool.size() - 1)]
-		var loadout := spec.default_loadout()
+		# How well prepared this particular car is. The event's skill sets the
+		# standard of the paddock and the individual entry varies around it, so
+		# a club night is a mix of tidy cars and rough ones and an
+		# international is not.
+		var standard := clampf(event.ai_skill * 0.85 + rng.randf_range(-0.18, 0.22),
+			0.0, 1.0)
+		var loadout := spec.prepared_loadout(standard, rng)
 		# Rivals turn up on tires that suit the stage. Without this the whole
 		# field arrives at the winter trial on summer rubber and the event is
 		# a walkover rather than a test of the player's own tire choice.
@@ -284,16 +294,19 @@ func _apply_ai_mechanical_state(
 	# in a cloud of smoke is a good moment; a rival letting go every time is
 	# not a moment, it is the weather.
 	#
-	# So the abuse is real but bounded. The tuning settings stay well inside
-	# the range the failure rates were built around, and the mileage tops out
-	# where a hard-used competition car actually tops out.
-	car.mechanical.boost_setting = carelessness * rng.randf_range(0.10, 0.50)
-	car.mechanical.rev_limit_setting = carelessness * rng.randf_range(0.0, 0.40)
+	# So the abuse is real but bounded — and then measured, because the first
+	# attempt at bounding it went straight past the target and left breakdowns
+	# happening 0.01 times per race, which is not a feature, it is an unused
+	# subsystem. failure_rate_probe runs a couple of thousand rivals through a
+	# race's worth of running in a few seconds, and this is set from what it
+	# says rather than from what seems reasonable.
+	car.mechanical.boost_setting = carelessness * rng.randf_range(0.20, 0.78)
+	car.mechanical.rev_limit_setting = carelessness * rng.randf_range(0.0, 0.62)
 	car.mechanical.engine_km = rng.randf_range(15000.0, 35000.0
-		+ carelessness * 85000.0)
-	car.mechanical.oil_life = rng.randf_range(0.55 + driver.mechanical_sympathy * 0.35, 1.0)
-	car.mechanical.brake_life = rng.randf_range(0.55 + driver.mechanical_sympathy * 0.35, 1.0)
-	car.mechanical.turbo_life = rng.randf_range(0.58 + driver.mechanical_sympathy * 0.32, 1.0)
+		+ carelessness * 150000.0)
+	car.mechanical.oil_life = rng.randf_range(0.40 + driver.mechanical_sympathy * 0.45, 1.0)
+	car.mechanical.brake_life = rng.randf_range(0.45 + driver.mechanical_sympathy * 0.45, 1.0)
+	car.mechanical.turbo_life = rng.randf_range(0.42 + driver.mechanical_sympathy * 0.45, 1.0)
 
 
 func _make_car(
@@ -421,7 +434,39 @@ func _update_progress() -> void:
 ## Retires a car that has stopped making progress. Covers the parked
 ## controller, the car wedged against a barrier facing the wrong way, and the
 ## wreck that is still technically driveable but going nowhere.
+## A car that cannot continue is out, and is out now.
+##
+## Waiting for the stall timer to notice was wrong twice over. It took
+## forty-five seconds to classify a car that had already lost its engine, so a
+## stage sat there with a dead car on it and the results waited on a timer;
+## and when the classification finally came it said "retired", which tells the
+## player nothing about what happened. What actually happened is on the car.
+func _check_cannot_continue(e: RaceEntrant) -> bool:
+	if e.car == null:
+		return false
+	var reason := ""
+	if e.car.damage != null and e.car.damage.wrecked:
+		reason = "destroyed"
+	elif e.car.mechanical != null and e.car.mechanical.is_stranded():
+		# The failure names itself: out of fuel, engine failure, and so on.
+		reason = e.car.mechanical.failure_text()
+		if reason.is_empty():
+			reason = "mechanical failure"
+	if reason.is_empty():
+		return false
+	# Only once it has actually come to rest. A car whose engine has let go at
+	# speed still has a corner or two of momentum, and taking it off the road
+	# the instant the engine dies looks like a bug rather than a breakdown.
+	if e.car.speed_ms > COASTING_SPEED_MS:
+		return false
+	e.mark_dnf(reason)
+	_recover_car(e)
+	return true
+
+
 func _check_stalled(e: RaceEntrant) -> void:
+	if _check_cannot_continue(e):
+		return
 	var moved := e.car.global_position.distance_to(e.stall_reference_position)
 	if moved > STALL_PROGRESS_EPSILON:
 		e.stall_reference_position = e.car.global_position
@@ -429,6 +474,37 @@ func _check_stalled(e: RaceEntrant) -> void:
 		return
 	if race_time - e.stall_reference_time > STALL_TIMEOUT_SECONDS:
 		e.mark_dnf("retired")
+		_recover_car(e)
+
+
+## Takes a car that is out of the race off the road.
+##
+## Classifying a wreck is not the same as clearing it. A car that has stopped
+## is still a solid object sitting on a stage that may only be twelve metres
+## wide, and measurement said plainly what that costs: in a nine-car race,
+## four cars crashed and the other five — every one of them mechanically
+## perfect and undamaged — piled up behind the wreckage and were classified as
+## having retired, one by one, as the stall timer reached them. Nobody
+## finished. The race was decided by a roadblock.
+##
+## So the marshals move it. The car stops colliding with anything, stops being
+## drawn, and stops making a noise, which is what "it has been recovered"
+## looks like from inside another car still on the stage.
+func _recover_car(e: RaceEntrant) -> void:
+	if e.car == null or not is_instance_valid(e.car):
+		return
+	if e.car.get_meta("recovered", false):
+		return
+	e.car.set_meta("recovered", true)
+	# Off every layer, so nothing can hit it and it can hit nothing.
+	e.car.collision_layer = 0
+	e.car.collision_mask = 0
+	e.car.freeze = true
+	e.car.visible = false
+	AudioDirector.local_cars.erase(e.car)
+	var audio := e.car.get_node_or_null("Audio")
+	if audio != null:
+		audio.queue_free()
 
 
 ## A player giving up. Distinct from stalling out: it is immediate, and the
@@ -437,6 +513,9 @@ func retire_seat(slot: int) -> void:
 	for e in entrants:
 		if e.seat_slot == slot and e.is_racing():
 			e.mark_dnf("retired by the driver")
+			# A player who gives up is recovered like anyone else: their car is
+			# not left parked across the road for the rest of the field.
+			_recover_car(e)
 			_publish_standings()
 			return
 
@@ -519,7 +598,20 @@ func _check_format_conditions(delta: float) -> void:
 	# The window the field actually gets. Short once the people playing are
 	# done, because from that moment the race is over as far as anyone in the
 	# room is concerned.
+	# The window has to mean the same thing on every stage. Sixty fixed seconds
+	# is a comfortable margin on a four-minute stage and a whole lap on a
+	# one-minute circuit — measurement showed three cars classified as outside
+	# the time limit while circulating perfectly well, simply because a lap
+	# took less time than the window allowed. So it scales with how long a lap
+	# actually takes, and a car running at four fifths of the leader's pace
+	# gets classified rather than timed out.
 	var window := FINISH_WINDOW_SECONDS
+	var leader_lap := 0.0
+	for e in entrants:
+		if e.best_lap > 0.0 and (leader_lap <= 0.0 or e.best_lap < leader_lap):
+			leader_lap = e.best_lap
+	if leader_lap > 0.0:
+		window = maxf(window, leader_lap * float(maxi(event.laps, 1)) * 0.30)
 	var players_done := _all_players_done()
 	if players_done and _player_done_time >= 0.0:
 		window = minf(window, (_player_done_time - maxf(_leader_finish_time, 0.0))
