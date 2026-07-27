@@ -25,7 +25,15 @@ enum Style {
 	DIGITAL,     ## bar tachometer and large digits, nineties Japanese turbo
 	PORSCHE,     ## central rev counter, flanking dials
 	LAMBORGHINI, ## angular hexagonal cluster, sweeping bar
+	AUSTERITY,   ## one dial, a fuel gauge and three lamps — an Eastern Bloc saloon
+	SEVENTIES,   ## ribbon speedometer, no rev counter at all
+	GROUP_B,     ## stripped: a big centre tacho, everything else an idiot light
+	TRUCK,       ## wide, upright, deliberately unhurried
 }
+
+## Manufacturers whose bottom-tier cars got the bare minimum instrument.
+const AUSTERITY_MAKES := ["Lada", "Trabant", "Zastava", "Skoda", "Wartburg",
+	"Moskvitch", "FSO", "GAZ", "Dacia"]
 
 const NEEDLE_SMOOTHING := 14.0
 ## Gauges sweep this many radians, from lower-left round to lower-right.
@@ -87,6 +95,23 @@ static func style_for(spec: CarSpec, stats: VehicleStats) -> Style:
 		return Style.PORSCHE
 	if spec.manufacturer == "Lamborghini":
 		return Style.LAMBORGHINI
+	# A Group B car had almost nothing on the dashboard: a rev counter where
+	# the driver could see it and warning lights for everything else, because
+	# on a stage there is no time to read a number you do not need.
+	if spec.category == "rally" and spec.tier >= 4:
+		return Style.GROUP_B
+	if spec.category == "offroad":
+		return Style.TRUCK
+	# The cars built east of the Elbe got the cheapest instrument that would
+	# pass type approval: a speedometer, a fuel gauge, and no rev counter,
+	# because the engine could not rev anywhere worth counting to.
+	if spec.manufacturer in AUSTERITY_MAKES and spec.tier == 0:
+		return Style.AUSTERITY
+	# Seventies mass-market Europe went through a phase of horizontal ribbon
+	# speedometers instead of round dials. They are terrible and unmistakable.
+	if spec.year >= 1970 and spec.year <= 1979 and spec.category == "classic" \
+			and stats.redline_rpm < 6100:
+		return Style.SEVENTIES
 	if spec.category == "classic" or spec.year < 1980:
 		return Style.CLASSIC
 	if spec.year >= 2005 or spec.category == "hyper":
@@ -130,6 +155,34 @@ static func _palette_for(style: Style) -> Dictionary:
 				"needle": Color(1.0, 0.72, 0.10), "warn": Color(1.0, 0.24, 0.10),
 				"bezel": Color(0.22, 0.24, 0.28), "accent": Color(0.62, 0.90, 0.25),
 			}
+		Style.AUSTERITY:
+			# Painted steel and a white needle. Nothing here cost anything.
+			return {
+				"face": Color(0.82, 0.80, 0.74), "ink": Color(0.20, 0.19, 0.17),
+				"needle": Color(0.86, 0.18, 0.12), "warn": Color(0.78, 0.14, 0.10),
+				"bezel": Color(0.34, 0.33, 0.31), "accent": Color(0.36, 0.32, 0.26),
+			}
+		Style.SEVENTIES:
+			# Brown. It was always brown.
+			return {
+				"face": Color(0.24, 0.19, 0.14), "ink": Color(0.90, 0.86, 0.74),
+				"needle": Color(0.94, 0.58, 0.14), "warn": Color(0.90, 0.24, 0.14),
+				"bezel": Color(0.42, 0.34, 0.24), "accent": Color(0.94, 0.72, 0.28),
+			}
+		Style.GROUP_B:
+			# Matt black, one huge dial, and a lot of warning lamps.
+			return {
+				"face": Color(0.05, 0.05, 0.06), "ink": Color(0.94, 0.94, 0.92),
+				"needle": Color(1.0, 0.85, 0.10), "warn": Color(1.0, 0.20, 0.12),
+				"bezel": Color(0.18, 0.18, 0.20), "accent": Color(1.0, 0.30, 0.12),
+			}
+		Style.TRUCK:
+			# Wide, cream-on-black, and unhurried.
+			return {
+				"face": Color(0.11, 0.11, 0.10), "ink": Color(0.88, 0.85, 0.76),
+				"needle": Color(0.96, 0.94, 0.88), "warn": Color(0.95, 0.35, 0.10),
+				"bezel": Color(0.36, 0.34, 0.30), "accent": Color(0.86, 0.62, 0.20),
+			}
 		_:
 			return {
 				"face": Color(0.07, 0.075, 0.09), "ink": Color(0.86, 0.88, 0.92),
@@ -156,6 +209,9 @@ func _draw() -> void:
 		Style.PORSCHE: _draw_porsche()
 		Style.LAMBORGHINI: _draw_lamborghini()
 		Style.DIGITAL: _draw_digital()
+		Style.AUSTERITY: _draw_austerity()
+		Style.SEVENTIES: _draw_ribbon()
+		Style.GROUP_B: _draw_group_b()
 		_: _draw_twin_dials()
 
 
@@ -262,6 +318,120 @@ func _draw_digital() -> void:
 	_digits(origin + Vector2(w * 0.58, h * 0.44), h * 0.42, "%d" % int(_shown_speed))
 	_label(origin + Vector2(w * 0.58, h * 0.72), "km/h")
 	_gear_readout(origin + Vector2(w * 0.88, h * 0.44), h * 0.28)
+
+
+## The cheapest instrument that would pass type approval. One big speedometer,
+## a fuel gauge, and warning lamps for the two things that will strand you.
+##
+## No rev counter, because these engines had nowhere worth revving to and a
+## second dial cost money. A player in a Trabant should be able to tell at a
+## glance that they are in a Trabant.
+func _draw_austerity() -> void:
+	# Positioned off the dial radius rather than off the panel width, so the
+	# cluster stays one instrument whatever it is drawn into. Anchoring to
+	# fractions of the width pulled it apart on a wide screen.
+	var r := minf(size.y * 0.46, size.x * 0.22)
+	var cy := size.y * 0.5
+	var centre := Vector2(size.x * 0.5 - r * 0.42, cy)
+	_dial(centre, r, _shown_speed, _speed_max, _speed_step, "km/h", 1.0, -1.0)
+
+	# A quadrant fuel gauge beside it, which is the other thing these had.
+	var fuel_centre := Vector2(size.x * 0.5 + r * 1.30, cy)
+	var fuel_r := r * 0.52
+	draw_circle(fuel_centre, fuel_r * 1.06, _palette["bezel"])
+	draw_circle(fuel_centre, fuel_r, _palette["face"])
+	var fuel := 1.0
+	if car.mechanical != null:
+		fuel = clampf(car.mechanical.fuel_fraction(), 0.0, 1.0)
+	# A quarter turn, from empty at the lower left to full at the upper right.
+	var from := PI * 0.85
+	var span := PI * 0.55
+	draw_arc(fuel_centre, fuel_r * 0.80, from, from + span * 0.25, 10,
+		_palette["warn"], fuel_r * 0.12, true)
+	var angle := from + span * fuel
+	var dir := Vector2(cos(angle), sin(angle))
+	draw_line(fuel_centre - dir * fuel_r * 0.14, fuel_centre + dir * fuel_r * 0.82,
+		_palette["needle"], 3.0, true)
+	draw_circle(fuel_centre, fuel_r * 0.12, _palette["bezel"])
+	_small_text(fuel_centre + Vector2(0, fuel_r * 0.58), "FUEL",
+		Color(_palette["ink"].r, _palette["ink"].g, _palette["ink"].b, 0.6),
+		int(maxf(fuel_r * 0.22, 7.0)))
+	_gear_readout(centre + Vector2(0, r * 0.30), r * 0.32)
+
+
+## A horizontal ribbon speedometer, which is what mass-market Europe fitted for
+## most of the seventies instead of a round dial. They are hard to read at a
+## glance, which is exactly why they went away, and instantly recognisable.
+func _draw_ribbon() -> void:
+	# Sized from the panel height, not its width: a ribbon that stretches to
+	# fill a wide cluster stops being an instrument and becomes a progress bar.
+	var h := size.y * 0.28
+	var w := minf(size.x * 0.72, h * 7.0)
+	var origin := Vector2((size.x - w) * 0.5, size.y * 0.34)
+	var panel := Rect2(origin, Vector2(w, h))
+	draw_rect(panel, _palette["face"])
+	draw_rect(panel, _palette["bezel"], false, 2.0)
+
+	# The ribbon itself: a bar that grows from the left, in the orange every
+	# one of these was lit in.
+	var fraction := clampf(_shown_speed / maxf(_speed_max, 1.0), 0.0, 1.0)
+	var inset := h * 0.22
+	var track := Rect2(origin + Vector2(inset, inset),
+		Vector2((w - inset * 2.0) * fraction, h - inset * 2.0))
+	draw_rect(track, _palette["needle"])
+
+	# Scale marks along the top edge, numbered on the majors.
+	var ticks := int(_speed_max / maxf(_speed_step, 1.0))
+	for i in range(ticks + 1):
+		var t := float(i) / float(maxi(ticks, 1))
+		var x := origin.x + inset + (w - inset * 2.0) * t
+		draw_line(Vector2(x, origin.y), Vector2(x, origin.y + h * 0.18),
+			_palette["ink"], 1.5, true)
+		if i % 2 == 0:
+			_small_text(Vector2(x, origin.y - h * 0.22),
+				"%d" % int(_speed_step * float(i)), _palette["ink"],
+				int(maxf(h * 0.22, 8.0)))
+	_label(Vector2(origin.x + w * 0.5, origin.y + h * 1.34), "km/h")
+
+	# The rev counter these cars did not have is replaced by a shift lamp,
+	# which is the only rev information the driver actually needed.
+	if _shown_rpm > _redline * 0.94:
+		draw_circle(Vector2(origin.x + w * 0.94, origin.y + h * 0.5), h * 0.22,
+			_palette["warn"])
+	_gear_readout(Vector2(size.x * 0.5, size.y * 0.80), h * 0.42)
+
+
+## A works rally car. One enormous rev counter in the middle, because that is
+## the only number that matters on a stage, and everything else reduced to a
+## lamp that is either lit or not.
+func _draw_group_b() -> void:
+	var r := minf(size.y * 0.48, size.x * 0.26)
+	var centre := Vector2(size.x * 0.5, size.y * 0.52)
+	# Marked every thousand and labelled in thousands, exactly as the twin-dial
+	# layout does. The step was being computed from _nice_step, which answers a
+	# question about speedometers and gave a rev counter one tick on it.
+	_dial(centre, r, _shown_rpm, _tacho_max, 1000.0, "RPM x1000", 0.001,
+		_redline / _tacho_max)
+
+	# A shift light across the top, which is what a driver actually watches.
+	var lit := clampf((_shown_rpm - _redline * 0.86) / maxf(_redline * 0.14, 1.0),
+		0.0, 1.0)
+	var lights := 7
+	for i in lights:
+		var t := float(i) / float(lights - 1)
+		var x := size.x * 0.5 + (t - 0.5) * r * 2.0
+		var on := lit > t
+		var colour: Color = _palette["accent"] if t < 0.7 else _palette["warn"]
+		draw_circle(Vector2(x, centre.y - r * 1.28), r * 0.09,
+			colour if on else Color(colour.r, colour.g, colour.b, 0.16))
+
+	# Speed as a number, off to one side, because it is reference rather than
+	# something you steer by.
+	var left := Vector2(size.x * 0.5 - r * 1.75, centre.y)
+	var right := Vector2(size.x * 0.5 + r * 1.75, centre.y)
+	_digits(left, r * 0.50, "%d" % int(_shown_speed))
+	_label(left + Vector2(0, r * 0.48), "km/h")
+	_gear_readout(right, r * 0.42)
 
 
 # --- Primitives -------------------------------------------------------------

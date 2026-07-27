@@ -53,7 +53,7 @@ func _ready() -> void:
 
 		var label := Label.new()
 		label.text = "%s\n%s" % [spec.display_name(),
-			["CLASSIC", "RALLY", "MODERN", "DIGITAL", "PORSCHE", "LAMBORGHINI"][
+			DashboardCluster.Style.keys()[
 				DashboardCluster.style_for(spec, car.stats)]]
 		label.position = Vector2(24, height * float(i) + height * 0.34)
 		label.add_theme_font_size_override("font_size", 18)

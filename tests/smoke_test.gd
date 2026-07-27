@@ -921,6 +921,45 @@ func _test_visuals() -> void:
 	_check(marks.get_child_count() == 1, "a sliding one lays a mark")
 	marks.queue_free()
 
+	# --- Stage geometry -------------------------------------------------------
+	# A stage must not pass close to a distant part of itself. A car's position
+	# on the road is worked out from the nearest point on the centreline, so at
+	# a crossing that answer is ambiguous and a car can be credited with a
+	# kilometre it never drove. Two of the new stages did exactly this, and it
+	# is invisible from inside the car — you have to look at the map.
+	for id in TrackSpec.load_all():
+		var stage: TrackSpec = TrackSpec.load_all()[id]
+		var curve := stage.build_curve()
+		if curve.point_count < 2:
+			continue
+		var total := curve.get_baked_length()
+		var ppm := GameConfig.PIXELS_PER_METRE
+		# Sampled every twenty metres, which is fine enough to catch a crossing
+		# and coarse enough to run on every stage on every test run.
+		var samples := PackedVector2Array()
+		var walk := 0.0
+		while walk <= total:
+			samples.append(curve.sample_baked(walk))
+			walk += 20.0 * ppm
+		var clearance := stage.width * 1.2 * ppm
+		var worst := INF
+		for a in samples.size():
+			for b in range(a + 1, samples.size()):
+				var apart_along := float(b - a) * 20.0 * ppm
+				if stage.closed:
+					apart_along = minf(apart_along, total - apart_along)
+				# Only parts of the road that are a long way apart along it.
+				if apart_along < clearance * 4.0:
+					continue
+				worst = minf(worst, samples[a].distance_to(samples[b]))
+		_check(worst > clearance,
+			"'%s' never doubles back onto itself (closest %.0f m, needs %.0f)" % [
+				id, worst / ppm, clearance / ppm])
+
+		# And a stage has to be long enough to be a stage.
+		_check(total / ppm > 400.0,
+			"'%s' is %.0f m long" % [id, total / ppm])
+
 	# Night stages are what make the headlights worth having.
 	var tracks := TrackSpec.load_all()
 	var night_stages := 0

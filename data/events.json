@@ -43,11 +43,13 @@
       "ai_skill": 0.28,
       "unlocks": [
         "banger_night",
+        "birch_sweepers",
         "club_night",
         "clubman_finale",
         "forest_dash",
         "gravel_grind",
         "quarry_clubman",
+        "quarry_switchbacks",
         "scrapyard_derby",
         "village_clubman"
       ]
@@ -76,11 +78,13 @@
       "ai_skill": 0.3,
       "unlocks": [
         "banger_night",
+        "birch_sweepers",
         "club_night",
         "clubman_finale",
         "forest_dash",
         "gravel_grind",
         "quarry_clubman",
+        "quarry_switchbacks",
         "scrapyard_derby",
         "village_clubman"
       ]
@@ -109,11 +113,13 @@
       "ai_skill": 0.32,
       "unlocks": [
         "banger_night",
+        "birch_sweepers",
         "club_night",
         "clubman_finale",
         "forest_dash",
         "gravel_grind",
         "quarry_clubman",
+        "quarry_switchbacks",
         "scrapyard_derby",
         "village_clubman"
       ]
@@ -142,11 +148,13 @@
       "ai_skill": 0.34,
       "unlocks": [
         "banger_night",
+        "birch_sweepers",
         "club_night",
         "clubman_finale",
         "forest_dash",
         "gravel_grind",
         "quarry_clubman",
+        "quarry_switchbacks",
         "scrapyard_derby",
         "village_clubman"
       ],
@@ -178,11 +186,13 @@
       "ai_skill": 0.38,
       "unlocks": [
         "banger_night",
+        "birch_sweepers",
         "club_night",
         "clubman_finale",
         "forest_dash",
         "gravel_grind",
         "quarry_clubman",
+        "quarry_switchbacks",
         "scrapyard_derby",
         "village_clubman"
       ]
@@ -211,6 +221,7 @@
       "ai_skill": 0.42,
       "unlocks": [
         "coastal_national",
+        "frozen_lake_trial",
         "lakeside_national",
         "mountain_open",
         "national_finale",
@@ -245,6 +256,7 @@
       "ai_skill": 0.42,
       "unlocks": [
         "coastal_national",
+        "frozen_lake_trial",
         "lakeside_national",
         "mountain_open",
         "national_finale",
@@ -276,6 +288,7 @@
       "ai_skill": 0.46,
       "unlocks": [
         "coastal_national",
+        "frozen_lake_trial",
         "lakeside_national",
         "mountain_open",
         "national_finale",
@@ -307,6 +320,7 @@
       "ai_skill": 0.46,
       "unlocks": [
         "coastal_national",
+        "frozen_lake_trial",
         "lakeside_national",
         "mountain_open",
         "national_finale",
@@ -341,6 +355,7 @@
       "ai_skill": 0.48,
       "unlocks": [
         "coastal_national",
+        "frozen_lake_trial",
         "lakeside_national",
         "mountain_open",
         "national_finale",
@@ -372,6 +387,7 @@
       "ai_skill": 0.52,
       "unlocks": [
         "coastal_national",
+        "frozen_lake_trial",
         "lakeside_national",
         "mountain_open",
         "national_finale",
@@ -405,6 +421,7 @@
         "alpine_international",
         "awd_invitational",
         "coastal_international",
+        "fjord_run",
         "international_finale",
         "lakeside_international",
         "winter_international"
@@ -439,6 +456,7 @@
         "alpine_international",
         "awd_invitational",
         "coastal_international",
+        "fjord_run",
         "international_finale",
         "lakeside_international",
         "winter_international"
@@ -470,6 +488,7 @@
         "alpine_international",
         "awd_invitational",
         "coastal_international",
+        "fjord_run",
         "international_finale",
         "lakeside_international",
         "winter_international"
@@ -504,6 +523,7 @@
         "alpine_international",
         "awd_invitational",
         "coastal_international",
+        "fjord_run",
         "international_finale",
         "lakeside_international",
         "winter_international"
@@ -535,6 +555,7 @@
         "alpine_international",
         "awd_invitational",
         "coastal_international",
+        "fjord_run",
         "international_finale",
         "lakeside_international",
         "winter_international"
@@ -566,6 +587,7 @@
         "alpine_international",
         "awd_invitational",
         "coastal_international",
+        "fjord_run",
         "international_finale",
         "lakeside_international",
         "winter_international"
@@ -599,6 +621,7 @@
       "unlocks": [
         "alpine_unlimited",
         "arctic_unlimited",
+        "deep_forest_marathon",
         "group_b_revival",
         "madness_final"
       ],
@@ -634,6 +657,7 @@
       "unlocks": [
         "alpine_unlimited",
         "arctic_unlimited",
+        "deep_forest_marathon",
         "group_b_revival",
         "madness_final"
       ]
@@ -663,6 +687,7 @@
       "unlocks": [
         "alpine_unlimited",
         "arctic_unlimited",
+        "deep_forest_marathon",
         "group_b_revival",
         "madness_final"
       ]
@@ -692,6 +717,7 @@
       "unlocks": [
         "alpine_unlimited",
         "arctic_unlimited",
+        "deep_forest_marathon",
         "group_b_revival",
         "madness_final"
       ]
@@ -721,6 +747,7 @@
       "unlocks": [
         "alpine_unlimited",
         "arctic_unlimited",
+        "deep_forest_marathon",
         "group_b_revival",
         "madness_final"
       ],
@@ -753,6 +780,7 @@
       "unlocks": [
         "alpine_unlimited",
         "arctic_unlimited",
+        "deep_forest_marathon",
         "group_b_revival",
         "madness_final"
       ]
@@ -910,6 +938,144 @@
       "sponsor_offers": [
         "ironclad_garage"
       ]
+    },
+    {
+      "id": "harbour_club",
+      "name": "Harbour Night Sprint",
+      "series": "Pine Ridge Club Series",
+      "track": "harbour_night",
+      "class": "club_novice",
+      "format": "sprint",
+      "laps": 3,
+      "description": "Three laps of the docks after dark. A kilometre a lap, walls on both sides, and the headlights matter.",
+      "min_level": 2,
+      "entry_fee": 250,
+      "payouts": [
+        6200,
+        3600,
+        2230,
+        1360,
+        740,
+        310
+      ],
+      "xp": 270,
+      "ai_opponents": 5,
+      "ai_skill": 0.34
+    },
+    {
+      "id": "quarry_switchbacks",
+      "name": "Old Quarry Descent",
+      "series": "Regional Clubman Cup",
+      "track": "quarry_descent",
+      "class": "clubman",
+      "format": "sprint",
+      "laps": 1,
+      "description": "Five hairpins down through working stone. First gear, full lock, and a drop on the outside of every one.",
+      "min_level": 5,
+      "entry_fee": 600,
+      "payouts": [
+        13500,
+        7830,
+        4860,
+        2970,
+        1620,
+        680
+      ],
+      "xp": 430,
+      "ai_opponents": 6,
+      "ai_skill": 0.44
+    },
+    {
+      "id": "birch_sweepers",
+      "name": "Birch Valley",
+      "series": "Regional Clubman Cup",
+      "track": "birch_valley",
+      "class": "clubman",
+      "format": "sprint",
+      "laps": 1,
+      "description": "Gravel sweepers that never quite straighten. Lift once and the whole sequence is gone.",
+      "min_level": 6,
+      "entry_fee": 700,
+      "payouts": [
+        15000,
+        8700,
+        5400,
+        3300,
+        1800,
+        750
+      ],
+      "xp": 470,
+      "ai_opponents": 6,
+      "ai_skill": 0.47
+    },
+    {
+      "id": "frozen_lake_trial",
+      "name": "Frozen Lake Trial",
+      "series": "National Rally Championship",
+      "track": "frozen_lake",
+      "class": "national",
+      "format": "sprint",
+      "laps": 3,
+      "description": "Three laps on lake ice. Nothing here is a wall and nothing here grips either.",
+      "min_level": 9,
+      "entry_fee": 1400,
+      "payouts": [
+        30000,
+        17400,
+        10800,
+        6600,
+        3600,
+        1500
+      ],
+      "xp": 650,
+      "ai_opponents": 7,
+      "ai_skill": 0.56
+    },
+    {
+      "id": "fjord_run",
+      "name": "Fjord Road",
+      "series": "International Rally Series",
+      "track": "fjord_road",
+      "class": "international",
+      "format": "sprint",
+      "laps": 1,
+      "description": "Four kilometres of coast road at full commitment. Long enough that tyres and fuel start to have opinions.",
+      "min_level": 13,
+      "entry_fee": 3000,
+      "payouts": [
+        62000,
+        35960,
+        22320,
+        13640,
+        7440,
+        3100
+      ],
+      "xp": 900,
+      "ai_opponents": 8,
+      "ai_skill": 0.68
+    },
+    {
+      "id": "deep_forest_marathon",
+      "name": "Deep Forest Marathon",
+      "series": "Rally Madness Masters",
+      "track": "deep_forest",
+      "class": "works",
+      "format": "sprint",
+      "laps": 1,
+      "description": "Eight kilometres of narrow dirt in the dark. The longest stage there is, and every kilometre is a chance to end it.",
+      "min_level": 17,
+      "entry_fee": 6000,
+      "payouts": [
+        125000,
+        72500,
+        45000,
+        27500,
+        15000,
+        6250
+      ],
+      "xp": 1400,
+      "ai_opponents": 9,
+      "ai_skill": 0.8
     }
   ]
 }
