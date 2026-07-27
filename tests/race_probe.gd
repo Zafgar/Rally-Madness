@@ -144,10 +144,14 @@ func _physics_process(delta: float) -> void:
 			_off_road_time[i] += delta
 			_worst_off[i] = maxf(_worst_off[i], off)
 
-	if not ranked.is_empty() and ranked[0] != _leader:
+	# The lead, counted from the settled order rather than the raw one. Reading
+	# it every physics frame counted two cars running nose to tail swapping the
+	# lead a hundred and seventy times in three laps, which is not a lead change
+	# — it is the same lead being measured very precisely.
+	if not _confirmed.is_empty() and _confirmed[0] != _leader:
 		if _leader >= 0:
 			_lead_changes += 1
-		_leader = ranked[0]
+		_leader = _confirmed[0]
 
 	for i in _director.entrants.size():
 		var e: RaceEntrant = _director.entrants[i]
