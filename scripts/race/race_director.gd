@@ -122,6 +122,10 @@ func _spawn_ai() -> void:
 	# so the field is always something the player could have brought.
 	var pool := _eligible_ai_cars()
 	if pool.is_empty():
+		# The floor can exclude everything on a class with one eligible car.
+		# A field of something is better than a field of nothing.
+		pool = _eligible_ai_cars_unbounded()
+	if pool.is_empty():
 		return
 
 	var ai_tires := _tire_choice_for(track_spec.default_surface)
@@ -189,16 +193,43 @@ func _tire_choice_for(surface: TireModel.Surface) -> String:
 	return preferred
 
 
+## The slowest a rival's car may be, as a fraction of the fastest the class
+## allows. A grid drawn evenly across a whole class band put a Trabant on the
+## same start line as a Clio Williams — four times the power — and a field
+## like that is not a race, it is a queue with two cars in front of it.
+##
+## Scaled by the event's ai_skill so a club night really is slower machinery
+## and an international really is not. Deliberately keyed to the event rather
+## than to what the player turned up in: matching the rivals to the player's
+## car would mean every upgrade bought them a faster set of opponents and
+## nothing else, which is the worst thing a racing game can do.
+const FIELD_FLOOR_LOW := 0.58
+const FIELD_FLOOR_HIGH := 0.86
+
+
 func _eligible_ai_cars() -> Array:
 	var pool := []
 	var band := event.effective_tier_range()
 	var cap := event.race_class().max_performance_index
+	# With no class, the band's own fastest car sets the ceiling — otherwise
+	# the floor below would be a fraction of ninety-nine thousand.
+	if cap >= 99999.0:
+		cap = 0.0
+		for spec in CarDatabase.all():
+			if spec.tier >= band.x and spec.tier <= band.y:
+				cap = maxf(cap, spec.to_base_stats().performance_index())
+	var floor_index := cap * lerpf(FIELD_FLOOR_LOW, FIELD_FLOOR_HIGH,
+		clampf(event.ai_skill, 0.0, 1.0))
+
 	for spec in CarDatabase.all():
 		if spec.tier < band.x or spec.tier > band.y:
 			continue
 		# Rivals obey the same performance cap the player does, so a class
 		# limit means something on both sides of the grid.
-		if spec.to_base_stats().performance_index() > cap:
+		var index := spec.to_base_stats().performance_index()
+		if index > cap:
+			continue
+		if index < floor_index:
 			continue
 		if not event.drivetrain_required.is_empty():
 			var dt: String = ["FWD", "RWD", "AWD"][spec.drivetrain]
@@ -206,6 +237,21 @@ func _eligible_ai_cars() -> Array:
 				continue
 		if not event.category_required.is_empty() \
 				and not event.category_required.has(spec.category):
+			continue
+		pool.append(spec)
+	return pool
+
+
+## The same pool without the performance floor, for the rare class where the
+## floor leaves nothing behind.
+func _eligible_ai_cars_unbounded() -> Array:
+	var pool := []
+	var band := event.effective_tier_range()
+	var cap := event.race_class().max_performance_index
+	for spec in CarDatabase.all():
+		if spec.tier < band.x or spec.tier > band.y:
+			continue
+		if spec.to_base_stats().performance_index() > cap:
 			continue
 		pool.append(spec)
 	return pool
@@ -228,15 +274,26 @@ func _apply_ai_mechanical_state(
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(event.id) * 31 + index
 	var carelessness := clampf(1.0 - driver.mechanical_sympathy, 0.0, 1.0)
-	car.mechanical.boost_setting = carelessness * rng.randf_range(0.3, 1.0)
-	car.mechanical.rev_limit_setting = carelessness * rng.randf_range(0.0, 0.9)
-	# A privateer running an old car is the normal case in this game, so rivals
-	# carry mileage and imperfect servicing rather than arriving factory fresh.
-	car.mechanical.engine_km = rng.randf_range(20000.0, 40000.0
-		+ carelessness * 190000.0)
-	car.mechanical.oil_life = rng.randf_range(0.35 + driver.mechanical_sympathy * 0.5, 1.0)
-	car.mechanical.brake_life = rng.randf_range(0.4 + driver.mechanical_sympathy * 0.5, 1.0)
-	car.mechanical.turbo_life = rng.randf_range(0.4 + driver.mechanical_sympathy * 0.5, 1.0)
+	# Rivals arrive imperfect, not doomed.
+	#
+	# This used to hand a careless driver an engine with two hundred thousand
+	# kilometres on it, the boost wound up and the limiter opened, and the
+	# failure model then did exactly what it is supposed to do with a car in
+	# that state: killed it. Measured over a nine-car race, most of the field
+	# blew up before the flag — every race, on every track. A rival letting go
+	# in a cloud of smoke is a good moment; a rival letting go every time is
+	# not a moment, it is the weather.
+	#
+	# So the abuse is real but bounded. The tuning settings stay well inside
+	# the range the failure rates were built around, and the mileage tops out
+	# where a hard-used competition car actually tops out.
+	car.mechanical.boost_setting = carelessness * rng.randf_range(0.10, 0.50)
+	car.mechanical.rev_limit_setting = carelessness * rng.randf_range(0.0, 0.40)
+	car.mechanical.engine_km = rng.randf_range(15000.0, 35000.0
+		+ carelessness * 85000.0)
+	car.mechanical.oil_life = rng.randf_range(0.55 + driver.mechanical_sympathy * 0.35, 1.0)
+	car.mechanical.brake_life = rng.randf_range(0.55 + driver.mechanical_sympathy * 0.35, 1.0)
+	car.mechanical.turbo_life = rng.randf_range(0.58 + driver.mechanical_sympathy * 0.32, 1.0)
 
 
 func _make_car(

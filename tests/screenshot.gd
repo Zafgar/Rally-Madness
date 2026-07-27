@@ -74,7 +74,9 @@ func _ready() -> void:
 
 	if _mode == "night":
 		var dark := CanvasModulate.new()
-		dark.color = Color(0.16, 0.18, 0.26)
+		# The same value the race uses, or this harness is testing a night
+		# nobody will ever play.
+		dark.color = RaceScene.NIGHT_LIGHT
 		add_child(dark)
 
 	_target_warmup = 0.2 if _mode == "static" else (7.0 if _mode == "drift" else 8.0)

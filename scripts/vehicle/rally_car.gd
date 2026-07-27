@@ -487,6 +487,13 @@ func _auto_engage_gear(delta: float, forward_speed: float, throttle: float,
 		brake: float) -> void:
 	if transmission.mode != Transmission.Mode.AUTOMATIC:
 		return
+	# Asked for outright. No dwell and no speed condition beyond the one below,
+	# because a driver who has said "reverse" has already made the decision the
+	# dwell exists to confirm.
+	if command.request_reverse:
+		if absf(forward_speed) < REVERSE_ENGAGE_SPEED:
+			transmission.engage_for(-1)
+		return
 	if not auto_reverse:
 		_reverse_dwell = 0.0
 	elif absf(forward_speed) > REVERSE_ENGAGE_SPEED or throttle > 0.1:
@@ -651,12 +658,13 @@ func _read_collisions(state: PhysicsDirectBodyState2D) -> void:
 		var impulse := mass * approach
 		if impulse < GameConfig.CRASH_IMPULSE_THRESHOLD:
 			continue
-		if state.get_contact_collider_object(i) is RallyCar:
+		var hit_a_car := state.get_contact_collider_object(i) is RallyCar
+		if hit_a_car:
 			contacts_with_cars += 1
 		# A car in the air is not scraping anything; the fake Z axis means 2D
 		# still reports contacts it should be flying over.
 		if not airborne:
-			damage.apply_impact(impulse, normal.rotated(-rotation))
+			damage.apply_impact(impulse, normal.rotated(-rotation), hit_a_car)
 			# Heard on the same scale it is felt: the reference impulse is the
 			# one the damage model calls a serious hit.
 			if _audio != null:

@@ -127,7 +127,15 @@ func update(delta: float) -> VehicleCommand:
 	# scan the road out to the full braking distance, work out the entry speed
 	# each corner allows, and take the lowest speed that is still reachable.
 	var mu_here := TireModel.surface_mu(car.stats, car.surface, true)
-	var confidence := CORNERING_CONFIDENCE * lerpf(0.40, 0.78, profile.commitment) * _mood
+	# How much of the available grip the driver is willing to use in a corner.
+	# Speed goes with the square root of this, so the top of the range matters
+	# more than it looks: at 0.78 the very best driver in the game cornered at
+	# 82% of what the tyres would give, and a competent player using nearly all
+	# of it beat the entire field every single time. At 0.95 a works driver
+	# uses about 90%, which is quick enough to have to be raced, and a nervous
+	# one is still visibly slower because the bottom of the range has not moved.
+	# 0.95 was tried and measurably crashed more without lapping much faster.
+	var confidence := CORNERING_CONFIDENCE * lerpf(0.40, 0.88, profile.commitment) * _mood
 	var brake_decel := maxf(mu_here * 9.81 * car.stats.brake_force * 0.85, 1.0)
 	# A poor braker leaves a large margin and coasts in far too early.
 	var braking_margin := lerpf(1.9, 1.05, profile.braking_skill)
@@ -257,6 +265,14 @@ func update(delta: float) -> VehicleCommand:
 	else:
 		_stuck_timer = 0.0
 	if _stuck_timer > 2.0:
+		# Backing out, which means asking for reverse rather than leaning on
+		# the brake and hoping. Holding the brake used to select reverse for
+		# everyone; it no longer does for an AI, because in reverse the brake
+		# is the accelerator and a computer sitting on it would drive itself
+		# backwards down the stage. So the request is explicit — and without
+		# it this recovery quietly stopped working and cars sat in ditches
+		# until the respawn timer bailed them out.
+		_command.request_reverse = true
 		_command.throttle = 0.0
 		_command.brake = 1.0
 		_command.steer = -signf(steer) if not is_zero_approx(steer) else 1.0

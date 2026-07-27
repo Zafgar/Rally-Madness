@@ -123,7 +123,10 @@ func _build_ground() -> Node2D:
 	# A big backdrop so the world is not void-black outside the road.
 	var ground := Polygon2D.new()
 	ground.name = "Ground"
-	var bounds := _bounds().grow(2000.0)
+	# Generous, because this is the only thing behind everything else: when it
+	# runs out the player sees the empty grey of the viewport, which is what
+	# was happening at the edges of the wider stages.
+	var bounds := _bounds().grow(6000.0)
 	ground.polygon = PackedVector2Array([
 		bounds.position,
 		Vector2(bounds.end.x, bounds.position.y),
@@ -255,13 +258,46 @@ func _build_walls() -> StaticBody2D:
 		shape.shape = _barrier_shape(pts)
 		body.add_child(shape)
 
-		var barrier := Line2D.new()
-		barrier.points = pts
-		barrier.width = 5.0
-		barrier.default_color = Color(0.75, 0.15, 0.12, 0.9)
-		barrier.closed = spec.closed
-		body.add_child(barrier)
+		# What the barrier looks like is not what it does. It used to be a
+		# bright red line down both sides of every stage, which is a debug
+		# overlay: it was the most prominent thing on screen and it made a
+		# forest road look like a slot-car track. What is actually at the edge
+		# of a road depends on the road, so that is what gets drawn.
+		for layer in _barrier_layers():
+			var line := Line2D.new()
+			line.points = pts
+			line.width = float(layer["width"])
+			line.default_color = layer["colour"]
+			line.closed = spec.closed
+			body.add_child(line)
 	return body
+
+
+## How the edge of the road is drawn, back to front.
+##
+## A gravel stage has a ditch and a shoulder; a tarmac circuit has a kerb and
+## steel; a snow stage has a bank of ploughed snow. All three are what the
+## driver actually uses to judge where the road ends, and none of them is a red
+## stripe.
+func _barrier_layers() -> Array:
+	match spec.default_surface:
+		TireModel.Surface.TARMAC:
+			return [
+				{"width": 7.0, "colour": Color(0.30, 0.30, 0.31, 0.85)},
+				{"width": 3.0, "colour": Color(0.62, 0.63, 0.66, 0.90)},
+			]
+		TireModel.Surface.SNOW, TireModel.Surface.ICE:
+			# Ploughed snow, piled and shadowed on its inner face.
+			return [
+				{"width": 11.0, "colour": Color(0.90, 0.93, 0.97, 0.95)},
+				{"width": 4.0, "colour": Color(0.68, 0.74, 0.82, 0.75)},
+			]
+		_:
+			# Gravel and dirt: a scuffed shoulder falling into a dark ditch.
+			return [
+				{"width": 9.0, "colour": Color(0.30, 0.28, 0.21, 0.80)},
+				{"width": 3.5, "colour": Color(0.11, 0.10, 0.08, 0.85)},
+			]
 
 
 ## An open guardrail along a polyline.

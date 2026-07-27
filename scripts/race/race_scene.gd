@@ -4,6 +4,10 @@ extends Node2D
 
 const CAR_SCENE := preload("res://scenes/vehicle/rally_car.tscn")
 const MENU_SCENE_PATH := "res://scenes/boot.tscn"
+## How much light a night stage has before the headlights. Blue, because
+## moonlight is, and about a third of daylight, because a driver has to be able
+## to see the corner before the beams pick it out.
+const NIGHT_LIGHT := Color(0.38, 0.41, 0.52)
 
 @export var event_id: String = "shakedown"
 
@@ -78,6 +82,21 @@ func _ready() -> void:
 	_overlay.continue_requested.connect(_return_to_menu)
 	_overlay.pause_toggled.connect(_toggle_pause)
 	overlay_layer.add_child(_overlay)
+
+	# Night. It existed only in the screenshot harness before this, so a night
+	# stage in the actual game was as bright as a summer afternoon and the
+	# headlights lit nothing worth seeing.
+	#
+	# Dark enough to read as night and blue enough to read as moonlight, but
+	# nowhere near as dark as real darkness: a top-down game where you cannot
+	# see the road until the headlights reach it is not atmospheric, it is
+	# unplayable. The headlights then add a genuinely brighter cone on top,
+	# which is what makes turning them on worth doing.
+	if director != null and director.track_spec != null and director.track_spec.night:
+		var dusk := CanvasModulate.new()
+		dusk.name = "NightLight"
+		dusk.color = NIGHT_LIGHT
+		add_child(dusk)
 
 	# Music down but not off while driving: twelve engines have to get past it,
 	# and a soundtrack that vanishes the moment the action starts is one nobody

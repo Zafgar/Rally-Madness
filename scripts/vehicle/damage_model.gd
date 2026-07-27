@@ -83,7 +83,20 @@ func apply(component: String, amount: float) -> void:
 
 ## Impact from a collision. `local_direction` is the contact normal expressed in
 ## the car's own frame, so we know whether it was nose, tail or flank.
-func apply_impact(impulse: float, local_direction: Vector2) -> void:
+## `car_to_car` is not a detail. Two cars racing wheel to wheel touch
+## constantly, and a touch between two bodies travelling the same way at nearly
+## the same speed is a scrape: sheet metal deforms, both cars carry on. The
+## same closing speed into a rock is a shunt that ends a race. Treating them
+## identically meant a competitive field — one where cars are actually close
+## enough to race each other — destroyed itself within a lap, every time.
+## How much of an impact's damage survives when the thing hit was another car.
+## Panel damage still happens — trading paint costs you paint — but a race is
+## not decided by the first time two cars touch.
+const CAR_CONTACT_SCALE := 0.28
+
+
+func apply_impact(impulse: float, local_direction: Vector2,
+		car_to_car: bool = false) -> void:
 	if wrecked:
 		return
 	if impulse < GameConfig.CRASH_IMPULSE_THRESHOLD:
@@ -92,6 +105,8 @@ func apply_impact(impulse: float, local_direction: Vector2) -> void:
 	# Durability and armour both soak impact before it reaches the components.
 	var severity := impulse / REFERENCE_IMPULSE
 	severity /= maxf(stats.crash_resistance, 0.05)
+	if car_to_car:
+		severity *= CAR_CONTACT_SCALE
 
 	var dir := local_direction.normalized()
 	var frontal := maxf(-dir.x, 0.0)   # something pushing back into the nose

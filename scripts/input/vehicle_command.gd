@@ -17,6 +17,10 @@ var respawn: bool = false
 var toggle_lights: bool = false
 ## Held, not edge-triggered — a horn sounds for as long as you lean on it.
 var horn: bool = false
+## An explicit "I want reverse". The pad convenience of selecting it by holding
+## the brake is not available to an AI, and an AI stuck nose-first in a ditch
+## has to be able to back out of it — so it asks in words instead.
+var request_reverse: bool = false
 
 
 func clear() -> void:
@@ -31,6 +35,7 @@ func clear() -> void:
 	respawn = false
 	toggle_lights = false
 	horn = false
+	request_reverse = false
 
 
 ## Compact form for network replication. Analogue axes are quantised to a byte
@@ -86,4 +91,5 @@ func duplicate_command() -> VehicleCommand:
 	c.respawn = respawn
 	c.toggle_lights = toggle_lights
 	c.horn = horn
+	c.request_reverse = request_reverse
 	return c

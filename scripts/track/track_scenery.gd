@@ -9,15 +9,27 @@ extends Node2D
 ## All of it is seeded from the track id, so a track looks the same every time
 ## it loads without any of it being stored.
 
-## Metres between scenery items along each side of the road.
-const SCENERY_SPACING := 14.0
+## Metres between scenery stations along each side of the road. Closer than
+## this and a forest costs real time to build; further apart and the road is
+## not lined with anything, it merely has some trees near it.
+const SCENERY_SPACING := 7.0
 ## How far beyond the barrier scenery starts and stops, in metres.
 const SCENERY_NEAR := 3.0
 const SCENERY_FAR := 34.0
 ## Surface speckles per hundred metres of road.
 const SPECKLE_DENSITY := 90.0
-## Large soft patches of ground colour, so the surround is not one flat green.
-const PATCH_DENSITY := 34.0
+## Ground mottling, per hundred metres of road, at three scales.
+##
+## Ground seen from above is mottled at every scale at once: broad changes in
+## soil and shade, clumps of vegetation within those, and fine texture within
+## those. One layer of large soft discs is not terrain, it is a smear — which
+## is exactly what it looked like.
+const PATCH_LAYERS := [
+	# radius range in metres, count per 100 m, shade range, alpha
+	{"radius": [26.0, 60.0], "density": 14.0, "shade": 0.022, "alpha": 0.16},
+	{"radius": [7.0, 20.0], "density": 60.0, "shade": 0.038, "alpha": 0.24},
+	{"radius": [1.6, 5.0], "density": 210.0, "shade": 0.070, "alpha": 0.26},
+]
 ## Width of the graded verge either side of the road, in metres.
 const VERGE_WIDTH := 1.6
 
@@ -108,17 +120,28 @@ func _scatter_patches() -> void:
 		return
 	var ppm := GameConfig.PIXELS_PER_METRE
 	var length_m := float(samples.size()) * TrackBuilder.SAMPLE_STEP / ppm
-	var count := int(length_m / 100.0 * PATCH_DENSITY)
-	for i in count:
-		var s: Dictionary = samples[_rng.randi() % samples.size()]
-		var side: float = 1.0 if _rng.randf() > 0.5 else -1.0
-		var out_m := _rng.randf_range(4.0, 70.0)
-		_patches.append({
-			"pos": s["pos"] + s["normal"] * (half_width_px + out_m * ppm) * side
-				+ s["dir"] * _rng.randf_range(-40.0, 40.0) * ppm,
-			"radius": _rng.randf_range(5.0, 18.0) * ppm,
-			"shade": _rng.randf_range(-0.035, 0.035),
-		})
+	# Coarse layers first so the fine ones land on top of them, which is the
+	# order that reads as ground rather than as circles.
+	for layer in PATCH_LAYERS:
+		var radius: Array = layer["radius"]
+		var count := int(length_m / 100.0 * float(layer["density"]))
+		var shade_range: float = layer["shade"]
+		for i in count:
+			var s: Dictionary = samples[_rng.randi() % samples.size()]
+			var side: float = 1.0 if _rng.randf() > 0.5 else -1.0
+			# Nearer the road for the fine layers: that is where the eye is,
+			# and mottling a kilometre away costs the same and is never seen.
+			var reach: float = 90.0 if float(radius[1]) > 20.0 else 46.0
+			var out_m := _rng.randf_range(2.0, reach)
+			_patches.append({
+				"pos": s["pos"] + s["normal"] * (half_width_px + out_m * ppm) * side
+					+ s["dir"] * _rng.randf_range(-40.0, 40.0) * ppm,
+				"radius": _rng.randf_range(float(radius[0]), float(radius[1])) * ppm,
+				# Green ground varies more in green than in red or blue, which
+				# is what stops the variation looking like a grey wash.
+				"shade": _rng.randf_range(-shade_range, shade_range),
+				"alpha": float(layer["alpha"]),
+			})
 
 
 ## Trees, rocks and posts outside the barriers.
@@ -138,12 +161,18 @@ func _scatter_scenery() -> void:
 	for i in range(0, samples.size(), step):
 		var s: Dictionary = samples[i]
 		for side in [-1.0, 1.0]:
-			# Two or three items per station, thinning out with distance.
-			for n in _rng.randi_range(1, 3):
+			# Several items per station. The road wants to be lined with
+			# scenery, not merely to have some in the general area.
+			for n in _rng.randi_range(2, 4):
 				var prop := TrackProp.pick(palette, _rng)
 				if prop == null:
 					continue
-				var out_m := _rng.randf_range(prop.near_m, prop.far_m)
+				# Squared so most of it clusters against the roadside and it
+				# thins out with distance, which is how a cleared road looks
+				# from above. A flat spread put as much of a forest forty
+				# metres away as beside the road, and neither read as either.
+				var bias := _rng.randf()
+				var out_m: float = lerpf(prop.near_m, prop.far_m, bias * bias)
 				var along := _rng.randf_range(-6.0, 6.0) * ppm
 				var pos: Vector2 = s["pos"] + s["dir"] * along \
 					+ s["normal"] * (half_width_px + out_m * ppm) * side
@@ -189,8 +218,11 @@ func _draw_patches() -> void:
 		SURROUND[TireModel.Surface.GRAVEL])["ground"]
 	for patch in _patches:
 		var shade: float = patch["shade"]
-		draw_circle(patch["pos"], patch["radius"],
-			Color(base.r + shade, base.g + shade, base.b + shade, 0.35))
+		draw_circle(patch["pos"], patch["radius"], Color(
+			clampf(base.r + shade * 0.55, 0.0, 1.0),
+			clampf(base.g + shade, 0.0, 1.0),
+			clampf(base.b + shade * 0.40, 0.0, 1.0),
+			float(patch.get("alpha", 0.32))))
 
 
 func _draw_verges() -> void:
