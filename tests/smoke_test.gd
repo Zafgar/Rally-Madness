@@ -843,6 +843,46 @@ func _test_visuals() -> void:
 	_check(mid_visual._front_axle_px > nose_visual._front_axle_px,
 		"a mid-engine car's front axle sits further from its centre of mass")
 
+	# --- Instrument clusters ------------------------------------------------
+	# The point of per-car gauges is that they differ, and the rules that pick
+	# them are stacked in a specific order — an F40 is a hypercar, a classic
+	# and an Italian, and only one of those is the dashboard it had. A rule
+	# added in the wrong place silently steals cars from another.
+	var clusters := {}
+	for car_spec in CarDatabase.all():
+		var style := DashboardCluster.style_for(car_spec,
+			car_spec.to_base_stats())
+		clusters[style] = int(clusters.get(style, 0)) + 1
+	_check(clusters.size() >= 8,
+		"the field is spread across the instrument styles (%d of %d in use)" % [
+			clusters.size(), DashboardCluster.Style.size()])
+	for style in DashboardCluster.Style.values():
+		var palette := DashboardCluster._palette_for(style)
+		_check(palette.has("face") and palette.has("needle") and palette.has("warn"),
+			"instrument style %d has a complete palette" % style)
+
+	var expectations := {
+		"ferrari_f40": DashboardCluster.Style.VEGLIA,
+		"alfa_gtv6": DashboardCluster.Style.VEGLIA,
+		"mustang_gt_fox": DashboardCluster.Style.MUSCLE,
+		"corvette_c5_z06": DashboardCluster.Style.MUSCLE,
+		# Still a truck, despite the badge on the front of it.
+		"f150_raptor": DashboardCluster.Style.TRUCK,
+		# Still Group B, despite being Italian.
+		"delta_s4": DashboardCluster.Style.GROUP_B,
+		# Still the cheapest instrument that would pass type approval, despite
+		# being Italian.
+		"fiat_126p": DashboardCluster.Style.SEVENTIES,
+		"porsche_gt2_rs": DashboardCluster.Style.PORSCHE,
+	}
+	for id in expectations:
+		var car_spec := CarDatabase.get_car(id)
+		if car_spec == null:
+			continue
+		_check(DashboardCluster.style_for(car_spec, car_spec.to_base_stats())
+				== expectations[id],
+			"%s gets the cluster it had" % car_spec.display_name())
+
 	# Every category must produce a drawable outline, and every car must be the
 	# shape a car is. These are the checks that would have caught the artwork
 	# being wrong: the bodies were drawn 1.4x their wheelbase when real cars are

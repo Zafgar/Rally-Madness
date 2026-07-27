@@ -29,11 +29,25 @@ enum Style {
 	SEVENTIES,   ## ribbon speedometer, no rev counter at all
 	GROUP_B,     ## stripped: a big centre tacho, everything else an idiot light
 	TRUCK,       ## wide, upright, deliberately unhurried
+	MUSCLE,      ## chrome-ringed twin dials over a row of small auxiliary gauges
+	VEGLIA,      ## three black-faced dials, one of them boost — Italian, 1980s
 }
 
 ## Manufacturers whose bottom-tier cars got the bare minimum instrument.
 const AUSTERITY_MAKES := ["Lada", "Trabant", "Zastava", "Skoda", "Wartburg",
 	"Moskvitch", "FSO", "GAZ", "Dacia"]
+
+## Detroit. A V8 from any of these got the same wide binnacle: two big dials
+## with chrome rings and a row of little gauges under them telling you about
+## oil, water and volts, because these engines were worth watching.
+const MUSCLE_MAKES := ["Ford", "Chevrolet", "Dodge", "Pontiac", "Plymouth",
+	"Buick", "Oldsmobile"]
+
+## The Italian supplier that instrumented most of Italy. Black faces, white
+## figures, and on anything turbocharged a boost gauge given equal billing with
+## the rev counter — which tells you exactly what the car was about.
+const VEGLIA_MAKES := ["Ferrari", "Lancia", "Alfa Romeo", "Maserati",
+	"De Tomaso", "Abarth"]
 
 const NEEDLE_SMOOTHING := 14.0
 ## Gauges sweep this many radians, from lower-left round to lower-right.
@@ -102,6 +116,17 @@ static func style_for(spec: CarSpec, stats: VehicleStats) -> Style:
 		return Style.GROUP_B
 	if spec.category == "offroad":
 		return Style.TRUCK
+	# A Detroit V8. The cylinder count is the test rather than the badge,
+	# because the same makers also sold four-cylinder hatchbacks that got
+	# nothing of the sort.
+	if spec.manufacturer in MUSCLE_MAKES and spec.engine_layout != null \
+			and spec.engine_layout.cylinders >= 8:
+		return Style.MUSCLE
+	# Italian, and expensive enough to have been given proper instruments.
+	# Checked before the hypercar and classic rules below, because an F40 is
+	# both of those and is neither of their dashboards.
+	if spec.manufacturer in VEGLIA_MAKES and spec.tier >= 2:
+		return Style.VEGLIA
 	# The cars built east of the Elbe got the cheapest instrument that would
 	# pass type approval: a speedometer, a fuel gauge, and no rev counter,
 	# because the engine could not rev anywhere worth counting to.
@@ -183,6 +208,20 @@ static func _palette_for(style: Style) -> Dictionary:
 				"needle": Color(0.96, 0.94, 0.88), "warn": Color(0.95, 0.35, 0.10),
 				"bezel": Color(0.36, 0.34, 0.30), "accent": Color(0.86, 0.62, 0.20),
 			}
+		Style.MUSCLE:
+			# Off-white faces behind bright chrome, and an orange needle.
+			return {
+				"face": Color(0.86, 0.85, 0.81), "ink": Color(0.12, 0.12, 0.13),
+				"needle": Color(0.88, 0.30, 0.10), "warn": Color(0.82, 0.14, 0.10),
+				"bezel": Color(0.78, 0.79, 0.82), "accent": Color(0.20, 0.34, 0.62),
+			}
+		Style.VEGLIA:
+			# Black faces, white figures, one needle in Rosso Corsa.
+			return {
+				"face": Color(0.055, 0.055, 0.06), "ink": Color(0.93, 0.92, 0.89),
+				"needle": Color(0.86, 0.11, 0.09), "warn": Color(0.95, 0.20, 0.14),
+				"bezel": Color(0.30, 0.29, 0.28), "accent": Color(0.94, 0.86, 0.30),
+			}
 		_:
 			return {
 				"face": Color(0.07, 0.075, 0.09), "ink": Color(0.86, 0.88, 0.92),
@@ -212,6 +251,8 @@ func _draw() -> void:
 		Style.AUSTERITY: _draw_austerity()
 		Style.SEVENTIES: _draw_ribbon()
 		Style.GROUP_B: _draw_group_b()
+		Style.MUSCLE: _draw_muscle()
+		Style.VEGLIA: _draw_veglia()
 		_: _draw_twin_dials()
 
 
@@ -399,6 +440,166 @@ func _draw_ribbon() -> void:
 		draw_circle(Vector2(origin.x + w * 0.94, origin.y + h * 0.5), h * 0.22,
 			_palette["warn"])
 	_gear_readout(Vector2(size.x * 0.5, size.y * 0.80), h * 0.42)
+
+
+## Detroit. Two big dials in bright chrome rings, and under them a row of four
+## small gauges — oil pressure, water, volts and fuel — because a big American
+## V8 was a thing you were expected to keep an eye on rather than trust.
+func _draw_muscle() -> void:
+	# Sized to leave room for the row of small gauges underneath. Taking the
+	# same radius as the twin-dial layout put that row off the bottom of the
+	# panel, where its labels were drawn and never seen.
+	var r := minf(size.y * 0.30, size.x * 0.18)
+	var cy := size.y * 0.36
+	var tacho := Vector2(size.x * 0.5 - r * 1.18, cy)
+	var speedo := Vector2(size.x * 0.5 + r * 1.18, cy)
+
+	# The chrome. Two rings, light above and dark below, which is what makes a
+	# flat circle read as a polished bezel rather than a grey outline.
+	for centre in [tacho, speedo]:
+		draw_circle(centre, r * 1.16, Color(0.52, 0.53, 0.56))
+		draw_arc(centre, r * 1.10, PI, TAU, 32, Color(0.94, 0.95, 0.97), r * 0.11, true)
+
+	_dial(tacho, r, _shown_rpm, _tacho_max, 1000.0, "RPM x1000", 0.001,
+		_redline / _tacho_max)
+	_dial(speedo, r, _shown_speed, _speed_max, _speed_step, "km/h", 1.0, -1.0)
+	_gear_readout(tacho + Vector2(0, r * 0.30), r * 0.34)
+
+	# The row of small gauges. Each is a quarter-sweep needle over a face too
+	# small to number, exactly as the real ones were: you learn where the
+	# needle normally sits and notice when it is somewhere else.
+	var small_r := r * 0.40
+	var row_y := cy + r * 1.52
+	var gauges := [
+		{"label": "OIL", "value": _oil_reading()},
+		{"label": "TEMP", "value": _coolant_reading()},
+		{"label": "VOLTS", "value": 0.62},
+		{"label": "FUEL", "value": _fuel_reading()},
+	]
+	var spread := small_r * 2.9
+	var first := size.x * 0.5 - spread * 1.5
+	for i in gauges.size():
+		_mini_gauge(Vector2(first + spread * float(i), row_y), small_r,
+			float(gauges[i]["value"]), String(gauges[i]["label"]))
+
+
+## Italy, and specifically the supplier that instrumented most of it. Three
+## black-faced dials with white figures: rev counter, speedometer, and a boost
+## gauge given equal billing with both — which on a turbocharged car from
+## Maranello or Turin is an honest statement of priorities.
+func _draw_veglia() -> void:
+	var r := minf(size.y * 0.44, size.x * 0.17)
+	var cy := size.y * 0.5
+	var centre := Vector2(size.x * 0.5, cy)
+
+	# Rev counter in the middle and largest, because that is the one being read.
+	_dial(centre, r * 1.14, _shown_rpm, _tacho_max, 1000.0, "GIRI x1000", 0.001,
+		_redline / _tacho_max)
+	_dial(centre + Vector2(r * 2.0, 0), r * 0.84, _shown_speed, _speed_max,
+		_speed_step * 2.0, "km/h", 1.0, -1.0)
+
+	# Boost, or oil pressure on the cars that never had a turbo. Either way it
+	# is the left-hand dial, because that is where the third gauge went.
+	var boosted: bool = car.stats != null and car.stats.turbo_boost > 1.02
+	var left := centre - Vector2(r * 2.0, 0)
+	if boosted:
+		# Marked every bar. Half-bar marks would be more faithful but the labels
+		# are drawn as whole numbers, so the dial came out reading 0 1 1 2 2 3.
+		_dial(left, r * 0.84, _boost_reading(), BOOST_GAUGE_SPAN, 1.0, "BAR", 1.0,
+			clampf((BOOST_GAUGE_VACUUM + _peak_boost_bar()) / BOOST_GAUGE_SPAN,
+				0.05, 0.98))
+	else:
+		_dial(left, r * 0.84, _oil_reading() * 100.0, 100.0, 25.0, "OLIO", 1.0, -1.0)
+	_gear_readout(centre + Vector2(0, r * 0.40), r * 0.44)
+
+
+## The boost dial is marked from a bar of vacuum up, the way a real one is, so
+## the needle has somewhere to sit when the driver lifts rather than banging
+## against the stop. Zero on the gauge is therefore BOOST_GAUGE_VACUUM.
+const BOOST_GAUGE_VACUUM := 1.0
+const BOOST_GAUGE_SPAN := 3.0
+## The physics carries boost as a torque multiplier rather than a pressure —
+## 2.0x means the engine makes twice what it makes off boost. Turning that back
+## into a pressure a gauge can show is roughly one bar per unit of multiplier,
+## which puts a Delta S4 at about a bar and a half and looks right.
+const BOOST_BAR_PER_UNIT := 1.0
+
+
+## Where the boost needle sits, on the gauge's own scale.
+func _boost_reading() -> float:
+	var peak := _peak_boost_bar()
+	var spool := 0.0
+	if car.engine != null:
+		# The engine's `boost` runs from its off-boost fraction up to 1.0, so
+		# how far along that range it is *is* how spooled the turbo is.
+		var off := car.engine.off_boost_fraction()
+		spool = clampf((car.engine.boost - off) / maxf(1.0 - off, 0.001), 0.0, 1.0)
+	# Off the throttle the engine is pumping against a closed butterfly, which
+	# is where the vacuum half of the gauge comes from.
+	return BOOST_GAUGE_VACUUM + lerpf(-0.7, peak, spool)
+
+
+func _peak_boost_bar() -> float:
+	if car.stats == null:
+		return 1.0
+	return maxf((car.stats.turbo_boost - 1.0) * BOOST_BAR_PER_UNIT, 0.3)
+
+
+## A gauge too small to be numbered: a short sweep, a needle, and a word.
+func _mini_gauge(centre: Vector2, radius: float, fraction: float, caption: String) -> void:
+	draw_circle(centre, radius * 1.14, Color(0.62, 0.63, 0.66))
+	draw_circle(centre, radius, _palette["face"])
+	# A quarter turn centred on straight up, so the needle sits vertical when
+	# everything is normal and the bottom of the face stays clear for the word.
+	var from := PI * 1.25
+	var span := PI * 0.50
+	# A tick at each end and one in the middle, which is all the scale there is
+	# room for and all these gauges ever had.
+	for t in [0.0, 0.5, 1.0]:
+		var dir := Vector2(cos(from + span * t), sin(from + span * t))
+		draw_line(centre + dir * radius * 0.62, centre + dir * radius * 0.88,
+			_palette["ink"], 1.5, true)
+	var angle := from + span * clampf(fraction, 0.0, 1.0)
+	var needle := Vector2(cos(angle), sin(angle))
+	draw_line(centre - needle * radius * 0.12, centre + needle * radius * 0.82,
+		_palette["needle"], 2.0, true)
+	draw_circle(centre, radius * 0.14, _palette["bezel"])
+	# Printed on the face rather than under the gauge, which is where it is on
+	# the real thing and, more practically, is inside the panel whatever size
+	# the cluster is drawn at.
+	_small_text(centre + Vector2(0, radius * 0.60), caption,
+		Color(_palette["ink"].r, _palette["ink"].g, _palette["ink"].b, 0.8),
+		int(maxf(radius * 0.40, 7.0)))
+
+
+## Readings the small gauges show, each normalised to 0..1 and each safe when
+## the model behind it is not there — a cluster must never be the thing that
+## crashes a race.
+func _oil_reading() -> float:
+	if car.mechanical == null:
+		return 0.7
+	# Pressure comes from the pump, and the pump is driven by the engine — so
+	# this is mostly a rev counter with a lag. It then falls as the oil ages
+	# and as it gets hot, which is the behaviour worth glancing at: a needle
+	# that is lower than usual for the revs you are pulling means trouble.
+	var revs := clampf(_shown_rpm / maxf(_redline, 1000.0), 0.0, 1.0)
+	var pressure := 0.22 + revs * 0.62
+	var heat := clampf((car.mechanical.oil_c - 90.0) / 90.0, 0.0, 1.0)
+	return clampf(pressure * (0.65 + car.mechanical.oil_life * 0.35) - heat * 0.25,
+		0.0, 1.0)
+
+
+func _coolant_reading() -> float:
+	if car.mechanical == null:
+		return 0.5
+	return clampf((car.mechanical.coolant_c - 40.0)
+		/ (MechanicalModel.COOLANT_CRITICAL_C - 40.0), 0.0, 1.0)
+
+
+func _fuel_reading() -> float:
+	if car.mechanical == null:
+		return 1.0
+	return clampf(car.mechanical.fuel_fraction(), 0.0, 1.0)
 
 
 ## A works rally car. One enormous rev counter in the middle, because that is

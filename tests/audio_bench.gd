@@ -18,6 +18,13 @@ extends Node
 ##
 ##   godot --headless --path . res://tests/audio_bench.tscn
 
+## What the smoke test holds a loop to: past this the seam is audible.
+const SEAM_LIMIT := 6.0
+## The field has to cover at least this much spectrum, or every car sounds the
+## same at a different pitch.
+const CENTROID_SPREAD_MIN := 400.0
+
+
 func _ready() -> void:
 	print("=== Rally Madness audio bench ===")
 	print("%-30s %-16s %7s %7s %8s %8s %7s" % [
@@ -25,6 +32,9 @@ func _ready() -> void:
 
 	var worst_discontinuity := 0.0
 	var centroids: Array[float] = []
+	## Centroid per engine layout, so a rotary can be checked against a four
+	## rather than only against the field.
+	var by_layout := {}
 
 	for spec in CarDatabase.all():
 		var layout: EngineLayout = spec.engine_layout
@@ -43,6 +53,10 @@ func _ready() -> void:
 		worst_discontinuity = maxf(worst_discontinuity, discontinuity)
 		var centroid := AudioSynth.spectral_centroid(samples)
 		centroids.append(centroid)
+		var layout_name := layout.display_name()
+		if not by_layout.has(layout_name):
+			by_layout[layout_name] = []
+		by_layout[layout_name].append(centroid)
 
 		print("%-30s %-16s %7.0f %7.0f %8.1f %8.0f %7.2f" % [
 			spec.display_name(), layout.display_name(),
@@ -51,9 +65,31 @@ func _ready() -> void:
 			centroid, AudioSynth.peak(samples)])
 
 	centroids.sort()
-	print("\nloop discontinuity, worst: %.4f" % worst_discontinuity)
-	print("spectral centroid across the field: %.0f Hz to %.0f Hz" % [
-		centroids[0], centroids[centroids.size() - 1]])
+	# Both numbers get a verdict rather than being left for the reader to
+	# judge. A bench that prints "3.4056" and nothing else is a bench nobody
+	# can tell has gone wrong.
+	print("\nloop discontinuity, worst: %.2f x the normal step  (%s, limit %.0f)" % [
+		worst_discontinuity,
+		"clean" if worst_discontinuity < SEAM_LIMIT else "CLICKS",
+		SEAM_LIMIT])
+	var spread := centroids[centroids.size() - 1] - centroids[0]
+	print("spectral centroid across the field: %.0f Hz to %.0f Hz  (%s, %.0f Hz apart)" % [
+		centroids[0], centroids[centroids.size() - 1],
+		"varied" if spread > CENTROID_SPREAD_MIN else "TOO SIMILAR", spread])
+
+	# The layouts have to be tellable apart from each other and not just from
+	# the field as a whole, because a rotary that sounds like a four is the
+	# specific failure the whole synthesis exists to avoid.
+	print("\nby layout:")
+	var order: Array = by_layout.keys()
+	order.sort()
+	for name in order:
+		var values: Array = by_layout[name]
+		var total := 0.0
+		for v in values:
+			total += float(v)
+		print("  %-22s %2d cars, mean centroid %.0f Hz" % [
+			name, values.size(), total / float(maxi(values.size(), 1))])
 	get_tree().quit(0)
 
 
