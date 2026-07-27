@@ -1,40 +1,45 @@
 extends Control
-## Front end: seat joining, event selection and starting a race.
+## The first thing anybody sees.
 ##
-## Deliberately plain. It exists so the systems underneath are reachable and
-## testable from a running build; the real menus, garage and showroom come
-## later and will use the same PlayerManager / EventDatabase calls this does.
+## It used to be a seat list, a calendar and a LAN panel side by side, which is
+## everything the game can do arranged so that none of it is obviously the thing
+## to do first. A player launching this for the first time could not tell what
+## to press, which is the one job an opening screen has.
+##
+## So it now asks one question at a time. A banner states the single next step
+## in plain words, and a choice that is not yet possible says why instead of
+## sitting there greyed out and silent. Everything else — the calendar, the
+## garage, the tuning shop, the showroom — lives behind CAREER, because that is
+## where a career lives.
 
 const RACE_SCENE_PATH := "res://scenes/race.tscn"
 const NEW_PROFILE_SCENE := preload("res://scenes/ui/new_profile.tscn")
 
-var _seat_list: VBoxContainer
-var _event_list: ItemList
-var _info_label: RichTextLabel
-var _start_button: Button
+var _next_step: Label
+var _seat_column: VBoxContainer
+var _action_column: VBoxContainer
+var _net_panel: VBoxContainer
 var _net_status: Label
 var _address_field: LineEdit
 
-var _available: Array[EventSpec] = []
 var _profile_screen: NewProfileScreen = null
 var _career_hub: CareerHub = null
 
 
 func _ready() -> void:
+	theme = UiTheme.theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	PlayerManager.accepting_joins = true
 	EventBus.local_player_joined.connect(_on_seat_changed)
 	EventBus.local_player_left.connect(_on_seat_changed)
-	EventBus.net_state_changed.connect(_on_net_state_changed)
-	EventBus.net_peer_joined.connect(func(_id, _name): _refresh_net())
-	EventBus.net_peer_left.connect(func(_id): _refresh_net())
+	EventBus.net_state_changed.connect(func(_s): _refresh())
+	EventBus.net_peer_joined.connect(func(_id, _name): _refresh())
+	EventBus.net_peer_left.connect(func(_id): _refresh())
 	_build()
-	_refresh_seats()
-	_refresh_events()
+	_refresh()
 
 
 func _build() -> void:
-	theme = UiTheme.theme()
 	var bg := ColorRect.new()
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.color = UiTheme.BG
@@ -42,114 +47,312 @@ func _build() -> void:
 
 	var root := MarginContainer.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.add_theme_constant_override("margin_left", 48)
-	root.add_theme_constant_override("margin_right", 48)
-	root.add_theme_constant_override("margin_top", 32)
-	root.add_theme_constant_override("margin_bottom", 32)
+	for side in ["left", "right", "top", "bottom"]:
+		root.add_theme_constant_override("margin_" + side, 56)
 	add_child(root)
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 14)
+	column.add_theme_constant_override("separation", UiTheme.GAP_WIDE)
 	root.add_child(column)
 
-	var title := Label.new()
-	title.text = "RALLY MADNESS"
-	title.add_theme_font_size_override("font_size", 46)
-	column.add_child(title)
+	column.add_child(UiTheme.label("RALLY MADNESS", 64, UiTheme.TEXT))
+	column.add_child(UiTheme.label(
+		"Top-down rally. Up to four of you on this screen, twelve over a network.",
+		UiTheme.SIZE_LABEL, UiTheme.TEXT_DIM))
 
-	var subtitle := Label.new()
-	subtitle.text = "Press Options on a pad (or Enter) to take a seat — up to %d locally, %d online." % [
-		GameConfig.MAX_LOCAL_PLAYERS, GameConfig.MAX_NET_PLAYERS]
-	subtitle.add_theme_color_override("font_color", Color(0.65, 0.66, 0.72))
-	column.add_child(subtitle)
+	# The one line that always says what to do next. Everything about this
+	# screen's clarity rests on it being right.
+	var banner := UiTheme.card(UiTheme.ACCENT)
+	column.add_child(banner)
+	_next_step = UiTheme.label("", UiTheme.SIZE_HEADING, UiTheme.ACCENT)
+	_next_step.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	banner.add_child(_next_step)
 
 	var body := HBoxContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 32)
+	body.add_theme_constant_override("separation", UiTheme.GAP_WIDE)
 	column.add_child(body)
 
-	# --- Seats ---
-	var seats_panel := VBoxContainer.new()
-	seats_panel.custom_minimum_size = Vector2(320, 0)
-	body.add_child(seats_panel)
-	seats_panel.add_child(_heading("Drivers"))
-	_seat_list = VBoxContainer.new()
-	seats_panel.add_child(_seat_list)
+	# --- Who is playing -----------------------------------------------------
+	var left := VBoxContainer.new()
+	left.custom_minimum_size = Vector2(540, 0)
+	left.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	left.add_theme_constant_override("separation", UiTheme.GAP)
+	body.add_child(left)
+	left.add_child(UiTheme.section("Drivers"))
+	_seat_column = VBoxContainer.new()
+	_seat_column.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)
+	left.add_child(_seat_column)
+	left.add_child(UiTheme.wrapped(
+		"Press Enter, or Options on a controller, to take a seat. Every seat is "
+		+ "a separate career saved on this machine, so four people can play their "
+		+ "own game on one screen.",
+		UiTheme.SIZE_SMALL, UiTheme.TEXT_DIM))
+	left.add_child(UiTheme.expander())
 
-	seats_panel.add_child(_heading("LAN"))
-	_net_status = Label.new()
-	_net_status.text = "Offline"
-	_net_status.add_theme_color_override("font_color", Color(0.65, 0.66, 0.72))
-	seats_panel.add_child(_net_status)
+	# --- What to do ---------------------------------------------------------
+	var right := VBoxContainer.new()
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right.add_theme_constant_override("separation", UiTheme.GAP)
+	body.add_child(right)
+	_action_column = VBoxContainer.new()
+	_action_column.add_theme_constant_override("separation", UiTheme.GAP)
+	right.add_child(_action_column)
 
+	_net_panel = VBoxContainer.new()
+	_net_panel.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)
+	_net_panel.visible = false
+	right.add_child(_net_panel)
+	_build_net_panel()
+
+	right.add_child(UiTheme.expander())
+
+	_build_controls(column)
+
+
+## The controls, on the first screen, where somebody who has never played can
+## read them before they are moving. The bottom half of this menu was empty and
+## the one question a new player has — how do I drive it — was answered nowhere.
+func _build_controls(column: VBoxContainer) -> void:
+	column.add_child(UiTheme.expander())
+	column.add_child(UiTheme.section("Controls"))
+
+	var grid := HBoxContainer.new()
+	grid.add_theme_constant_override("separation", UiTheme.GAP_WIDE)
+	column.add_child(grid)
+
+	var keyboard := [
+		["Steer", "A / D"], ["Accelerate", "W"], ["Brake and reverse", "S"],
+		["Handbrake", "Space"], ["Nitro", "Shift"], ["Change gear", "Q / E"],
+		["Manual gearbox", "T"], ["Back on the road", "R"], ["Pause", "Esc"]]
+	var pad := [
+		["Steer", "Left stick"], ["Accelerate", "R2"], ["Brake and reverse", "L2"],
+		["Handbrake", "Cross"], ["Nitro", "Circle"], ["Change gear", "L1 / R1"],
+		["Manual gearbox", "Triangle"], ["Back on the road", "Square"],
+		["Pause", "Options"]]
+
+	for pair in [["Keyboard", keyboard], ["Controller", pad]]:
+		var card := UiTheme.card()
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_child(card)
+		var inner := VBoxContainer.new()
+		inner.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)
+		card.add_child(inner)
+		inner.add_child(UiTheme.label(String(pair[0]), UiTheme.SIZE_LABEL, UiTheme.TEXT))
+		for binding in (pair[1] as Array):
+			inner.add_child(UiTheme.stat_row(String(binding[0]), String(binding[1])))
+
+
+func _build_net_panel() -> void:
+	_net_panel.add_child(UiTheme.section("Local network"))
+	_net_status = UiTheme.label("Offline", UiTheme.SIZE_BODY, UiTheme.TEXT_DIM)
+	_net_panel.add_child(_net_status)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)
+	_net_panel.add_child(row)
+	var host := UiTheme.primary_button("Host a game")
+	host.pressed.connect(_on_host_pressed)
+	row.add_child(host)
 	_address_field = LineEdit.new()
-	_address_field.placeholder_text = "Host address (e.g. 192.168.1.20)"
-	seats_panel.add_child(_address_field)
-
-	var net_row := HBoxContainer.new()
-	seats_panel.add_child(net_row)
-	var host_button := Button.new()
-	host_button.text = "Host"
-	host_button.pressed.connect(_on_host_pressed)
-	net_row.add_child(host_button)
-	var join_button := Button.new()
-	join_button.text = "Join"
-	join_button.pressed.connect(_on_join_pressed)
-	net_row.add_child(join_button)
-	var leave_button := Button.new()
-	leave_button.text = "Disconnect"
-	leave_button.pressed.connect(func(): NetManager.shutdown())
-	net_row.add_child(leave_button)
-
-	# --- Events ---
-	var events_panel := VBoxContainer.new()
-	events_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_child(events_panel)
-	events_panel.add_child(_heading("Calendar"))
-	_event_list = ItemList.new()
-	_event_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_event_list.item_selected.connect(_on_event_selected)
-	events_panel.add_child(_event_list)
-
-	# --- Detail ---
-	var detail_panel := VBoxContainer.new()
-	detail_panel.custom_minimum_size = Vector2(360, 0)
-	body.add_child(detail_panel)
-	detail_panel.add_child(_heading("Event"))
-	_info_label = RichTextLabel.new()
-	_info_label.bbcode_enabled = true
-	_info_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	detail_panel.add_child(_info_label)
-
-	_start_button = UiTheme.primary_button("START RACE")
-	_start_button.custom_minimum_size = Vector2(0, 52)
-	_start_button.pressed.connect(_on_start_pressed)
-	detail_panel.add_child(_start_button)
-
-	# Everything a career does between races. The seat list stays here because
-	# it is about who is playing on this machine; the hub is about one driver.
-	var career_button := Button.new()
-	career_button.text = "CAREER  —  calendar, garage, tuning, showroom"
-	career_button.custom_minimum_size = Vector2(0, 44)
-	career_button.pressed.connect(_open_career_hub)
-	detail_panel.add_child(career_button)
+	_address_field.placeholder_text = "Host address"
+	_address_field.text = "127.0.0.1"
+	_address_field.custom_minimum_size = Vector2(200, 0)
+	row.add_child(_address_field)
+	var join := Button.new()
+	join.text = "Join"
+	join.pressed.connect(_on_join_pressed)
+	row.add_child(join)
+	var leave := Button.new()
+	leave.text = "Disconnect"
+	leave.pressed.connect(func():
+		NetManager.shutdown()
+		_refresh())
+	row.add_child(leave)
 
 
-func _heading(text: String) -> Label:
-	return UiTheme.heading(text)
+# --- Refresh ----------------------------------------------------------------
+
+func _on_seat_changed(_a = null, _b = null) -> void:
+	_refresh()
 
 
-# --- Career hub -------------------------------------------------------------
+func _refresh() -> void:
+	_refresh_seats()
+	_refresh_actions()
+	_refresh_net()
+	_refresh_next_step()
 
-## Opens the between-races screens for the first seated driver. It is one
-## driver's career, so it belongs to a seat rather than to the machine.
+
+## The single most useful thing on the screen: what to do now, in words.
+func _refresh_next_step() -> void:
+	if PlayerManager.seat_count() == 0:
+		_next_step.text = "Press Enter to take a seat — or Options on a controller."
+		return
+	var seat = PlayerManager.get_seat(0)
+	if seat != null and seat.profile == null:
+		_next_step.text = "Now set up a career: a name, a face, and your first car."
+		return
+	_next_step.text = "Open CAREER to enter an event, work on your car, or go shopping."
+
+
+func _refresh_seats() -> void:
+	for child in _seat_column.get_children():
+		child.queue_free()
+
+	if PlayerManager.seat_count() == 0:
+		var empty := UiTheme.card()
+		empty.add_child(UiTheme.label("Nobody is sitting down yet.",
+			UiTheme.SIZE_LABEL, UiTheme.TEXT_DIM))
+		_seat_column.add_child(empty)
+		return
+
+	for seat in PlayerManager.seats:
+		_seat_column.add_child(_seat_card(seat))
+
+
+func _seat_card(seat) -> Control:
+	var card := UiTheme.card(UiTheme.ACCENT if seat.profile != null else UiTheme.LINE_STRONG)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UiTheme.GAP)
+	card.add_child(row)
+
+	var profile: PlayerProfile = seat.profile
+	if profile == null:
+		# A seat with no career gets an invitation, not a silent default.
+		var text := VBoxContainer.new()
+		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		text.add_theme_constant_override("separation", 2)
+		text.add_child(UiTheme.label("Seat %d" % (seat.slot + 1), UiTheme.SIZE_LABEL))
+		text.add_child(UiTheme.label(
+			seat.device.device_name() if seat.device else "unknown device",
+			UiTheme.SIZE_SMALL, UiTheme.TEXT_DIM))
+		row.add_child(text)
+
+		var new_career := UiTheme.primary_button("New career")
+		new_career.pressed.connect(_open_profile_setup.bind(seat.slot))
+		row.add_child(new_career)
+
+		var existing := SaveSystem.list_profiles()
+		if not existing.is_empty():
+			var load_button := MenuButton.new()
+			load_button.text = "Load career"
+			var menu := load_button.get_popup()
+			for i in existing.size():
+				menu.add_item("%s  (Lv%d)" % [existing[i]["name"], existing[i]["level"]], i)
+			menu.id_pressed.connect(_on_profile_picked.bind(seat.slot, existing))
+			row.add_child(load_button)
+		return card
+
+	var face := DriverAvatar.new()
+	face.avatar_id = profile.avatar_id
+	face.background = Color(0, 0, 0, 0)
+	face.custom_minimum_size = Vector2(44, 44)
+	row.add_child(face)
+
+	var who := VBoxContainer.new()
+	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	who.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	who.add_theme_constant_override("separation", 2)
+	var name_row := HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)
+	name_row.add_child(UiTheme.label("P%d  %s" % [seat.slot + 1, seat.display_name()],
+		UiTheme.SIZE_LABEL))
+	name_row.add_child(UiTheme.badge("Lv %d" % profile.level, UiTheme.ACCENT))
+	who.add_child(name_row)
+	var car := profile.active_car()
+	who.add_child(UiTheme.label("%s  ·  %s" % [
+		UiTheme.money(profile.money),
+		car.display_name() if car != null else "no car"],
+		UiTheme.SIZE_SMALL, UiTheme.TEXT_DIM))
+	row.add_child(who)
+
+	# Anything that would spoil this seat's race, said out loud here rather than
+	# discovered at the start line.
+	if car != null and car.repair_cost() > 0:
+		row.add_child(UiTheme.badge("DAMAGED", UiTheme.NEGATIVE))
+	if car != null and car.needs_service():
+		row.add_child(UiTheme.badge("SERVICE DUE", UiTheme.WARNING))
+	return card
+
+
+func _refresh_actions() -> void:
+	for child in _action_column.get_children():
+		child.queue_free()
+	_action_column.add_child(UiTheme.section("Play"))
+
+	var seat = PlayerManager.get_seat(0)
+	var ready := seat != null and seat.profile != null
+
+	_action_column.add_child(_big_button("CAREER",
+		"The calendar, your garage, the tuning shop and the showroom.",
+		"" if ready else "Take a seat and set up a career first.",
+		_open_career_hub))
+
+	_action_column.add_child(_big_button("LOCAL NETWORK",
+		"Host a game on this network, or join one. Up to twelve cars.",
+		"", func(): _net_panel.visible = not _net_panel.visible))
+
+	_action_column.add_child(_big_button("QUIT", "Close the game.", "",
+		func(): get_tree().quit()))
+
+
+## One of the menu's choices: a title, a line of explanation, and — when it
+## cannot be used — the reason in place of that explanation.
+func _big_button(title: String, blurb: String, blocked_reason: String,
+		action: Callable) -> Control:
+	var button := Button.new()
+	button.custom_minimum_size = Vector2(0, 86)
+	button.disabled = not blocked_reason.is_empty()
+	if button.disabled:
+		button.tooltip_text = blocked_reason
+	else:
+		button.pressed.connect(action)
+
+	var text := VBoxContainer.new()
+	text.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	text.offset_left = 22
+	text.offset_right = -22
+	text.alignment = BoxContainer.ALIGNMENT_CENTER
+	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	text.add_theme_constant_override("separation", 3)
+	text.add_child(UiTheme.label(title, UiTheme.SIZE_HEADING,
+		UiTheme.TEXT if not button.disabled else UiTheme.TEXT_FAINT))
+	text.add_child(UiTheme.label(
+		blocked_reason if button.disabled else blurb,
+		UiTheme.SIZE_SMALL,
+		UiTheme.WARNING if button.disabled else UiTheme.TEXT_DIM))
+	button.add_child(text)
+	return button
+
+
+func _refresh_net() -> void:
+	if _net_status == null:
+		return
+	match NetManager.state:
+		NetManager.State.HOSTING:
+			_net_status.text = "Hosting — %d drivers connected" % NetManager.total_drivers()
+			_net_status.add_theme_color_override("font_color", UiTheme.POSITIVE)
+		NetManager.State.CONNECTED:
+			_net_status.text = "Connected to the host"
+			_net_status.add_theme_color_override("font_color", UiTheme.POSITIVE)
+		NetManager.State.CONNECTING:
+			_net_status.text = "Connecting…"
+			_net_status.add_theme_color_override("font_color", UiTheme.WARNING)
+		_:
+			_net_status.text = "Offline"
+			_net_status.add_theme_color_override("font_color", UiTheme.TEXT_DIM)
+
+
+# --- Career -----------------------------------------------------------------
+
 func _open_career_hub() -> void:
 	if _career_hub != null:
 		return
-	var seat := PlayerManager.get_seat(0)
+	var seat = PlayerManager.get_seat(0)
 	var profile: PlayerProfile = seat.profile if seat != null else null
 	if profile == null:
-		_info_label.text = "[color=#dd7f7f]Take a seat and load a profile first.[/color]"
 		return
 
 	var layer := CanvasLayer.new()
@@ -167,9 +370,8 @@ func _close_career_hub() -> void:
 	if layer != null:
 		layer.queue_free()
 	_career_hub = null
-	# Buying, selling and tuning all change what the seat can enter.
-	_refresh_seats()
-	_refresh_events()
+	# Buying, selling, servicing and tuning all change what a seat can enter.
+	_refresh()
 
 
 func _on_career_race_requested(event: EventSpec) -> void:
@@ -177,128 +379,7 @@ func _on_career_race_requested(event: EventSpec) -> void:
 	_start_event(event)
 
 
-# --- Seats ------------------------------------------------------------------
-
-func _on_seat_changed(_a = null, _b = null) -> void:
-	_refresh_seats()
-	_refresh_events()
-
-
-func _refresh_seats() -> void:
-	for child in _seat_list.get_children():
-		child.queue_free()
-
-	if PlayerManager.seat_count() == 0:
-		var empty := Label.new()
-		empty.text = "No drivers yet."
-		empty.add_theme_color_override("font_color", Color(0.55, 0.56, 0.62))
-		_seat_list.add_child(empty)
-		return
-
-	for seat in PlayerManager.seats:
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
-		_seat_list.add_child(row)
-
-		var profile := seat.profile
-		if profile == null:
-			# A seat with no career gets an invitation, not a silent default.
-			var setup := Button.new()
-			setup.text = "P%d  —  set up a career" % (seat.slot + 1)
-			setup.pressed.connect(_open_profile_setup.bind(seat.slot))
-			row.add_child(setup)
-			var existing := SaveSystem.list_profiles()
-			if not existing.is_empty():
-				var load_button := MenuButton.new()
-				load_button.text = "Load"
-				var menu := load_button.get_popup()
-				for i in existing.size():
-					menu.add_item("%s  (Lv%d)" % [existing[i]["name"], existing[i]["level"]], i)
-				menu.id_pressed.connect(_on_profile_picked.bind(seat.slot, existing))
-				row.add_child(load_button)
-			continue
-
-		var face := DriverAvatar.new()
-		face.avatar_id = profile.avatar_id
-		face.background = Color(0, 0, 0, 0)
-		face.custom_minimum_size = Vector2(28, 28)
-		row.add_child(face)
-
-		var car := profile.active_car()
-		var line := Label.new()
-		line.text = "P%d  %s  —  Lv%d  %d cr  %s  [%s]" % [
-			seat.slot + 1,
-			seat.display_name(),
-			profile.level,
-			profile.money,
-			car.display_name() if car != null else "no car",
-			seat.device.device_name() if seat.device else "?",
-		]
-		row.add_child(line)
-
-
-# --- Events -----------------------------------------------------------------
-
-func _refresh_events() -> void:
-	_event_list.clear()
-	_available.clear()
-
-	var seat = PlayerManager.get_seat(0)
-	if seat == null or seat.profile == null:
-		_event_list.add_item("Take a seat to see the calendar")
-		return
-
-	_available = EventDatabase.available_for(seat.profile)
-	if _available.is_empty():
-		_event_list.add_item("No events available")
-		return
-	for e in _available:
-		var fee := "free" if e.entry_fee == 0 else "%d cr" % e.entry_fee
-		_event_list.add_item("%s  —  %s, %s" % [e.display_name, e.format_name(), fee])
-	_event_list.select(0)
-	_on_event_selected(0)
-
-
-func _on_event_selected(index: int) -> void:
-	if index < 0 or index >= _available.size():
-		return
-	var e := _available[index]
-	var seat = PlayerManager.get_seat(0)
-	var profile: PlayerProfile = seat.profile if seat != null else null
-
-	var text := "[b]%s[/b]\n%s\n\n" % [e.display_name, e.description]
-	text += "Format: %s, %d lap(s)\n" % [e.format_name(), e.laps]
-	text += "Entry fee: %s\n" % ("free" if e.entry_fee == 0 else "%d cr" % e.entry_fee)
-	text += "Winner takes: %d cr\n" % e.payout_for(1)
-	text += "Car tiers: %d–%s\n" % [e.min_car_tier, "any" if e.max_car_tier > 90 else str(e.max_car_tier)]
-	if not e.drivetrain_required.is_empty():
-		text += "Drivetrain: %s\n" % "/".join(e.drivetrain_required)
-	text += "\n"
-
-	# Say plainly whether every seated player can actually start, and why not.
-	var blocked := false
-	for s in PlayerManager.seats:
-		if s.profile == null:
-			continue
-		var car := s.profile.active_car()
-		var reason := ""
-		if car == null:
-			reason = "no car"
-		else:
-			reason = e.car_ineligible_reason(car)
-		if not e.profile_can_enter(s.profile):
-			reason = "level %d required" % e.min_level
-		elif reason.is_empty() and not e.can_afford_entry(s.profile):
-			reason = "cannot afford the entry fee"
-		if reason.is_empty():
-			text += "[color=#7fdd7f]P%d ready[/color]\n" % (s.slot + 1)
-		else:
-			text += "[color=#dd7f7f]P%d blocked: %s[/color]\n" % [s.slot + 1, reason]
-			blocked = true
-
-	_info_label.text = text
-	_start_button.disabled = blocked or profile == null
-
+# --- Profiles ---------------------------------------------------------------
 
 func _open_profile_setup(slot: int) -> void:
 	if _profile_screen != null:
@@ -332,8 +413,7 @@ func _close_profile_setup() -> void:
 func _on_profile_created(profile: PlayerProfile, slot: int) -> void:
 	PlayerManager.assign_profile(slot, profile)
 	_close_profile_setup()
-	_refresh_seats()
-	_refresh_events()
+	_refresh()
 
 
 func _on_profile_picked(index: int, slot: int, listing: Array) -> void:
@@ -342,16 +422,10 @@ func _on_profile_picked(index: int, slot: int, listing: Array) -> void:
 	var profile := SaveSystem.load_profile(listing[index]["id"])
 	if profile != null:
 		PlayerManager.assign_profile(slot, profile)
-		_refresh_seats()
-		_refresh_events()
+		_refresh()
 
 
-func _on_start_pressed() -> void:
-	var index := _event_list.get_selected_items()
-	if index.is_empty() or _available.is_empty():
-		return
-	_start_event(_available[index[0]])
-
+# --- Starting a race --------------------------------------------------------
 
 func _start_event(e: EventSpec) -> void:
 	PlayerManager.accepting_joins = false
@@ -369,6 +443,7 @@ func _on_host_pressed() -> void:
 	var err := NetManager.host_game()
 	if err != OK:
 		_net_status.text = "Could not host (error %d)" % err
+		_net_status.add_theme_color_override("font_color", UiTheme.NEGATIVE)
 
 
 func _on_join_pressed() -> void:
@@ -378,22 +453,4 @@ func _on_join_pressed() -> void:
 	var err := NetManager.join_game(address)
 	if err != OK:
 		_net_status.text = "Could not reach %s (error %d)" % [address, err]
-
-
-func _on_net_state_changed(_state: int) -> void:
-	_refresh_net()
-
-
-func _refresh_net() -> void:
-	match NetManager.state:
-		NetManager.State.OFFLINE:
-			_net_status.text = "Offline"
-		NetManager.State.HOSTING:
-			_net_status.text = "Hosting — %d/%d drivers, avg rating %d" % [
-				NetManager.total_drivers(), GameConfig.MAX_NET_PLAYERS,
-				NetManager.lobby_average_rating()]
-		NetManager.State.CONNECTING:
-			_net_status.text = "Connecting…"
-		NetManager.State.CONNECTED:
-			_net_status.text = "Connected — %d drivers, avg rating %d" % [
-				NetManager.total_drivers(), NetManager.lobby_average_rating()]
+		_net_status.add_theme_color_override("font_color", UiTheme.NEGATIVE)

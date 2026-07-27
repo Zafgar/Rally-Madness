@@ -414,8 +414,11 @@ func _build_ramps() -> Node2D:
 func _build_start_grid() -> void:
 	start_grid.clear()
 	var ppm := GameConfig.PIXELS_PER_METRE
-	# Two columns, staggered, like a rally start.
-	var row_spacing := 7.0 * ppm
+	# Two columns, staggered, like a rally start. The rows have to clear the
+	# longest car in the game — an F-150 Raptor is 6 m over the bumpers — with
+	# enough left over that nobody starts the stage already touching the car in
+	# front. Seven metres was set when the bodies were drawn too short.
+	var row_spacing := 8.5 * ppm
 	var column_offset := 3.0 * ppm
 
 	for i in GameConfig.MAX_NET_PLAYERS:

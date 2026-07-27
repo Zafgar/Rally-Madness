@@ -43,11 +43,13 @@ func _ready() -> void:
 	_test_driver_profiles()
 	_test_rival_awareness()
 	_test_visuals()
+	_test_direction_selection()
 	_test_haptics()
 	_test_damage_and_economy()
 	_test_progression()
 	_test_classes_and_economy()
 	_test_mechanical_model()
+	_test_audio()
 	_test_command_encoding()
 	_start_test_race()
 
@@ -831,13 +833,59 @@ func _test_visuals() -> void:
 	_check(mid_visual._front_axle_px > nose_visual._front_axle_px,
 		"a mid-engine car's front axle sits further from its centre of mass")
 
-	# Every category must produce a drawable outline.
+	# Every category must produce a drawable outline, and every car must be the
+	# shape a car is. These are the checks that would have caught the artwork
+	# being wrong: the bodies were drawn 1.4x their wheelbase when real cars are
+	# 1.65x, so the wheels hung out past the bumpers, and the body width was a
+	# multiple of track that had no idea how wide the tyres beneath it were, so
+	# they hung out of the sides as well.
 	for spec in CarDatabase.all():
 		var visual := CarVisual.new()
-		visual.setup(spec, spec.to_base_stats(), Color.WHITE)
-		var outline := visual._silhouette(visual._length_px * 0.5, visual._width_px * 0.5)
+		var stats := spec.to_base_stats()
+		visual.setup(spec, stats, Color.WHITE)
+		var half_l := visual._length_px * 0.5
+		var half_w := visual._width_px * 0.5
+		var outline := visual._silhouette(half_l, half_w)
 		_check(outline.size() >= 4, "'%s' has a drawable silhouette" % spec.id)
+
+		var ppm := GameConfig.PIXELS_PER_METRE
+		var wheel_edge := stats.track_width_m * 0.5 * ppm + visual._wheel_width_px
+		_check(wheel_edge <= half_w,
+			"'%s' keeps its tyres inside its bodywork" % spec.id)
+		var axle_edge: float = maxf(visual._front_axle_px, absf(visual._rear_axle_px)) \
+			+ visual._wheel_radius_px
+		_check(axle_edge <= half_l,
+			"'%s' keeps its wheels inside its bumpers" % spec.id)
+
+		# Proportion, against the real cars: a saloon is about two and a half
+		# times as long as it is wide, and nothing on the road is under two.
+		var ratio := visual._length_px / visual._width_px
+		# The stubbiest real car in the fleet is the Sport quattro S1 at 2.28,
+		# and the longest for its width is the Raptor. Nothing should fall
+		# outside that with room to spare.
+		_check(ratio > 1.95 and ratio < 3.2,
+			"'%s' is %.2f times as long as it is wide" % [spec.id, ratio])
+
+		# The cabin has to be on the car, not hanging off either end of it.
+		var cabin := visual._cabin(half_l, half_w)
+		_check(float(cabin["screen_front"]) < half_l and float(cabin["screen_rear"]) > -half_l,
+			"'%s' has its cabin between its bumpers" % spec.id)
 		visual.free()
+
+	# A turbo over the back axle is fed through the flanks, not through a hole
+	# in a bonnet with nothing under it.
+	var rear_engined := CarVisual.new()
+	rear_engined.setup(CarDatabase.get_car("porsche_992_c4s"),
+		CarDatabase.get_car("porsche_992_c4s").to_base_stats(), Color.WHITE)
+	_check(not rear_engined._has_scoop and rear_engined._has_side_intakes,
+		"a rear-engined turbo car takes its air in through the sides")
+	var front_engined := CarVisual.new()
+	front_engined.setup(CarDatabase.get_car("impreza_gc8"),
+		CarDatabase.get_car("impreza_gc8").to_base_stats(), Color.WHITE)
+	_check(front_engined._has_scoop and not front_engined._has_side_intakes,
+		"a front-engined turbo car takes it in through the bonnet")
+	rear_engined.free()
+	front_engined.free()
 
 	small_visual.free()
 	large_visual.free()
@@ -878,6 +926,64 @@ func _test_visuals() -> void:
 ## HapticState is pure logic, so what the pad would be told can be checked
 ## exactly without any hardware present. Each assertion below is a claim about
 ## what a driver should be able to feel without looking at the screen.
+## Selecting a direction in an automatic.
+##
+## Reverse is worth its own test because it went wrong twice in opposite
+## directions: first it would not engage at all, and then the fix for that made
+## braking to a standstill select it and drive the car backwards out of the
+## corner. Both are checked here.
+func _test_direction_selection() -> void:
+	_section("choosing a direction")
+
+	var car := _make_bench_car("golf_gti_mk2", "elec_none")
+	add_child(car)
+	var dwell: float = RallyCar.REVERSE_ENGAGE_DWELL
+	var step := 1.0 / 60.0
+
+	# Stationary, brake held: reverse, after the dwell and not before.
+	car.transmission.engage_for(1)
+	car._reverse_dwell = 0.0
+	car._auto_engage_gear(step, 0.0, 0.0, 1.0)
+	_check(car.transmission.gear >= 0,
+		"a single frame of brake at a standstill does not select reverse")
+	var frames := int(ceil(dwell / step)) + 2
+	for i in frames:
+		car._auto_engage_gear(step, 0.0, 0.0, 1.0)
+	_check(car.transmission.gear < 0,
+		"holding it for %.2f s does" % dwell)
+
+	# The bug the fix created: over-braking into a hairpin must not select
+	# reverse, because in reverse the brake pedal is the accelerator. A driver
+	# who stops a fraction too early sits on the brake for a couple of tenths
+	# before turning in, and that must not launch them backwards.
+	var stopping := _make_bench_car("golf_gti_mk2", "elec_none")
+	add_child(stopping)
+	stopping.transmission.engage_for(1)
+	stopping._reverse_dwell = 0.0
+	var speed := 12.0
+	while speed > 0.0:
+		stopping._auto_engage_gear(step, speed, 0.0, 1.0)
+		speed = maxf(speed - 0.30, 0.0)
+	for i in int(0.25 / step):
+		stopping._auto_engage_gear(step, 0.0, 0.0, 1.0)
+	_check(stopping.transmission.gear > 0,
+		"over-braking into a corner leaves the car in a forward gear")
+
+	# And keeping the brake on past that still gets you reverse — the dwell
+	# delays it, it does not deny it.
+	for i in frames:
+		stopping._auto_engage_gear(step, 0.0, 0.0, 1.0)
+	_check(stopping.transmission.gear < 0,
+		"and holding the brake after that still selects reverse")
+
+	# Throttle always wins, immediately, in either direction.
+	stopping._auto_engage_gear(step, 0.0, 1.0, 0.0)
+	_check(stopping.transmission.gear > 0, "throttle pulls away without waiting")
+
+	car.queue_free()
+	stopping.queue_free()
+
+
 func _test_haptics() -> void:
 	_section("haptics")
 
@@ -1367,6 +1473,199 @@ func _test_mechanical_model() -> void:
 	owned.service("oil")
 	_check(is_equal_approx(owned.service_life("oil"), 1.0), "and changing it works")
 	_check(owned.service_cost("oil") == 0, "with nothing to pay when nothing is worn")
+
+
+func _test_audio() -> void:
+	_section("audio")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 8181
+
+	# --- Firing frequency is the whole ball game -----------------------------
+	# If this is wrong every engine in the game is the wrong note, and no amount
+	# of mixing rescues it.
+	var i4 := EngineLayout.from_dict({"cylinders": 4, "config": "inline"})
+	_check(is_equal_approx(i4.firing_hz(6000.0), 200.0),
+		"an inline four at 6000 rpm fires at 200 Hz (%.1f)" % i4.firing_hz(6000.0))
+	var v10 := EngineLayout.from_dict({"cylinders": 10, "config": "vee"})
+	_check(is_equal_approx(v10.firing_hz(6000.0), 500.0),
+		"a V10 at the same revs fires two and a half times as often")
+	var two_stroke := EngineLayout.from_dict({"cylinders": 2, "two_stroke": true})
+	_check(is_equal_approx(two_stroke.firing_hz(6000.0), 200.0),
+		"a two-stroke twin fires as often as a four-stroke four")
+	_check(is_equal_approx(i4.cycle_revolutions(), 2.0),
+		"a four-stroke's pattern repeats every two revolutions")
+	_check(is_equal_approx(two_stroke.cycle_revolutions(), 1.0),
+		"a two-stroke's, every one")
+
+	# --- Firing patterns ----------------------------------------------------
+	var inline_events := i4.firing_events()
+	_check(inline_events.size() == 4, "an inline four has four firings in a cycle")
+	var even := true
+	for i in inline_events.size():
+		if absf(float(inline_events[i]["at"]) - float(i) * 0.25) > 0.001:
+			even = false
+	_check(even, "and they are evenly spaced")
+
+	var boxer := EngineLayout.from_dict({"cylinders": 4, "config": "flat"})
+	var boxer_events := boxer.firing_events()
+	var uneven := false
+	for i in boxer_events.size():
+		if absf(float(boxer_events[i]["at"]) - float(i) * 0.25) > 0.005:
+			uneven = true
+	_check(uneven, "a flat four's are not — that unevenness is the rumble")
+
+	# --- The baked waveform -------------------------------------------------
+	var spec := CarDatabase.get_car("golf_gti_mk2")
+	var stats := TuningCalculator.resolve(spec, spec.default_loadout())
+	var voice := EngineVoice.bake(stats, spec.engine_layout, 0, 0)
+	_check(voice.on_load.size() == EngineVoice.BAND_POSITIONS.size(),
+		"an engine bakes one loop per rev band")
+	_check(voice.off_load.size() == voice.on_load.size(),
+		"and an off-throttle layer for each")
+
+	var top := voice.on_load.size() - 1
+	var samples := _pcm_of(voice.on_load[top])
+	var rpm := voice.band_rpm[top]
+	var firing := spec.engine_layout.firing_hz(rpm)
+
+	# The signal has to actually be at the frequency the maths says. Measured
+	# with a single-bin Fourier transform against a frequency that is not a
+	# harmonic, so a broadband roar cannot pass by accident.
+	var at_firing := AudioSynth.energy_at(samples, firing)
+	var off_note := AudioSynth.energy_at(samples, firing * 1.37)
+	_check(at_firing > off_note * 1.5,
+		"the baked loop's energy really is at the firing frequency (%.4f vs %.4f)"
+			% [at_firing, off_note])
+
+	_check(AudioSynth.peak(samples) <= 1.0, "nothing clips")
+	_check(AudioSynth.peak(samples) > 0.5, "and it is not nearly silent either")
+	var mean := 0.0
+	for value in samples:
+		mean += value
+	mean /= float(maxi(samples.size(), 1))
+	_check(absf(mean) < 0.02, "there is no DC offset (%.4f)" % mean)
+
+	# A loop's seam has to look like the rest of the waveform. Measured relative
+	# to the signal's own sample-to-sample movement, because the absolute step
+	# means nothing on its own.
+	var seam := AudioSynth.loop_discontinuity(samples)
+	_check(seam < 6.0, "the loop joins without a click (%.1f x the normal step)" % seam)
+
+	# The loop must be a whole number of engine cycles or the rhythm drifts.
+	var expected_samples := AudioSynth.seconds_to_samples(
+		spec.engine_layout.cycle_seconds(rpm)) * EngineVoice.CYCLES_PER_LOOP
+	_check(absi(samples.size() - expected_samples) <= 2,
+		"and is a whole number of engine cycles (%d vs %d)" % [
+			samples.size(), expected_samples])
+
+	# --- Cars have to sound different from one another ----------------------
+	# This is the reason the system exists. Fifty-seven cars that are one sound
+	# at fifty-seven pitches would be a failure however good that sound is.
+	var lada := CarDatabase.get_car("lada_2101")
+	var huracan := CarDatabase.get_car("huracan_sterrato")
+	_check(lada.engine_layout.cylinders != huracan.engine_layout.cylinders,
+		"a Lada and a Huracan do not have the same engine")
+	var lada_hz := lada.engine_layout.firing_hz(5000.0)
+	var huracan_hz := huracan.engine_layout.firing_hz(5000.0)
+	_check(huracan_hz > lada_hz * 2.0,
+		"so at the same revs they are nowhere near the same note (%.0f vs %.0f Hz)"
+			% [huracan_hz, lada_hz])
+
+	# Every car in the catalogue must have an engine, or it falls back to a
+	# generic four and quietly sounds like everything else.
+	var without := 0
+	var layouts := {}
+	for car in CarDatabase.all():
+		if car.engine_layout == null:
+			without += 1
+			continue
+		layouts[car.engine_layout.display_name()] = true
+	_check(without == 0, "every car says what engine it has (%d do not)" % without)
+	_check(layouts.size() >= 8,
+		"and the field has real variety in them (%d distinct)" % layouts.size())
+
+	# --- Parts have to change the sound -------------------------------------
+	# Fitting an exhaust that does not alter the note is a part nobody would buy
+	# twice.
+	var loud := EngineVoice.bake(stats, spec.engine_layout, 4, 4)
+	var stock_centroid := AudioSynth.spectral_centroid(samples)
+	var loud_centroid := AudioSynth.spectral_centroid(_pcm_of(loud.on_load[top]))
+	_check(loud_centroid > stock_centroid,
+		"a straight-through exhaust is brighter than the standard one (%.0f vs %.0f Hz)"
+			% [loud_centroid, stock_centroid])
+
+	# On and off the throttle are different sounds, not one sound quieter.
+	var off_centroid := AudioSynth.spectral_centroid(_pcm_of(voice.off_load[top]))
+	_check(absf(off_centroid - stock_centroid) > 60.0,
+		"lifting off changes the sound, not just the volume (%.0f vs %.0f Hz)"
+			% [off_centroid, stock_centroid])
+
+	# --- Turbos ---------------------------------------------------------------
+	var small := _pcm_of(EffectVoices.bake_turbo_whistle(1.4, 0.05, rng))
+	var big := _pcm_of(EffectVoices.bake_turbo_whistle(1.9, 0.9, rng))
+	_check(AudioSynth.spectral_centroid(big) < AudioSynth.spectral_centroid(small),
+		"a big laggy turbo whistles lower than a small one (%.0f vs %.0f Hz)" % [
+			AudioSynth.spectral_centroid(big), AudioSynth.spectral_centroid(small)])
+
+	# --- Impacts -------------------------------------------------------------
+	var nudge := _pcm_of(EffectVoices.bake_impact(0.1, rng))
+	var shunt := _pcm_of(EffectVoices.bake_impact(1.0, rng))
+	_check(shunt.size() > nudge.size(),
+		"a heavy crash rings for longer than a nudge")
+	_check(AudioSynth.rms(shunt) > 0.0 and AudioSynth.rms(nudge) > 0.0,
+		"and both actually make a noise")
+	_check(AudioSynth.peak(shunt) > AudioSynth.peak(nudge),
+		"with the heavy one louder")
+
+	# --- The wiring ----------------------------------------------------------
+	# Everything above tests the synthesis in isolation. This runs one car's
+	# voices end to end through the same call the car itself makes, so a system
+	# that bakes perfect waveforms and never reaches a speaker cannot pass.
+	var wired := CarDatabase.get_car("impreza_gc8")
+	var wired_car := CAR_SCENE.instantiate() as RallyCar
+	wired_car.configure(wired, wired.default_loadout())
+	add_child(wired_car)
+	var rig := CarAudio.new()
+	add_child(rig)
+	rig.setup(wired_car, wired.engine_layout, wired.default_loadout())
+	var players := 0
+	for child in rig.get_children():
+		if child is AudioStreamPlayer2D and child.stream != null:
+			players += 1
+	_check(players >= 6, "a car builds its full set of voices (%d)" % players)
+	_check(rig.voice != null and rig.voice.on_load.size() > 0,
+		"and an engine voice to drive them")
+	# A car built the ordinary way carries its own audio, and only bothers when
+	# there is a device to play it on.
+	_check(GameConfig.audio_enabled() == (DisplayServer.get_name() != "headless"),
+		"audio is built when, and only when, there is something to hear it")
+	_check(wired_car.get_node_or_null("Audio") != null or not GameConfig.audio_enabled(),
+		"a car carries its own audio node")
+	rig.queue_free()
+	wired_car.queue_free()
+
+	# --- Every loop in the game -----------------------------------------------
+	for surface in [TireModel.Surface.TARMAC, TireModel.Surface.GRAVEL,
+			TireModel.Surface.SNOW]:
+		var scrub := _pcm_of(EffectVoices.bake_surface_scrub(surface, rng))
+		_check(AudioSynth.peak(scrub) <= 1.0,
+			"the %s scrub loop does not clip" % TireModel.surface_name(surface))
+		_check(AudioSynth.loop_discontinuity(scrub) < 6.0,
+			"and joins cleanly (%.1f)" % AudioSynth.loop_discontinuity(scrub))
+	var squeal := _pcm_of(EffectVoices.bake_tyre_squeal(rng))
+	_check(AudioSynth.spectral_centroid(squeal) > 900.0,
+		"tyre squeal is a high sound (%.0f Hz)" % AudioSynth.spectral_centroid(squeal))
+
+
+## Pulls the samples back out of a baked stream, so the tests measure exactly
+## what the game will play rather than an intermediate buffer.
+static func _pcm_of(stream: AudioStreamWAV) -> PackedFloat32Array:
+	var data := stream.data
+	var out := PackedFloat32Array()
+	out.resize(data.size() / 2)
+	for i in out.size():
+		out[i] = float(data.decode_s16(i * 2)) / 32768.0
+	return out
 
 
 func _test_command_encoding() -> void:

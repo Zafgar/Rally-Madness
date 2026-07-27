@@ -16,6 +16,13 @@ const FINISH_WINDOW_SECONDS := 60.0
 ## catches the case where nobody has finished yet, so the finish window has not
 ## started, but the field is going nowhere.
 const STALL_TIMEOUT_SECONDS := 45.0
+## Once every human in the race is home, the rest of the field gets this long to
+## cross the line before it is classified where it stands.
+##
+## Waiting the full finish window for the AI meant a player who had just won sat
+## looking at an empty road for up to a minute wondering whether the game had
+## noticed. Nobody is watching the computer finish; they want their result.
+const PLAYER_FINISH_GRACE := 5.0
 ## Distance (in pixels along the centreline) that counts as having moved.
 const STALL_PROGRESS_EPSILON := 40.0
 
@@ -39,6 +46,9 @@ var _elimination_timer: float = 0.0
 var _elimination_interval: float = 30.0
 ## Race time at which the leader finished, or -1 while nobody has.
 var _leader_finish_time: float = -1.0
+## Race time at which the last human entrant stopped racing, or -1 while any of
+## them still is.
+var _player_done_time: float = -1.0
 ## Shared surface every car lays its tyre marks onto.
 var mark_layer: TireMarks
 
@@ -63,6 +73,7 @@ func setup(p_event: EventSpec, p_track: TrackSpec, car_scene: PackedScene) -> vo
 	for cp in builder.checkpoints:
 		cp.car_passed.connect(_on_checkpoint_passed)
 
+	AudioDirector.clear_local_cars()
 	_spawn_players()
 	_spawn_ai()
 	_share_field()
@@ -83,6 +94,8 @@ func _spawn_players() -> void:
 
 		var car := _make_car(owned.spec(), owned.loadout, owned.damage, grid_index)
 		car.is_locally_controlled = true
+		# Sound is mixed relative to the cars people are actually sitting in.
+		AudioDirector.add_local_car(car)
 		# The car arrives as tired as it left the garage. This is the whole
 		# point of the servicing economy: what a player skipped shows up here.
 		car.mechanical.load_condition(owned)
@@ -435,28 +448,51 @@ func _check_format_conditions(delta: float) -> void:
 	if event.format == EventSpec.Format.DERBY:
 		return
 
-	# The first car home starts the clock on everyone else.
-	if _leader_finish_time < 0.0:
-		for e in entrants:
-			if e.finished:
-				_leader_finish_time = e.finish_time
-				break
+	# The first car home starts the clock on everyone else. Taken as the
+	# earliest finish rather than the first one found in the list, which was
+	# only the same thing by accident.
+	for e in entrants:
+		if e.finished and (_leader_finish_time < 0.0 or e.finish_time < _leader_finish_time):
+			_leader_finish_time = e.finish_time
+
+	# The window the field actually gets. Short once the people playing are
+	# done, because from that moment the race is over as far as anyone in the
+	# room is concerned.
+	var window := FINISH_WINDOW_SECONDS
+	var players_done := _all_players_done()
+	if players_done and _player_done_time >= 0.0:
+		window = minf(window, (_player_done_time - maxf(_leader_finish_time, 0.0))
+			+ PLAYER_FINISH_GRACE)
 
 	var still_going := false
 	for e in entrants:
 		if not e.is_racing():
 			continue
-		# Past the finish window, whoever is left is classified rather than
-		# waited for. They keep their placing; they just stop holding up the
-		# results.
-		if _leader_finish_time >= 0.0 \
-				and race_time - _leader_finish_time > FINISH_WINDOW_SECONDS:
+		# Past the window, whoever is left is classified rather than waited for.
+		# They keep their placing; they just stop holding up the results.
+		if _leader_finish_time >= 0.0 and race_time - _leader_finish_time > window:
 			e.mark_dnf("outside the time limit")
 			continue
 		still_going = true
 
 	if not still_going:
 		_finish_race()
+
+
+## Whether every entrant somebody is actually sitting in front of is done —
+## finished, retired or out. An AI-only field never satisfies this, which is
+## correct: with nobody playing there is nobody to keep waiting.
+func _all_players_done() -> bool:
+	var any_player := false
+	for e in entrants:
+		if not e.is_player():
+			continue
+		any_player = true
+		if e.is_racing():
+			return false
+	if any_player and _player_done_time < 0.0:
+		_player_done_time = race_time
+	return any_player
 
 
 func _eliminate_last() -> void:

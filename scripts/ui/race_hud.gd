@@ -1,3 +1,4 @@
+class_name RaceHUD
 extends Control
 ## Per-seat race HUD.
 ##
@@ -9,8 +10,6 @@ extends Control
 ## has its own corner: what the car is doing (the instrument cluster), where
 ## everyone is (the map), where you stand (position, gaps, lap times), and what
 ## is about to go wrong (the warning lights).
-
-signal retire_requested()
 
 @export var seat_slot: int = 0
 
@@ -45,10 +44,6 @@ const INDICATOR_IDLE := Color(0.32, 0.33, 0.38)
 const INDICATOR_ACTIVE := Color(1.0, 0.85, 0.25)
 const INDICATOR_ALARM := Color(1.0, 0.30, 0.22)
 
-## Seconds the retire button must be held. Retiring is irreversible, so it is
-## deliberately not a tap.
-const RETIRE_HOLD := 1.2
-
 var race_time: float = 0.0
 var position_text: String = ""
 var lap_text: String = ""
@@ -57,8 +52,6 @@ var gap_behind: float = 0.0
 var last_lap: float = 0.0
 var best_lap: float = INF
 var _status_flash: float = 0.0
-var _retire_held: float = 0.0
-var _retired: bool = false
 ## Set true once the car can no longer continue, which is when retiring stops
 ## being an admission and starts being the only sensible thing to do.
 var _stranded: bool = false
@@ -294,7 +287,7 @@ func _process(delta: float) -> void:
 				else Color(0.25, 0.75, 1.0)
 
 	_update_mechanical()
-	_update_retire(delta)
+	_update_retire()
 
 	_set_indicator("ABS", car.abs_engaged(), INDICATOR_ACTIVE)
 	_set_indicator("TC", car.traction_control_engaged(), INDICATOR_ACTIVE)
@@ -348,29 +341,11 @@ func _update_mechanical() -> void:
 	_stranded = mech.is_stranded() or (car.damage != null and car.damage.wrecked)
 
 
-## Retiring. Always available, and always a deliberate hold rather than a tap —
-## but the prompt only appears once the car is genuinely in trouble, so it never
-## sits on screen inviting a player to give up on a race they are winning.
-func _update_retire(delta: float) -> void:
-	if _retired:
-		return
-	if not _stranded:
-		_retire_hint.text = ""
-		_retire_held = 0.0
-		return
-
-	var held := Input.is_action_pressed("ui_cancel")
-	if held:
-		_retire_held += delta
-		if _retire_held >= RETIRE_HOLD:
-			_retired = true
-			_retire_hint.text = ""
-			retire_requested.emit()
-			return
-		_retire_hint.text = "RETIRING… %d%%" % int(_retire_held / RETIRE_HOLD * 100.0)
-	else:
-		_retire_held = 0.0
-		_retire_hint.text = "Hold ESC to retire"
+## Tells a stranded driver where the way out is. Retiring itself lives in the
+## pause menu, so there is one place to do it rather than a hidden hold on a key
+## that also opens the menu.
+func _update_retire() -> void:
+	_retire_hint.text = "Car is out — press ESC to retire" if _stranded else ""
 
 
 func _set_indicator(key: String, active: bool, colour: Color) -> void:

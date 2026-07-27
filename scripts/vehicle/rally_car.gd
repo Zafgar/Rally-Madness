@@ -16,6 +16,15 @@ const GRAVITY := 9.81
 const DRIVELINE_EFFICIENCY := 0.88
 ## Below this speed the slip-angle model is meaningless, so we fade it out.
 const LOW_SPEED_MS := 2.5
+## The car has to be under this speed, with the brake held, before reverse will
+## be considered at all. Walking pace.
+const REVERSE_ENGAGE_SPEED := 1.4
+## And it has to stay there this long. Braking into a hairpin routinely holds a
+## car at a standstill for a couple of tenths before the driver gets back on the
+## throttle, so anything shorter than this fires them backwards out of corners.
+## Half a second is longer than that overlap and still short enough that asking
+## to reverse feels like it answered.
+const REVERSE_ENGAGE_DWELL := 0.50
 ## Air density * 0.5, folded into the drag term.
 const DRAG_CONSTANT := 0.6125
 
@@ -71,12 +80,16 @@ var _prev_velocity := Vector2.ZERO
 var _rng := RandomNumberGenerator.new()
 var _spawn_transform := Transform2D()
 var _respawn_cooldown: float = 0.0
+## How long the brake has been held at a standstill, which is how reverse is
+## asked for in an automatic.
+var _reverse_dwell: float = 0.0
 
 ## Whether the headlights are on. Set by the race for night stages.
 var lights_on: bool = false
 
 var _visual: CarVisual
 var _effects: CarEffects
+var _audio: CarAudio
 var _shadow: Polygon2D
 ## Where tyre marks are laid. Shared across the race so marks outlive the car
 ## that made them.
@@ -121,6 +134,7 @@ func configure(p_spec: CarSpec, loadout: TuningLoadout, saved_damage: Dictionary
 	mechanical.rev_limit_setting = float(loadout.setup.get("rev_limit", 0.0))
 
 	_build_appearance(loadout)
+	_build_audio(loadout)
 	transmission.gear_changed.connect(_on_gear_changed)
 	nitro.overheating.connect(func(amount): damage.apply("engine", amount))
 	nitro.state_changed.connect(func(c, a): EventBus.nitro_state_changed.emit(car_id, c, a))
@@ -134,9 +148,30 @@ func configure(p_spec: CarSpec, loadout: TuningLoadout, saved_damage: Dictionary
 		_apply_stats_to_body()
 
 
+## Every voice this car has, baked from the same numbers that drive it.
+##
+## Baking takes a moment, so it happens here — once, when the car is built —
+## rather than during the race. Headless runs skip it entirely: a smoke test has
+## no speakers and baking twelve engines for nobody is a waste of several
+## seconds on every run.
+func _build_audio(loadout: TuningLoadout) -> void:
+	if _audio != null:
+		_audio.queue_free()
+		_audio = null
+	if not GameConfig.audio_enabled():
+		return
+	var layout := spec.engine_layout if spec != null else null
+	if layout == null:
+		layout = EngineLayout.new()
+	_audio = CarAudio.new()
+	_audio.name = "Audio"
+	add_child(_audio)
+	_audio.setup(self, layout, loadout)
+
+
 ## Body, wheels, particles and lights, all sized from the car's own numbers.
 func _build_appearance(loadout: TuningLoadout) -> void:
-	for old in [_visual, _effects, _shadow]:
+	for old in [_visual, _effects, _shadow, _audio]:
 		if old != null:
 			old.queue_free()
 
@@ -155,10 +190,13 @@ func _build_appearance(loadout: TuningLoadout) -> void:
 	add_child(_effects)
 	_effects.setup(stats)
 
-	# The shadow is the body outline, so it changes shape with the car.
-	var ppm := GameConfig.PIXELS_PER_METRE
-	var half_l := stats.wheelbase_m * 0.70 * ppm
-	var half_w := stats.track_width_m * 0.58 * ppm
+	# The shadow and the collision box are the bodywork, so they come from the
+	# thing that draws the bodywork. They used to be their own guesses at the
+	# same numbers, which is a guarantee that one day they will disagree with
+	# what is on screen — and they did.
+	var body := _visual.body_size() * 0.5
+	var half_l := body.x
+	var half_w := body.y
 	_shadow.polygon = PackedVector2Array([
 		Vector2(-half_l, -half_w), Vector2(half_l, -half_w),
 		Vector2(half_l, half_w), Vector2(-half_l, half_w)])
@@ -254,7 +292,17 @@ func _integrate_grounded(
 	var brake := command.brake
 	# Reverse needs no special case downstream: the gear ratio itself is
 	# negative, so drive force comes out pointing backwards on its own.
-	_auto_engage_gear(v_local.x, throttle, brake)
+	# Gear selection reads the raw pedals, before they are swapped below.
+	_auto_engage_gear(delta, v_local.x, throttle, brake)
+
+	# In an automatic, once reverse is selected the brake pedal is what drives
+	# the car. Without this, holding the brake at a standstill engaged reverse
+	# and then held the car still with the brakes — the gear was right and
+	# nothing moved, which is exactly what it looked like.
+	if transmission.mode == Transmission.Mode.AUTOMATIC and transmission.gear < 0:
+		var reverse_drive := brake
+		brake = throttle   # and the accelerator becomes the brake, as it must
+		throttle = reverse_drive
 
 	engine.update_boost(delta, transmission.rpm, throttle)
 	var nitro_mult := nitro.update(delta, command.nitro, throttle)
@@ -418,16 +466,28 @@ func _integrate_grounded(
 		power_w, _rng, global_position)
 
 
-func _auto_engage_gear(forward_speed: float, throttle: float, brake: float) -> void:
-	# Standing still: decide direction from the pedals rather than making the
-	# player select reverse manually in an automatic.
-	if absf(forward_speed) > 1.0:
-		return
+## Standing still: decide direction from the pedals rather than making the
+## player select reverse manually in an automatic.
+##
+## Reverse needs a moment of held brake before it engages, and that dwell is
+## not a nicety. Braking hard into a hairpin takes the car through walking pace
+## with the brake buried, and without the dwell it would select reverse there
+## and — since the brake pedal drives the car in reverse — fire it backwards out
+## of the corner. Forward has no such wait: pulling away should be instant.
+func _auto_engage_gear(delta: float, forward_speed: float, throttle: float,
+		brake: float) -> void:
 	if transmission.mode != Transmission.Mode.AUTOMATIC:
+		return
+	if absf(forward_speed) > REVERSE_ENGAGE_SPEED or throttle > 0.1:
+		_reverse_dwell = 0.0
+	elif brake > 0.5:
+		_reverse_dwell += delta
+
+	if absf(forward_speed) > 1.0:
 		return
 	if throttle > 0.1:
 		transmission.engage_for(1)
-	elif brake > 0.5:
+	elif brake > 0.5 and _reverse_dwell >= REVERSE_ENGAGE_DWELL:
 		transmission.engage_for(-1)
 
 
@@ -586,6 +646,11 @@ func _read_collisions(state: PhysicsDirectBodyState2D) -> void:
 		# still reports contacts it should be flying over.
 		if not airborne:
 			damage.apply_impact(impulse, normal.rotated(-rotation))
+			# Heard on the same scale it is felt: the reference impulse is the
+			# one the damage model calls a serious hit.
+			if _audio != null:
+				_audio.play_impact(clampf(impulse / DamageModel.REFERENCE_IMPULSE,
+					0.05, 1.0))
 
 	_contacting = current
 	_prev_velocity = state.linear_velocity

@@ -3,6 +3,7 @@ extends Node2D
 ## it, and this node keeps the two in step.
 
 const CAR_SCENE := preload("res://scenes/vehicle/rally_car.tscn")
+const MENU_SCENE_PATH := "res://scenes/boot.tscn"
 
 @export var event_id: String = "shakedown"
 
@@ -10,6 +11,8 @@ var director: RaceDirector
 var split: SplitScreen
 var _tracks: Dictionary = {}
 var _results_shown: bool = false
+var _overlay: RaceOverlay
+var _paused: bool = false
 
 
 func _ready() -> void:
@@ -53,12 +56,26 @@ func _ready() -> void:
 		all_cars.append(entrant.car)
 	for view in split.views:
 		view["hud"].bind_race(director.builder, all_cars)
-		view["hud"].retire_requested.connect(_on_retire_requested.bind(view["slot"]))
 
 	# The network layer addresses cars by id when replicating.
 	if NetManager.is_online():
 		for entrant in director.entrants:
 			NetManager.tracked_cars[entrant.car.car_id] = entrant.car
+
+	# Pause and results, on their own layer above the split screen.
+	var overlay_layer := CanvasLayer.new()
+	overlay_layer.name = "OverlayLayer"
+	overlay_layer.layer = 10
+	# Runs while everything else is stopped, which is what a pause menu is.
+	overlay_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(overlay_layer)
+	_overlay = RaceOverlay.new()
+	_overlay.resume_requested.connect(_resume)
+	_overlay.retire_requested.connect(_retire_all_players)
+	_overlay.quit_requested.connect(_return_to_menu)
+	_overlay.continue_requested.connect(_return_to_menu)
+	_overlay.pause_toggled.connect(_toggle_pause)
+	overlay_layer.add_child(_overlay)
 
 	_countdown_message(RaceDirector.COUNTDOWN_SECONDS)
 
@@ -71,6 +88,66 @@ func _charge_entry_fees(event: EventSpec) -> void:
 			continue
 		if not seat.profile.spend(event.entry_fee):
 			push_warning("RaceScene: seat %d cannot afford the entry fee" % seat.slot)
+
+
+## Escape opens the pause menu and closes it again. Available from the moment
+## the race exists, because "I want to stop now" is not a request a game should
+## make somebody wait for.
+func _toggle_pause() -> void:
+	if _overlay == null or _results_shown:
+		return
+	if _paused:
+		_resume()
+	else:
+		_pause()
+
+
+func _pause() -> void:
+	_paused = true
+	get_tree().paused = true
+	var name := director.event.display_name if director != null else "Race"
+	_overlay.show_pause(name, _any_player_racing())
+
+
+func _resume() -> void:
+	_paused = false
+	get_tree().paused = false
+	_overlay.close()
+
+
+func _any_player_racing() -> bool:
+	if director == null:
+		return false
+	for e in director.entrants:
+		if e.is_player() and e.is_racing():
+			return true
+	return false
+
+
+## Retiring from the pause menu. Everyone sitting here is out, and the race then
+## wraps up on its own through the normal path — so the player still gets their
+## result and their DNF money rather than nothing.
+func _retire_all_players() -> void:
+	if director != null:
+		for e in director.entrants:
+			if e.is_player() and e.is_racing():
+				director.retire_seat(e.seat_slot)
+	_resume()
+
+
+## Back to the front end. Abandoning mid-race pays nothing, which is why it is
+## worded as abandoning and retiring is not.
+func _return_to_menu() -> void:
+	get_tree().paused = false
+	AudioDirector.clear_local_cars()
+	PlayerManager.release_haptics()
+	var packed: PackedScene = load(MENU_SCENE_PATH)
+	if packed == null:
+		return
+	var scene := packed.instantiate()
+	get_tree().root.add_child(scene)
+	get_tree().current_scene.queue_free()
+	get_tree().current_scene = scene
 
 
 func _process(_delta: float) -> void:
@@ -98,14 +175,6 @@ func _process(_delta: float) -> void:
 		_countdown_message(director.countdown_remaining)
 
 
-## A player has held the retire button on a car that cannot continue. There is
-## always a way out of a race — sitting in a dead car waiting for a timeout is
-## not a game mechanic, it is a wait.
-func _on_retire_requested(slot: int) -> void:
-	if director != null:
-		director.retire_seat(slot)
-
-
 func _countdown_message(remaining: float) -> void:
 	if split == null:
 		return
@@ -129,29 +198,29 @@ func _on_race_complete(results: Array) -> void:
 				if r["dnf"]:
 					line = "DNF (%s)   +%d cr" % [r["dnf_reason"], r["payout"]]
 				break
-		view["hud"].show_status(line, 8.0, Color(0.6, 1.0, 0.6))
+		view["hud"].show_status(line, 4.0, Color(0.6, 1.0, 0.6))
 	print_rich(_results_table(results))
+
+	var own: Array = []
+	for view in split.views:
+		var entrant := director.entrant_for_seat(view["slot"])
+		if entrant != null:
+			own.append(entrant)
+	if _overlay != null:
+		var name := director.event.display_name if director != null else "Race"
+		_overlay.show_results(name, results, own)
 
 
 func _results_table(results: Array) -> String:
 	var lines := ["[b]%s — results[/b]" % director.event.display_name]
 	for r in results:
-		var time_text: String = "DNF" if r["dnf"] else RaceHUDFormat.time(r["time"])
+		var time_text: String = "DNF" if r["dnf"] else RaceHUD.format_time(r["time"])
 		var entrant: RaceEntrant = r["entrant"]
 		# Naming the archetype makes the field legible: it explains why one
 		# rival was three seconds a lap quicker and another put it in a ditch.
 		var kind := "you" if entrant.is_player() else entrant.driver_name
 		lines.append("%2d. %-22s %-18s %10s  best %s" % [
-			r["position"], r["name"], kind, time_text, RaceHUDFormat.time(r["best_lap"])])
+			r["position"], r["name"], kind, time_text, RaceHUD.format_time(r["best_lap"])])
 	return "\n".join(lines)
 
 
-## Small shim so the results printout can reuse the HUD's time formatting
-## without instantiating a HUD.
-class RaceHUDFormat:
-	static func time(seconds: float) -> String:
-		if seconds <= 0.0:
-			return "--:--.--"
-		var minutes := int(seconds) / 60
-		var secs := seconds - float(minutes * 60)
-		return "%d:%05.2f" % [minutes, secs]
