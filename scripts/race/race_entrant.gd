@@ -11,6 +11,9 @@ var driver_name: String = ""
 ## -1 for AI, otherwise the local seat index.
 var seat_slot: int = -1
 var profile: PlayerProfile
+## The garage car this entrant is driving, for writing mileage and wear back
+## when the race ends. Null for AI, which owns nothing.
+var owned_car: OwnedCar
 var ai: AIDriver
 
 var next_checkpoint: int = 0
@@ -27,6 +30,11 @@ var eliminated: bool = false
 var dnf: bool = false
 var dnf_reason: String = ""
 var position: int = 0
+
+## Seconds to the car in front and the car behind, estimated each standings
+## update. Zero when there is nobody there.
+var gap_ahead: float = 0.0
+var gap_behind: float = 0.0
 
 var best_lap: float = INF
 var _lap_start_time: float = 0.0

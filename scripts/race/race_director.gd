@@ -83,10 +83,14 @@ func _spawn_players() -> void:
 
 		var car := _make_car(owned.spec(), owned.loadout, owned.damage, grid_index)
 		car.is_locally_controlled = true
+		# The car arrives as tired as it left the garage. This is the whole
+		# point of the servicing economy: what a player skipped shows up here.
+		car.mechanical.load_condition(owned)
 		PlayerManager.bind_car(seat.slot, car)
 
 		var entrant := RaceEntrant.new()
 		entrant.car = car
+		entrant.owned_car = owned
 		entrant.seat_slot = seat.slot
 		entrant.profile = seat.profile
 		entrant.display_name = seat.display_name()
@@ -132,6 +136,12 @@ func _spawn_ai() -> void:
 		# their depth.
 		var driver := DriverProfile.pick_for(event.ai_skill, rng)
 		entrant.driver_name = driver.display_name
+
+		# Rivals run their own cars the way they treat them. A driver with no
+		# mechanical sympathy turns the boost up, raises the limiter and arrives
+		# on a car that has never been serviced — and sometimes does not finish
+		# because of it. The same model decides that as decides the player's.
+		_apply_ai_mechanical_state(car, driver, i)
 
 		# Each rival also gets its own habitual offset from the centreline, so
 		# the field spreads across the road instead of queueing up on one line.
@@ -182,6 +192,34 @@ func _eligible_ai_cars() -> Array:
 			continue
 		pool.append(spec)
 	return pool
+
+
+## How hard a rival is on its own machinery, and how well kept that machinery
+## is. Both come from mechanical_sympathy, so "the reckless one blew up" is a
+## consequence of who they are rather than a scripted event.
+## Given its own generator rather than the field's, seeded per entrant. Drawing
+## from the shared one would shift every selection made after it, which quietly
+## changed which cars and drivers turned up — a subsystem must not perturb an
+## unrelated one just by existing.
+func _apply_ai_mechanical_state(
+	car: RallyCar,
+	driver: DriverProfile,
+	index: int
+) -> void:
+	if car.mechanical == null:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(event.id) * 31 + index
+	var carelessness := clampf(1.0 - driver.mechanical_sympathy, 0.0, 1.0)
+	car.mechanical.boost_setting = carelessness * rng.randf_range(0.3, 1.0)
+	car.mechanical.rev_limit_setting = carelessness * rng.randf_range(0.0, 0.9)
+	# A privateer running an old car is the normal case in this game, so rivals
+	# carry mileage and imperfect servicing rather than arriving factory fresh.
+	car.mechanical.engine_km = rng.randf_range(20000.0, 40000.0
+		+ carelessness * 190000.0)
+	car.mechanical.oil_life = rng.randf_range(0.35 + driver.mechanical_sympathy * 0.5, 1.0)
+	car.mechanical.brake_life = rng.randf_range(0.4 + driver.mechanical_sympathy * 0.5, 1.0)
+	car.mechanical.turbo_life = rng.randf_range(0.4 + driver.mechanical_sympathy * 0.5, 1.0)
 
 
 func _make_car(
@@ -294,6 +332,12 @@ func _update_progress() -> void:
 		if e.car.damage != null and e.car.damage.wrecked and e.is_racing():
 			e.mark_dnf(e.car.damage.wreck_cause)
 
+		# A car with no engine or no fuel is not going anywhere. Saying so
+		# immediately is kinder than making the player sit out the stall timer
+		# wondering whether it will restart.
+		if e.is_racing() and e.car.mechanical != null and e.car.mechanical.is_stranded():
+			e.mark_dnf(e.car.mechanical.failure_text())
+
 		if e.is_racing():
 			_check_stalled(e)
 
@@ -313,6 +357,16 @@ func _check_stalled(e: RaceEntrant) -> void:
 		e.mark_dnf("retired")
 
 
+## A player giving up. Distinct from stalling out: it is immediate, and the
+## reason says so on the results screen.
+func retire_seat(slot: int) -> void:
+	for e in entrants:
+		if e.seat_slot == slot and e.is_racing():
+			e.mark_dnf("retired by the driver")
+			_publish_standings()
+			return
+
+
 func _publish_standings() -> void:
 	var ordered := entrants.duplicate()
 	ordered.sort_custom(func(a, b):
@@ -324,7 +378,36 @@ func _publish_standings() -> void:
 		return false)
 	for i in ordered.size():
 		ordered[i].position = i + 1
+	_update_gaps(ordered)
 	standings_updated.emit(ordered)
+
+
+## Time gaps along the road, estimated from the distance between two cars and
+## the speed of the one doing the chasing.
+##
+## An exact gap needs a history of when each car passed each point, which is a
+## lot of bookkeeping for a number that is only ever read to one decimal place.
+## Distance over speed is what the driver is actually asking — "how long until
+## I am there" — and it is right whenever it matters, which is when the cars are
+## near each other and travelling at similar speeds.
+func _update_gaps(ordered: Array) -> void:
+	var ppm := GameConfig.PIXELS_PER_METRE
+	for i in ordered.size():
+		var e: RaceEntrant = ordered[i]
+		e.gap_ahead = 0.0
+		e.gap_behind = 0.0
+		if not e.is_racing():
+			continue
+		# Floor the reference speed: a stationary car would otherwise report an
+		# infinite gap, and "+inf" tells a driver nothing at all.
+		var own_speed := maxf(e.car.speed_ms, 8.0) * ppm
+		if i > 0:
+			var lead: RaceEntrant = ordered[i - 1]
+			e.gap_ahead = maxf(lead.total_progress - e.total_progress, 0.0) / own_speed
+		if i + 1 < ordered.size():
+			var chaser: RaceEntrant = ordered[i + 1]
+			var chaser_speed := maxf(chaser.car.speed_ms, 8.0) * ppm
+			e.gap_behind = maxf(e.total_progress - chaser.total_progress, 0.0) / chaser_speed
 
 
 func _check_format_conditions(delta: float) -> void:
@@ -499,15 +582,23 @@ func _apply_result(result: Dictionary) -> void:
 	if entrant.position == 1 and not entrant.dnf:
 		profile.stat_wins += 1
 
-	# Persist the damage the car actually took, so it is still bent in the pits.
-	var owned := profile.get_car(profile.active_car_uid)
+	# Persist what the race did to the car: the damage it took, and the wear it
+	# put on. Mileage keeps counting whether the race went well or not.
+	var owned: OwnedCar = entrant.owned_car
+	if owned == null:
+		owned = profile.get_car(profile.active_car_uid)
 	if owned != null and entrant.car.damage != null:
 		owned.damage = entrant.car.damage.snapshot()
 		owned.write_off = entrant.car.damage.wrecked
 		owned.races_entered += 1
 		if entrant.position == 1:
 			owned.wins += 1
+		if entrant.car.mechanical != null:
+			entrant.car.mechanical.store_condition(owned)
+			result["distance_km"] = entrant.car.mechanical.odometer_km
+			result["failures"] = entrant.car.mechanical.failure_text()
 		result["repair_cost"] = owned.repair_cost()
+		result["service_cost"] = _service_bill(owned)
 
 	if not entrant.dnf:
 		profile.complete_event(event.id, entrant.finish_time)
@@ -534,6 +625,16 @@ func _apply_result(result: Dictionary) -> void:
 	EventBus.money_changed.emit(entrant.seat_slot, profile.money, payout)
 	if levels > 0:
 		EventBus.level_changed.emit(entrant.seat_slot, profile.level)
+
+
+## What it would cost to put every worn service item back to new. Shown on the
+## results screen so a player is told about it rather than discovering it as a
+## failure two events later.
+func _service_bill(owned: OwnedCar) -> int:
+	var total := 0
+	for item in OwnedCar.SERVICE_ITEMS:
+		total += owned.service_cost(item)
+	return total
 
 
 func _position_score(entrant: RaceEntrant) -> float:

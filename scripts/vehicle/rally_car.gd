@@ -30,6 +30,10 @@ var nitro: NitroSystem
 var axle_front: Axle
 var axle_rear: Axle
 var damage: DamageModel
+## Wear, heat, fuel and everything that can let go. Nothing in the physics asks
+## it questions directly: it hands out a small number of multipliers and the
+## rest of the car simply applies them.
+var mechanical: MechanicalModel
 var command := VehicleCommand.new()
 
 ## Fake third axis. Everything about jumps lives in these three.
@@ -112,6 +116,9 @@ func configure(p_spec: CarSpec, loadout: TuningLoadout, saved_damage: Dictionary
 	damage = DamageModel.new(stats)
 	if not saved_damage.is_empty():
 		damage.restore(saved_damage)
+	mechanical = MechanicalModel.new(stats, damage)
+	mechanical.boost_setting = float(loadout.setup.get("boost_pressure", 0.0))
+	mechanical.rev_limit_setting = float(loadout.setup.get("rev_limit", 0.0))
 
 	_build_appearance(loadout)
 	transmission.gear_changed.connect(_on_gear_changed)
@@ -120,6 +127,8 @@ func configure(p_spec: CarSpec, loadout: TuningLoadout, saved_damage: Dictionary
 	damage.damaged.connect(func(part, amt, rem): EventBus.car_damaged.emit(car_id, part, amt, rem))
 	damage.caught_fire.connect(func(): EventBus.car_caught_fire.emit(car_id))
 	damage.wrecked_out.connect(_on_wrecked)
+	mechanical.failure.connect(_on_mechanical_failure)
+	mechanical.oil_dropped.connect(_on_oil_dropped)
 
 	if is_inside_tree():
 		_apply_stats_to_body()
@@ -290,18 +299,31 @@ func _integrate_grounded(
 	var mu_long_f := TireModel.surface_mu(stats, surface, false) * balance_f
 	var mu_long_r := TireModel.surface_mu(stats, surface, false) * balance_r
 
+	# Grip per axle rather than per car, because a puncture happens at one end
+	# and a car with a flat front and a car with a flat rear are two completely
+	# different problems to drive.
 	var tire_health: float = damage.integrity["tires"]
-	mu_lat_f *= tire_health
-	mu_lat_r *= tire_health
-	mu_long_f *= tire_health
-	mu_long_r *= tire_health
+	var grip_front := tire_health * mechanical.axle_grip_multiplier(0)
+	var grip_rear := tire_health * mechanical.axle_grip_multiplier(1)
+	mu_lat_f *= grip_front
+	mu_lat_r *= grip_rear
+	mu_long_f *= grip_front
+	mu_long_r *= grip_rear
 
 	# --- Driveline torque ---------------------------------------------------
 	# An electronic limiter simply stops fuelling. Nothing else changes, which
 	# is why a limited car still pulls hard right up to the wall.
 	if stats.speed_limiter_kmh > 0.0 and speed_ms * 3.6 > stats.speed_limiter_kmh:
 		throttle = 0.0
+	# The rev limiter is a setting, not a constant: raising it is one of the two
+	# ways a player buys power with reliability.
+	if transmission.rpm > mechanical.effective_redline():
+		throttle = 0.0
 	var crank_torque := engine.output_torque(transmission.rpm, throttle, nitro_mult)
+	# Everything the machine has to say about how much power there is right now
+	# arrives as two multipliers: what the boost setting adds, and what is
+	# currently broken or too hot.
+	crank_torque *= mechanical.boost_gain() * mechanical.power_multiplier()
 	var ratio := transmission.gear_ratio()
 	var wheel_torque := crank_torque * ratio * transmission.clutch * DRIVELINE_EFFICIENCY
 
@@ -311,7 +333,8 @@ func _integrate_grounded(
 		wheel_torque -= signf(driven_omega) * engine_brake * absf(ratio)
 
 	# --- Brake torque -------------------------------------------------------
-	var max_brake_torque := stats.max_brake_torque() * tire_health
+	var max_brake_torque := stats.max_brake_torque() * tire_health \
+		* mechanical.brake_multiplier()
 	var brake_front := brake * max_brake_torque * stats.brake_bias_front
 	var brake_rear := brake * max_brake_torque * (1.0 - stats.brake_bias_front)
 
@@ -351,7 +374,8 @@ func _integrate_grounded(
 	var surface_drag: float = TireModel.SURFACE_DRAG.get(surface, 1.0)
 	var rolling := stats.rolling_resistance * surface_drag * total_load * signf(v_local.x)
 	var drag := DRAG_CONSTANT * stats.drag_area * speed_ms * speed_ms * signf(v_local.x)
-	var resistance := -(rolling + drag)
+	var flat := mechanical.puncture_drag() * signf(v_local.x)
+	var resistance := -(rolling + drag + flat)
 
 	# --- Assemble and apply -------------------------------------------------
 	# The front force acts along the steered wheel, so it rotates with it.
@@ -385,6 +409,13 @@ func _integrate_grounded(
 	# Sliding sideways at speed on gravel rewards nitro on bottles that regen.
 	if is_drifting:
 		nitro.award(delta * 3.0 * minf(absf(slip_angle_rear), 0.8))
+
+	# The machine's own housekeeping: fuel, heat, wear, and the dice that decide
+	# whether any of it has finally had enough.
+	var load_fraction := clampf(throttle * engine.torque_fraction(transmission.rpm), 0.0, 1.0)
+	var power_w := absf(crank_torque) * transmission.rpm * TAU / 60.0
+	mechanical.update(delta, absf(v_local.x), transmission.rpm, load_fraction,
+		power_w, _rng, global_position)
 
 
 func _auto_engage_gear(forward_speed: float, throttle: float, brake: float) -> void:
@@ -686,6 +717,36 @@ func apply_network_state(
 
 func _on_gear_changed(new_gear: int) -> void:
 	EventBus.car_gear_changed.emit(car_id, new_gear)
+
+
+## Something let go. The physics has already picked up the consequence through
+## the mechanical model's multipliers; this is the part the driver notices.
+func _on_mechanical_failure(system: MechanicalModel.System, description: String) -> void:
+	EventBus.car_failed.emit(car_id, MechanicalModel.system_name(system), description)
+	match system:
+		MechanicalModel.System.TURBO:
+			# A turbo letting go is a bang and then a lot of smoke, and the
+			# power simply is not there any more.
+			if _effects != null:
+				_effects.burst_smoke(2.5)
+		MechanicalModel.System.COOLING:
+			if _effects != null:
+				_effects.burst_smoke(1.6)
+		MechanicalModel.System.ENGINE:
+			if _effects != null:
+				_effects.burst_smoke(4.0)
+		_:
+			pass
+
+
+## Oil on the road. Parented to the track rather than the car, or it would
+## follow the car that dropped it.
+func _on_oil_dropped(where: Vector2) -> void:
+	var parent := get_parent()
+	if parent == null:
+		return
+	var slick := OilSlick.create(where, _rng.randi())
+	parent.add_child(slick)
 
 
 func _on_wrecked(cause: String) -> void:

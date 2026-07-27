@@ -72,7 +72,12 @@ func _demo_profile() -> PlayerProfile:
 				"#1e5fb4" if id == "golf_gti_mk2" else "#f2b418", Color.RED)
 			car.races_entered = 12
 			car.wins = 3
-			car.odometer_km = 430.0
+			# A car with a season on it: the odometer and the engine agree,
+			# because nothing has been swapped.
+			car.odometer_km += 4300.0
+			car.engine_km = car.odometer_km
+			car.oil_life = 0.38
+			car.brake_life = 0.62
 			profile.active_car_uid = car.uid
 	# Bolt a few parts on so the tuning screen has something fitted to show.
 	var active := profile.active_car()

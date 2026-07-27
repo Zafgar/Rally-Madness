@@ -47,6 +47,7 @@ func _ready() -> void:
 	_test_damage_and_economy()
 	_test_progression()
 	_test_classes_and_economy()
+	_test_mechanical_model()
 	_test_command_encoding()
 	_start_test_race()
 
@@ -1224,6 +1225,148 @@ func _test_classes_and_economy() -> void:
 	_check(climber.rating > start + 50,
 		"winning career races raises the rating (%d to %d)" % [start, climber.rating])
 	SaveSystem.delete_profile("smoketest_rating")
+
+
+func _test_mechanical_model() -> void:
+	_section("wear, heat and failures")
+	var spec := CarDatabase.get_car("impreza_gc8")
+	var stats := TuningCalculator.resolve(spec, spec.default_loadout())
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
+
+	# --- A healthy car, driven hard, must simply work ------------------------
+	# This is the load-bearing claim of the whole system. If a standard car
+	# loses power or breaks during ordinary racing then every car in the game is
+	# slower for no reason a player can see, which is exactly what happened the
+	# first time these numbers were written.
+	var healthy := MechanicalModel.new(stats, DamageModel.new(stats))
+	for i in 12000:   # 200 simulated seconds at full load
+		healthy.update(1.0 / 60.0, 40.0, stats.redline_rpm * 0.8, 1.0, 140000.0,
+			rng, Vector2.ZERO)
+	_check(healthy.failed.is_empty(),
+		"a fresh car at full load does not break (%s)" % healthy.failure_text())
+	_check(healthy.coolant_c < MechanicalModel.COOLANT_WARN_C,
+		"and does not overheat (%.0f C, warning at %.0f)" % [
+			healthy.coolant_c, MechanicalModel.COOLANT_WARN_C])
+	_check(is_equal_approx(healthy.power_multiplier(), 1.0),
+		"and makes full power throughout (%.2f)" % healthy.power_multiplier())
+	_check(healthy.level_of(MechanicalModel.System.ENGINE) == MechanicalModel.Level.OK,
+		"and lights no warnings")
+
+	# --- Fuel use has to be realistic in both directions ---------------------
+	var used := healthy.tank_l - healthy.fuel_l
+	_check(used > 0.5 and used < healthy.tank_l * 0.75,
+		"200 seconds at full power uses some fuel but nowhere near a tank (%.1f of %.0f L)"
+			% [used, healthy.tank_l])
+
+	# --- The settings a player turns up have to cost something ---------------
+	var pushed := MechanicalModel.new(stats, DamageModel.new(stats))
+	pushed.boost_setting = 1.0
+	pushed.rev_limit_setting = 1.0
+	pushed.engine_km = MechanicalModel.ENGINE_TIRED_KM
+	pushed.oil_life = 0.05
+	pushed.turbo_life = 0.05
+	_check(pushed.engine_stress() > healthy.engine_stress() * 2.0,
+		"maximum boost and a raised limiter on a tired engine is far more stress")
+	_check(pushed.boost_gain() > 1.0, "and does make more power")
+	_check(pushed.engine_wear() > 0.9, "a very high mileage engine reads as worn out")
+	_check(healthy.engine_wear() < 0.1, "a fresh one does not")
+
+	# Over a long stage that combination should usually break something, and an
+	# identical stage in a healthy car should break nothing. Both are run
+	# several times: one trial of a probabilistic system tells you nothing, and
+	# the contrast between the two is the claim worth testing.
+	var broke := 0
+	var healthy_broke := 0
+	for attempt in 12:
+		var victim := MechanicalModel.new(stats, DamageModel.new(stats))
+		victim.boost_setting = 1.0
+		victim.rev_limit_setting = 1.0
+		victim.engine_km = MechanicalModel.ENGINE_TIRED_KM
+		victim.oil_life = 0.02
+		victim.turbo_life = 0.02
+		for i in 36000:   # ten simulated minutes
+			victim.update(1.0 / 60.0, 40.0, stats.redline_rpm * 0.95, 1.0, 180000.0,
+				rng, Vector2.ZERO)
+		if not victim.failed.is_empty():
+			broke += 1
+
+		var sound := MechanicalModel.new(stats, DamageModel.new(stats))
+		for i in 36000:
+			sound.update(1.0 / 60.0, 40.0, stats.redline_rpm * 0.85, 1.0, 150000.0,
+				rng, Vector2.ZERO)
+		if not sound.failed.is_empty():
+			healthy_broke += 1
+	_check(broke >= 6, "a worn car pushed to the limit usually breaks (%d of 12)" % broke)
+	_check(healthy_broke == 0,
+		"a well kept one over the same distance never does (%d of 12)" % healthy_broke)
+
+	# --- What a failure does ------------------------------------------------
+	var punctured := MechanicalModel.new(stats, DamageModel.new(stats))
+	punctured.punctured_axle = 0
+	_check(punctured.axle_grip_multiplier(0) < 0.6, "a puncture ruins that axle's grip")
+	_check(punctured.axle_grip_multiplier(1) > 0.9, "and leaves the other one alone")
+	_check(punctured.puncture_drag() > 0.0, "and drags")
+
+	var blown := MechanicalModel.new(stats, DamageModel.new(stats))
+	blown._fail(MechanicalModel.System.TURBO, "test")
+	_check(blown.power_multiplier() < 0.9 / stats.turbo_boost + 0.2,
+		"a blown turbo takes the boost away")
+	_check(blown.power_multiplier() > 0.0, "but the car still runs")
+
+	var dead := MechanicalModel.new(stats, DamageModel.new(stats))
+	dead._fail(MechanicalModel.System.ENGINE, "test")
+	_check(is_zero_approx(dead.power_multiplier()), "a failed engine makes no power")
+	_check(dead.is_stranded(), "and strands the car")
+
+	var dry := MechanicalModel.new(stats, DamageModel.new(stats))
+	dry.fuel_l = 0.0
+	dry._fail(MechanicalModel.System.FUEL, "test")
+	_check(dry.is_stranded(), "so does an empty tank")
+
+	# --- Warnings have to arrive before the failure, not with it -------------
+	var hot := MechanicalModel.new(stats, DamageModel.new(stats))
+	hot.coolant_c = MechanicalModel.COOLANT_WARN_C + 2.0
+	_check(hot.level_of(MechanicalModel.System.COOLING) == MechanicalModel.Level.WARNING,
+		"a hot engine warns before it is critical")
+	hot.coolant_c = MechanicalModel.COOLANT_CRITICAL_C + 2.0
+	_check(hot.level_of(MechanicalModel.System.COOLING) == MechanicalModel.Level.CRITICAL,
+		"and goes critical when it really is")
+
+	# --- Mileage, servicing and engine swaps --------------------------------
+	var owned := OwnedCar.create(spec, "test_wear")
+	_check(owned.odometer_km > 0.0,
+		"a car bought in this game has been driven before (%.0f km)" % owned.odometer_km)
+	_check(is_equal_approx(owned.engine_km, owned.odometer_km),
+		"and its engine has done the same distance")
+
+	var fresh_value := owned.sale_value()
+	owned.odometer_km += 200000.0
+	_check(owned.sale_value() < fresh_value, "mileage lowers what a car is worth")
+	_check(owned.mileage_value_multiplier() > 0.4,
+		"but never to nothing (%.2f)" % owned.mileage_value_multiplier())
+
+	owned.engine_km = 260000.0
+	var tired_power := owned.engine_health_multiplier()
+	owned.swap_engine(false)
+	_check(is_zero_approx(owned.engine_km), "a new engine starts at zero kilometres")
+	_check(owned.engine_health_multiplier() > tired_power,
+		"and makes more power than the one it replaced")
+	_check(owned.odometer_km > 200000.0,
+		"while the car keeps the distance it has actually covered")
+	owned.swap_engine(true)
+	_check(owned.engine_km > 0.0, "a rebuilt engine arrives with some mileage on it")
+	_check(owned.engine_swap_cost(true) < owned.engine_swap_cost(false),
+		"and costs less than a new one")
+
+	owned.oil_life = 0.1
+	var oil_bill := owned.service_cost("oil")
+	_check(oil_bill > 0, "worn oil costs something to change (%d cr)" % oil_bill)
+	_check(oil_bill < owned.repair_cost() + 2000,
+		"and routine servicing is not the expensive part of owning a car")
+	owned.service("oil")
+	_check(is_equal_approx(owned.service_life("oil"), 1.0), "and changing it works")
+	_check(owned.service_cost("oil") == 0, "with nothing to pay when nothing is worn")
 
 
 func _test_command_encoding() -> void:

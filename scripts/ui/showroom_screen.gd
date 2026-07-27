@@ -283,6 +283,10 @@ func _rebuild_details() -> void:
 	_details.add_child(UiTheme.stat_row("Power", "%d hp" % int(summary["power_hp"])))
 	_details.add_child(UiTheme.stat_row("Torque", "%d Nm" % int(summary["torque_nm"])))
 	_details.add_child(UiTheme.stat_row("Weight", "%d kg" % int(stats.mass_kg)))
+	# Nothing here is sold new. What it has already done is half the price.
+	var km := spec.showroom_km()
+	_details.add_child(UiTheme.stat_row("Mileage", "%s km" % UiTheme.thousands(int(km)),
+		UiTheme.WARNING if km > MechanicalModel.ENGINE_FRESH_KM else UiTheme.TEXT))
 	_details.add_child(UiTheme.stat_row("Top speed",
 		"%d km/h" % int(summary["top_speed_kmh"])))
 	var zero_to_100: float = summary["zero_to_100"]

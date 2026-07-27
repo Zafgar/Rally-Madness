@@ -18,6 +18,7 @@ var setup: Dictionary = {
 	"gear_length": 0.0,      # short/accel <-> long/top speed
 	"awd_split": 0.0,        # front-biased <-> rear-biased (AWD only)
 	"boost_pressure": 0.0,   # safe <-> power (raises engine wear)
+	"rev_limit": 0.0,        # standard <-> raised (more power, more risk)
 }
 
 ## Cosmetic only, but saved alongside so a car keeps its identity.

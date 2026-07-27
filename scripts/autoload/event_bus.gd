@@ -30,6 +30,10 @@ signal event_unlocked(slot: int, event_id: String)
 signal sponsor_offer(slot: int, sponsor_id: String)
 
 # --- Networking ---
+## Something on a car broke. `system` is a MechanicalModel.System name and
+## `description` is already phrased for the player.
+signal car_failed(car_id: int, system: String, description: String)
+
 ## A car hit a hazard on the racing surface. Carries the speed at impact so the
 ## haptics and the HUD can react in proportion.
 signal prop_struck(car_id: int, prop_id: String, speed_ms: float)

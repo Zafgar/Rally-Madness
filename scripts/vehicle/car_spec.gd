@@ -152,6 +152,24 @@ func part_rejection_reason(part: PartSpec) -> String:
 	return ""
 
 
+## How far a car of this sort has already been driven when you buy it.
+##
+## Nothing in this game is sold new — a 1974 Lada with delivery mileage does not
+## exist and would not cost nothing. Cheap old cars come with a life behind
+## them, which is why they are cheap and why they break; expensive machinery has
+## been looked after. That single number is what makes the bottom of the market
+## a real decision rather than just a smaller number of credits.
+func showroom_km() -> float:
+	# Roughly: the older and cheaper it is, the harder its life has been.
+	var age := clampf(float(2005 - year) / 35.0, 0.0, 1.0)
+	var cheapness := clampf(1.0 - float(price) / 120000.0, 0.0, 1.0)
+	var km := lerpf(8000.0, 240000.0, age * 0.65 + cheapness * 0.35)
+	# Collector and works machinery is stored, not commuted in.
+	if category == "hyper" or tier >= 4:
+		km *= 0.18
+	return snappedf(km, 500.0)
+
+
 ## Fresh, untuned stats for this car.
 func to_base_stats() -> VehicleStats:
 	var s := VehicleStats.new()

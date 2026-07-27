@@ -46,6 +46,15 @@ func _ready() -> void:
 	split.build(PlayerManager.seats, get_viewport().world_2d)
 	split.bind_cars()
 
+	# The map needs the stage and everybody on it, which only exists once the
+	# director has spawned the field.
+	var all_cars: Array = []
+	for entrant in director.entrants:
+		all_cars.append(entrant.car)
+	for view in split.views:
+		view["hud"].bind_race(director.builder, all_cars)
+		view["hud"].retire_requested.connect(_on_retire_requested.bind(view["slot"]))
+
 	# The network layer addresses cars by id when replicating.
 	if NetManager.is_online():
 		for entrant in director.entrants:
@@ -83,9 +92,18 @@ func _process(_delta: float) -> void:
 			entrant.lap,
 			entrant.laps_target,
 			director.race_time)
+		view["hud"].set_gaps(entrant.gap_ahead, entrant.gap_behind)
 
 	if director.state == RaceDirector.State.COUNTDOWN:
 		_countdown_message(director.countdown_remaining)
+
+
+## A player has held the retire button on a car that cannot continue. There is
+## always a way out of a race — sitting in a dead car waiting for a timeout is
+## not a game mechanic, it is a wait.
+func _on_retire_requested(slot: int) -> void:
+	if director != null:
+		director.retire_seat(slot)
 
 
 func _countdown_message(remaining: float) -> void:

@@ -32,6 +32,9 @@ var _dot_texture: Texture2D
 ## Base emitter counts, so density can be scaled without losing the maximum.
 var _base_amount: Dictionary = {}
 
+## Seconds of extra-heavy smoke left from a failure that has just happened.
+var _burst_timer: float = 0.0
+
 var _rear_offset := Vector2.ZERO
 var _front_offset := Vector2.ZERO
 var _half_width := 20.0
@@ -254,10 +257,32 @@ func _update_exhaust(car: RallyCar) -> void:
 
 func _update_damage(car: RallyCar) -> void:
 	var engine_health: float = car.damage.integrity["engine"]
-	_smoke.emitting = engine_health < 0.55
+	# Mechanical failures smoke too, and rather harder than a bent engine does:
+	# a let-go turbo is the most visible thing that can happen to a car without
+	# it catching fire.
+	var mechanical_smoke := 0.0
+	if car.mechanical != null:
+		if car.mechanical.failed.has(MechanicalModel.System.TURBO):
+			mechanical_smoke = maxf(mechanical_smoke, 0.75)
+		if car.mechanical.failed.has(MechanicalModel.System.COOLING):
+			mechanical_smoke = maxf(mechanical_smoke, 0.55)
+		if car.mechanical.failed.has(MechanicalModel.System.OIL):
+			mechanical_smoke = maxf(mechanical_smoke, 0.65)
+		if car.mechanical.failed.has(MechanicalModel.System.ENGINE):
+			mechanical_smoke = 1.0
+	_burst_timer = maxf(_burst_timer - get_process_delta_time(), 0.0)
+	var burst := 1.0 if _burst_timer > 0.0 else 0.0
+	var from_damage := clampf((0.55 - engine_health) / 0.55, 0.0, 1.0)
+	var density := maxf(maxf(from_damage, mechanical_smoke), burst)
+	_smoke.emitting = density > 0.05
 	if _smoke.emitting:
-		_set_density(_smoke, clampf((0.55 - engine_health) / 0.55, 0.15, 1.0))
+		_set_density(_smoke, clampf(density, 0.15, 1.0))
 	_fire.emitting = car.damage.on_fire
+
+
+## A short, hard puff — the moment something goes rather than the aftermath.
+func burst_smoke(seconds: float) -> void:
+	_burst_timer = maxf(_burst_timer, seconds)
 
 
 func _update_headlights(car: RallyCar) -> void:

@@ -18,6 +18,7 @@ const SETUP_AUTHORITY := {
 	"gear_length": 0.18,
 	"awd_split": 0.30,
 	"boost_pressure": 0.15,
+	"rev_limit": 0.09,
 }
 
 
@@ -74,6 +75,11 @@ static func _apply_setup(stats: VehicleStats, loadout: TuningLoadout) -> void:
 
 	var bias: float = float(s.get("brake_bias", 0.0))
 	stats.brake_bias_front += bias * SETUP_AUTHORITY["brake_bias"]
+
+	# Raising the limiter genuinely raises the redline. What it costs is decided
+	# by MechanicalModel, which reads the same setting.
+	var limiter := float(loadout.setup.get("rev_limit", 0.0))
+	stats.redline_rpm *= 1.0 + maxf(limiter, 0.0) * SETUP_AUTHORITY["rev_limit"]
 
 	# Named diff_preload rather than preload: the latter is a GDScript keyword.
 	var diff_preload: float = float(s.get("diff_preload", 0.0))

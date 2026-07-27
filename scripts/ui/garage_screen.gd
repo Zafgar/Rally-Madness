@@ -301,8 +301,32 @@ func _rebuild_details() -> void:
 	_details.add_child(UiTheme.stat_row("Built ceiling",
 		"%d index" % int(spec.potential_index()), UiTheme.TEXT_DIM))
 
+	# --- Wear and servicing -------------------------------------------------
+	# Kept separate from crash damage, because they are different problems with
+	# different bills. Damage is what a corner did; wear is what the whole
+	# season did, and it is what decides whether the car gets to the finish.
+	_details.add_child(UiTheme.section("Wear"))
+	_details.add_child(UiTheme.stat_row("Odometer",
+		"%s km" % UiTheme.thousands(int(car.odometer_km))))
+	_details.add_child(UiTheme.stat_row("On this engine",
+		"%s km" % UiTheme.thousands(int(car.engine_km)),
+		UiTheme.WARNING if car.engine_km > MechanicalModel.ENGINE_FRESH_KM
+			else UiTheme.TEXT))
+	var engine_output := car.engine_health_multiplier()
+	if engine_output < 0.999:
+		_details.add_child(UiTheme.stat_row("Engine output",
+			"%d%% of factory" % int(engine_output * 100.0), UiTheme.WARNING))
+	for item in OwnedCar.SERVICE_ITEMS:
+		var life := car.service_life(item)
+		_details.add_child(UiTheme.stat_bar(item.capitalize(), life,
+			"%d%%" % int(life * 100.0), _condition_colour(life)))
+	_details.add_child(UiTheme.wrapped(
+		"Worn parts do not slow the car down much. They raise the chance of it "
+		+ "stopping altogether, and the dashboard warns you first.",
+		UiTheme.SIZE_SMALL, UiTheme.TEXT_DIM))
+
 	# --- Condition ----------------------------------------------------------
-	_details.add_child(UiTheme.section("Condition"))
+	_details.add_child(UiTheme.section("Crash damage"))
 	for component in ["body", "engine", "suspension", "tires"]:
 		var value := float(car.damage.get(component, 1.0))
 		_details.add_child(UiTheme.stat_bar(component.capitalize(), value,
@@ -321,6 +345,8 @@ func _rebuild_details() -> void:
 	_details.add_child(UiTheme.stat_row("Distance", "%.0f km" % car.odometer_km))
 	_details.add_child(UiTheme.stat_row("Trade-in value", UiTheme.money(car.sale_value()),
 		UiTheme.TEXT_DIM))
+	_details.add_child(UiTheme.stat_row("Held back by mileage",
+		"%d%%" % int((1.0 - car.mileage_value_multiplier()) * 100.0), UiTheme.TEXT_DIM))
 
 	_build_actions(car, bill)
 
@@ -349,6 +375,40 @@ func _build_actions(car: OwnedCar, bill: int) -> void:
 			car.repair()
 			refresh())
 		_actions.add_child(free_repair)
+
+	# One button per service item, priced individually — a set of tyres and an
+	# oil change are not the same money, and a player short of credits should be
+	# able to buy the one that matters.
+	for item in OwnedCar.SERVICE_ITEMS:
+		var cost := car.service_cost(item)
+		if cost <= 0:
+			continue
+		var button := Button.new()
+		button.text = "Replace %s  %s" % [item, UiTheme.money(cost)]
+		button.disabled = cost > profile.money
+		button.pressed.connect(func():
+			if profile.spend(cost):
+				car.service(item)
+				refresh())
+		_actions.add_child(button)
+
+	# An engine swap is the answer to a high-mileage bargain: the car is cheap
+	# because its engine is tired, and this is how that becomes fixable rather
+	# than simply a worse car.
+	if car.engine_km > MechanicalModel.ENGINE_FRESH_KM:
+		for rebuilt in [true, false]:
+			var cost := car.engine_swap_cost(rebuilt)
+			var swap := Button.new()
+			swap.text = "%s engine  %s" % [
+				"Rebuilt" if rebuilt else "New", UiTheme.money(cost)]
+			swap.tooltip_text = ("Starts at 70 000 km and costs less."
+				if rebuilt else "Starts at zero and makes full power.")
+			swap.disabled = cost > profile.money
+			swap.pressed.connect(func():
+				if profile.spend(cost):
+					car.swap_engine(rebuilt)
+					refresh())
+			_actions.add_child(swap)
 
 	var tune := Button.new()
 	tune.text = "Tuning shop"

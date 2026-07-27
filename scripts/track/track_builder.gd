@@ -54,8 +54,9 @@ func build() -> Node2D:
 	root.add_child(_build_walls())
 	root.add_child(_build_checkpoints())
 	root.add_child(_build_ramps())
-	root.add_child(_build_props())
+	# The grid is laid out before the props so a hazard can be kept off it.
 	_build_start_grid()
+	root.add_child(_build_props())
 	return root
 
 
@@ -329,10 +330,18 @@ func _build_checkpoints() -> Node2D:
 ## Hazards a track places on its own racing surface. Unlike scenery, these are
 ## real bodies with real consequences, so they are placed deliberately in
 ## tracks.json rather than scattered.
+## Nothing solid within this many metres of a grid slot. A car that spawns
+## touching a rigid body is a car that never leaves the line — which is exactly
+## what happened, twice, before this existed. Track authors should not have to
+## hold the grid layout in their heads to place a hay bale safely.
+const PROP_GRID_CLEARANCE_M := 12.0
+
+
 func _build_props() -> Node2D:
 	var root := Node2D.new()
 	root.name = "Props"
 	root.z_index = -1
+	var clearance := PROP_GRID_CLEARANCE_M * GameConfig.PIXELS_PER_METRE
 	for entry in spec.props:
 		var prop := TrackProp.by_id(String(entry["prop"]))
 		if prop == null:
@@ -345,6 +354,18 @@ func _build_props() -> Node2D:
 		var position: Vector2 = sample["pos"] + sample["dir"] * along \
 			+ sample["normal"] * across
 		var angle: float = sample["dir"].angle()
+
+		var too_close := false
+		for slot in start_grid:
+			if position.distance_to(slot.origin) < clearance + prop.radius_m \
+					* GameConfig.PIXELS_PER_METRE:
+				too_close = true
+				break
+		if too_close:
+			push_warning("Track '%s': '%s' at waypoint %d is on the start grid; skipped"
+				% [spec.id, entry["prop"], index])
+			continue
+
 		root.add_child(PropInstance.create(prop, position, angle, 1.0,
 			hash(spec.id) + index))
 	return root

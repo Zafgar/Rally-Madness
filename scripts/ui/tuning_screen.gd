@@ -28,6 +28,7 @@ const SETUP_LABELS := {
 	"gear_length": ["Gearing", "Short", "Long"],
 	"awd_split": ["Torque split", "Front", "Rear"],
 	"boost_pressure": ["Boost pressure", "Safe", "Maximum"],
+	"rev_limit": ["Rev limiter", "Standard", "Raised"],
 }
 
 var _slot_list: VBoxContainer
