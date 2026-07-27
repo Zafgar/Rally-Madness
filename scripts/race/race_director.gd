@@ -48,6 +48,11 @@ var state: State = State.SETUP
 var event: EventSpec
 var track_spec: TrackSpec
 var builder: TrackBuilder
+## The road read once and shared: where the corners are, and the line through
+## them. Every AI in the field aims at the same line, which is what makes them
+## race each other rather than each drive a private route.
+var track_model: TrackModel
+var racing_line: RacingLine
 
 var entrants: Array[RaceEntrant] = []
 var race_time: float = 0.0
@@ -80,6 +85,15 @@ func setup(p_event: EventSpec, p_track: TrackSpec, car_scene: PackedScene) -> vo
 	builder = TrackBuilder.new(track_spec)
 	_track_root = builder.build()
 	add_child(_track_root)
+
+	# The recce, once, for the whole field. Reading the road and solving a line
+	# through it costs tens of milliseconds on a circuit and about four hundred
+	# on the longest stage; doing it per car would multiply that by the size of
+	# the grid for an answer that is identical every time, because the road does
+	# not care who is driving on it. What each car works out for itself is its
+	# own speed profile, which does.
+	track_model = TrackModel.analyse(builder)
+	racing_line = RacingLine.solve(track_model)
 
 	# Marks belong to the road, not to the car that laid them.
 	mark_layer = TireMarks.new()
@@ -186,11 +200,14 @@ func _spawn_ai() -> void:
 		# because of it. The same model decides that as decides the player's.
 		_apply_ai_mechanical_state(car, driver, i)
 
-		# Each rival also gets its own habitual offset from the centreline, so
-		# the field spreads across the road instead of queueing up on one line.
-		var lane_span := maxf(track_spec.width * 0.5 - 3.0, 1.0)
+		# Each rival also gets a habitual offset of its own, so the field is not
+		# eight cars stacked on one line. Much smaller than it used to be: with
+		# a solved line to follow this is a personal quirk on top of it, and a
+		# metre either side is a quirk where three metres was a private route.
+		var lane_span := clampf(track_spec.width * 0.14, 0.3, 1.2)
 		entrant.ai = AIDriver.new(car, builder, driver,
-			rng.randf_range(-lane_span, lane_span), rng.randi())
+			rng.randf_range(-lane_span, lane_span), rng.randi(),
+			track_model, racing_line)
 		entrants.append(entrant)
 		_entrant_by_car_id[car.car_id] = entrant
 		grid_index += 1

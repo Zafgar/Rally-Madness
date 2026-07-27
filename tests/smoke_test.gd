@@ -41,6 +41,7 @@ func _ready() -> void:
 	_test_performance_calibration()
 	_test_upgrade_ceiling()
 	_test_driver_profiles()
+	_test_the_recce()
 	_test_rival_awareness()
 	_test_visuals()
 	_test_direction_selection()
@@ -716,6 +717,112 @@ func _test_driver_profiles() -> void:
 			works_pace, club_pace])
 	print("  %d archetypes; mean pace %.2f at club level, %.2f at works level" % [
 		pool.size(), club_pace, works_pace])
+
+
+## The recce: reading a road, finding a line through it, and solving what a
+## given car can do on it.
+##
+## Every claim here is one that can be wrong silently. A line that is slower
+## than the centreline still looks like a line; a speed profile that ignores the
+## car it was given still returns numbers. Both of those shipped during
+## development and both were caught here rather than by watching a race.
+func _test_the_recce() -> void:
+	_section("reading the road")
+
+	var spec: TrackSpec = TrackSpec.load_all().get("gravel_loop")
+	if spec == null:
+		_check(false, "the bench track exists")
+		return
+	var builder := TrackBuilder.new(spec)
+	builder.build()
+	var model := TrackModel.analyse(builder)
+
+	_check(model.length_m > 100.0, "the road has a length (%.0f m)" % model.length_m)
+	_check(model.positions.size() > 20, "and enough samples to read it (%d)"
+		% model.positions.size())
+
+	# Corners have to be corners. A road sampled every three metres produces a
+	# little curvature noise everywhere, and without a length threshold that
+	# noise becomes a hundred one-sample "corners" — which looks like a working
+	# corner finder right up until the AI tries to plan for them.
+	var shortest := 100000.0
+	for corner in model.corners:
+		shortest = minf(shortest, corner.length_m())
+		_check(corner.min_radius > 0.5,
+			"corner at %.0f m has a real radius (%.0f m)" % [
+				corner.entry_s, corner.min_radius])
+	if not model.corners.is_empty():
+		_check(shortest >= TrackModel.MIN_CORNER_LENGTH_M - 0.01,
+			"no corner is shorter than the threshold (%.0f m)" % shortest)
+
+	# A corner has to be found where the road actually bends.
+	var bendiest := 0
+	for i in model.curvature.size():
+		if absf(model.curvature[i]) > absf(model.curvature[bendiest]):
+			bendiest = i
+	if absf(model.curvature[bendiest]) > TrackModel.CORNER_CURVATURE:
+		_check(model.corner_at(model.distance_of(bendiest)) != null,
+			"the tightest point on the road is inside a corner")
+
+	# --- The line ------------------------------------------------------------
+	var line := RacingLine.solve(model)
+	var half := model.width_m * 0.5
+	var widest := 0.0
+	for value in line.offsets:
+		widest = maxf(widest, absf(value))
+	_check(widest <= half,
+		"the line stays on the road (%.1f m from centre, half-width %.1f)" % [
+			widest, half])
+	# The one claim the whole thing rests on. A "racing line" measurably slower
+	# than the road it is drawn on is worse than no line at all, and two
+	# separate implementations produced exactly that before this check existed.
+	_check(line.gain_over_centreline() >= 0.0,
+		"and is never slower through a corner than the centreline (%.1f%%)"
+			% line.gain_over_centreline())
+
+	# --- The profile ---------------------------------------------------------
+	var slow_car := CarDatabase.get_car("trabant_601")
+	var fast_car := CarDatabase.get_car("delta_s4")
+	var slow := SpeedProfile.solve(model, line,
+		TuningCalculator.resolve(slow_car, slow_car.default_loadout()))
+	var fast := SpeedProfile.solve(model, line,
+		TuningCalculator.resolve(fast_car, fast_car.default_loadout()))
+	_check(fast.lap_estimate() < slow.lap_estimate(),
+		"a Group B car is quicker round it than a Trabant (%.1fs against %.1fs)" % [
+			fast.lap_estimate(), slow.lap_estimate()])
+	for v in fast.speeds:
+		if v <= 0.5:
+			_check(false, "every target speed is a speed the car can drive")
+			break
+
+	# Parts have to reach the driving. If they do not, the garage is decoration.
+	var base := CarDatabase.get_car("impreza_gc8")
+	var built := base.default_loadout()
+	built.set_part("tires", "tires_gravel")
+	var stock_lap := SpeedProfile.solve(model, line,
+		TuningCalculator.resolve(base, base.default_loadout())).lap_estimate()
+	var built_lap := SpeedProfile.solve(model, line,
+		TuningCalculator.resolve(base, built)).lap_estimate()
+	_check(built_lap < stock_lap,
+		"gravel tyres make the car quicker on gravel (%.1fs against %.1fs)" % [
+			built_lap, stock_lap])
+
+	# The braking point is the whole reason the profile exists. Somewhere before
+	# the tightest corner there has to be a point where the plan is already
+	# asking for less speed than the straight before it allows.
+	if not model.corners.is_empty():
+		var tightest: TrackModel.Bend = model.corners[0]
+		for corner in model.corners:
+			if corner.min_radius < tightest.min_radius:
+				tightest = corner
+		var at_apex := fast.speed_at(tightest.apex_s)
+		var before := fast.speed_at(tightest.entry_s - 60.0)
+		_check(before > at_apex,
+			"the plan is slower at the apex than sixty metres before it (%.0f against %.0f km/h)"
+				% [at_apex * 3.6, before * 3.6])
+		var braking := fast.distance_to_slower(tightest.entry_s - 60.0, before, 120.0)
+		_check(braking < INF,
+			"and there is a braking point in front of it (%.0f m ahead)" % braking)
 
 
 ## Racing against other cars rather than alone.

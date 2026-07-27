@@ -2,33 +2,48 @@ class_name AIDriver
 extends RefCounted
 ## Fills the field in career events.
 ##
-## The driver aims at a point down the road and decides a target speed from how
-## sharp the road is between here and there. It produces a VehicleCommand
-## exactly like a pad does, so it is subject to the same physics, the same
-## damage and the same tuning as a player's car — a badly set-up AI car is
-## genuinely slower rather than being scripted to a lap time.
+## The driver follows a plan. Before the race starts, the road is read into a
+## TrackModel, a RacingLine is solved through it, and a SpeedProfile is solved
+## for this specific car with its specific parts — which gives a target speed at
+## every point on the track and, as a consequence rather than a decision, the
+## place where braking has to begin.
 ##
-## How well any of that is done comes from a DriverProfile. That is the whole
-## point: a nervous club driver handed a Group B car does not become a works
-## driver, they drive at the same pace they always did in something far more
-## frightening. Traits pull in different directions, so the field contains
-## people rather than difficulty settings.
+## It used to work the other way round: scan a few points ahead every frame and
+## react to what turned up. That reads plausibly and drives badly, and the way
+## it fails is instructive. Reacting to a corner is always too late, because the
+## moment you can see you are carrying too much speed is the moment it is
+## already too late to shed it. The only lever left was to make the driver
+## slower everywhere, so skill and safety were the same number: turning the AI
+## up made the field faster into corners without making it any better at them,
+## and a probe at high skill returned six wrecks out of eight.
+##
+## With a plan, skill stops being that number. Everybody knows where the
+## braking point is; what a good driver has is a later one, a tighter line and
+## the nerve to use the road. A poor driver on the same plan is slower and still
+## arrives.
+##
+## It produces a VehicleCommand exactly like a pad does, so it is subject to the
+## same physics, damage and tuning as a player's car — a badly set-up AI car is
+## genuinely slower rather than scripted to a lap time.
+##
+## How well any of it is done comes from a DriverProfile. A nervous club driver
+## handed a Group B car does not become a works driver; they drive at the pace
+## they always did in something far more frightening.
 
 ## How far ahead to aim, in metres, at a standstill and at full speed.
 const LOOKAHEAD_MIN := 14.0
 const LOOKAHEAD_MAX := 55.0
-## Lateral acceleration a fully committed driver is willing to ask for, as a
-## fraction of the car's actual grip.
-const CORNERING_CONFIDENCE := 0.88
-## Spacing between the points used to measure how sharp the road is. Long
-## enough that a real corner produces a real triangle; short enough that two
-## corners in a row are not averaged into one gentle bend.
-const CURVATURE_CHORD_M := 18.0
 ## How often an inconsistent driver re-rolls their commitment for the next
 ## corner, in seconds.
 const MOOD_INTERVAL := 2.5
 ## How far off line a driver pulls to make a pass, in metres.
 const OVERTAKE_OFFSET_M := 3.2
+## Road needed beyond the gap itself to call a pass complete: both cars' length
+## plus enough to pull back in front without touching.
+const PASS_CLEARANCE_M := 12.0
+## Below this the car in front is not a rival to be raced, it is a stationary
+## object to be driven round, and the pass zones do not apply.
+const STOPPED_RIVAL_MS := 3.0
 
 ## How far past the tyre's peak slip ratio counts as fully lit up. Beyond this
 ## much extra spin the driver is backing off as hard as they are going to.
@@ -37,12 +52,44 @@ const TRACTION_SPIN_SPAN := 0.55
 ## middle of a slide unloads the driven axle and makes it worse.
 const TRACTION_FLOOR := 0.25
 
+## How much of the plan's speed a driver at the bottom and the top of the range
+## actually asks for.
+##
+## Deliberately narrow. The plan is already a speed the car can hold, so this is
+## the difference between a driver who uses all of it and one who leaves a bit
+## in hand — not, as the old scaling was, the only thing standing between the
+## field and the scenery. A wide band here is how "harder AI" turns into "AI
+## that crashes".
+const PACE_FLOOR := 0.80
+const PACE_CEILING := 1.01
+
+## How far ahead a driver with no anticipation at all is already reacting to,
+## and how far for one with perfect anticipation, in metres.
+##
+## Both are short, because the plan has already put the braking point in the
+## right place — this is reaction time on top of it, not the braking itself. A
+## poor braker looks further ahead and so starts easing off earlier than they
+## need to, which costs time everywhere and costs nothing in safety.
+const ANTICIPATION_POOR_M := 30.0
+const ANTICIPATION_GOOD_M := 8.0
+
+## How much of the calibrated braking a driver with no braking skill at all
+## plans to use. Their braking points are genuinely earlier, rather than the
+## same points taken more timidly.
+const BRAKE_MARGIN_POOR := 0.70
+
 var car: RallyCar
 var track: TrackBuilder
 var profile: DriverProfile
-## This driver's habitual offset from the centreline, in metres. Poor drivers
-## simply sit on it; good ones use it as a starting point and apex properly.
+## This driver's habitual offset from the racing line, in metres. Small: with a
+## line to follow, a personal quirk is a quirk rather than a private route.
 var line_bias_m: float = 0.0
+
+## The recce. Shared across the field — the road is the same for everybody.
+var model: TrackModel
+var line: RacingLine
+## And this car's own answer to it, solved from its own resolved stats.
+var plan: SpeedProfile
 
 ## What this driver can see of the cars around them.
 var awareness: RivalAwareness
@@ -64,13 +111,28 @@ func _init(
 	p_track: TrackBuilder,
 	p_profile: DriverProfile,
 	p_line_bias: float,
-	p_seed: int = 0
+	p_seed: int = 0,
+	p_model: TrackModel = null,
+	p_line: RacingLine = null
 ) -> void:
 	car = p_car
 	track = p_track
 	profile = p_profile
 	line_bias_m = p_line_bias
 	awareness = RivalAwareness.new(p_car, p_profile)
+
+	# The recce is handed in when there is a field to share it with, and read
+	# here when there is not — a probe or a test driving one car should not have
+	# to know that the AI needs a plan before it can drive.
+	model = p_model if p_model != null else TrackModel.analyse(p_track)
+	line = p_line if p_line != null else RacingLine.solve(model)
+	if car != null and car.stats != null:
+		# The plan is this driver's, not just this car's. A poor braker's plan
+		# has genuinely earlier braking points in it — which is a different
+		# thing from approaching the same points more slowly, and looks
+		# different from outside the car.
+		plan = SpeedProfile.solve(model, line, car.stats,
+			lerpf(BRAKE_MARGIN_POOR, 1.0, profile.braking_skill))
 	_rng.seed = p_seed if p_seed != 0 else hash(p_profile.display_name)
 	if car != null and car.transmission != null:
 		# Weaker drivers leave it in automatic and never use the rev range
@@ -121,50 +183,31 @@ func update(delta: float) -> VehicleCommand:
 	# A less precise driver is coarser with the wheel and corrects later.
 	_command.steer = steer * lerpf(0.80, 1.0, profile.line_quality)
 
-	# --- Target speed from every corner within braking distance -------------
-	# Looking only at the next corner is not enough: at speed the car needs to
-	# start braking long before that corner is the nearest thing ahead. So we
-	# scan the road out to the full braking distance, work out the entry speed
-	# each corner allows, and take the lowest speed that is still reachable.
-	var mu_here := TireModel.surface_mu(car.stats, car.surface, true)
-	# How much of the available grip the driver is willing to use in a corner.
-	# Speed goes with the square root of this, so the top of the range matters
-	# more than it looks: at 0.78 the very best driver in the game cornered at
-	# 82% of what the tyres would give, and a competent player using nearly all
-	# of it beat the entire field every single time. At 0.95 a works driver
-	# uses about 90%, which is quick enough to have to be raced, and a nervous
-	# one is still visibly slower because the bottom of the range has not moved.
-	# 0.95 was tried and measurably crashed more without lapping much faster.
-	var confidence := CORNERING_CONFIDENCE * lerpf(0.40, 0.88, profile.commitment) * _mood
-	var brake_decel := maxf(mu_here * 9.81 * car.stats.brake_force * 0.85, 1.0)
-	# A poor braker leaves a large margin and coasts in far too early.
-	var braking_margin := lerpf(1.9, 1.05, profile.braking_skill)
-	var scan_distance := speed * speed / (2.0 * brake_decel) * braking_margin + LOOKAHEAD_MIN
+	# --- Target speed, read off the plan ------------------------------------
+	# The whole braking problem is already solved: the profile's backward pass
+	# guarantees that the speed at any point can be shed in time for the speed
+	# at the next one, so simply driving the number here arrives at every corner
+	# on the limit and no faster. What is left for the driver is how much of it
+	# they use and how far ahead they are already thinking.
+	var s_m := _progress / ppm
+	# Anticipation. A good braker holds on until the plan says to lift; a poor
+	# one is already reacting to something fifty metres away and eases off long
+	# before they need to. Both arrive; one of them is slow.
+	var anticipation := lerpf(ANTICIPATION_POOR_M, ANTICIPATION_GOOD_M,
+		profile.braking_skill)
+	var target_speed := plan.speed_ahead(s_m, anticipation) if plan != null else 25.0
+	var corner_radius := line.radius_at(model.index_at(s_m + lookahead_m))
 
-	var target_speed := 120.0
-	var corner_radius := 100000.0
-	var steps := 8
-	for i in range(1, steps + 1):
-		var distance_m := scan_distance * float(i) / float(steps)
-		var radius := _curvature_radius_at(distance_m * ppm)
-		# Grip is read where the corner actually is. Planning an entry speed
-		# from the tarmac under the car is how a driver arrives at an ice patch
-		# already carrying far too much speed.
-		var surface_there := track.surface_at_offset(_progress + distance_m * ppm)
-		var mu := TireModel.surface_mu(car.stats, surface_there, true)
-		var entry_speed := sqrt(maxf(radius, 1.0) * mu * 9.81 * confidence)
-		var allowed := sqrt(entry_speed * entry_speed + 2.0 * brake_decel * distance_m)
-		if allowed < target_speed:
-			target_speed = allowed
-		if distance_m <= lookahead_m * 1.5:
-			corner_radius = minf(corner_radius, radius)
-
-	# Running wide costs speed too, not just steering angle.
+	# Running wide costs speed. Off the line the plan does not apply — its
+	# curvature is the line's, not whatever arc the car is actually on.
 	target_speed *= lerpf(1.0, 0.62, edge_pressure)
 
-	# The hard ceiling on pace. Without this, handing a timid driver a fast car
-	# turns them into a fast driver, which is exactly backwards.
-	target_speed *= profile.pace_ceiling
+	# How much of the plan this driver asks for. A narrow band on purpose: the
+	# plan is a speed the car can hold, so this is the difference between using
+	# all of it and leaving a little in hand. It used to be a wide multiplier
+	# applied to a target that was already optimistic, which is how turning the
+	# AI up produced a faster, deader field rather than a harder one.
+	target_speed *= _pace_factor()
 
 	# Someone who does not look after the car backs off when it is hurt.
 	if car.damage.overall() < 0.5:
@@ -329,10 +372,21 @@ func _update_overtake(delta: float) -> void:
 		if awareness.car_ahead == null or awareness.side_blocked(_overtake_side):
 			_overtake_hold = 0.0
 			_overtake_side = 0.0
+			return
+		# Room ran out before the move did. Tucking back in behind is not a
+		# failure — arriving at the corner alongside somebody is, and that is
+		# what used to happen because there was nothing here to change its mind.
+		var s_m := _progress / GameConfig.PIXELS_PER_METRE
+		if model != null and awareness.speed_ahead >= STOPPED_RIVAL_MS \
+				and not model.pass_is_on(s_m):
+			_overtake_hold = 0.0
+			_overtake_side = 0.0
 		return
 
 	_overtake_side = 0.0
 	if not awareness.wants_to_overtake():
+		return
+	if not _pass_can_be_finished():
 		return
 
 	# Somewhere to go: enough road on that side, and nobody in it.
@@ -346,6 +400,59 @@ func _update_overtake(delta: float) -> void:
 		_overtake_side = side
 		_overtake_hold = lerpf(1.2, 3.0, profile.aggression)
 		return
+
+
+## Whether there is enough road left to get past before somebody has to brake.
+##
+## This is the question the AI could never answer. It knew there was a car in
+## front and that it was quicker; it had no idea whether two hundred metres of
+## straight lay ahead or forty, so it committed to the same move in both cases
+## and in one of them arrived at the corner side by side. That is where the
+## contacts came from, and the contacts are where the wrecks came from.
+##
+## Now the recce answers it. The pass zones say where a move is realistic at
+## all, and the closing speed says how long this particular one would take.
+## Neither number is a guess.
+func _pass_can_be_finished() -> bool:
+	if model == null or awareness.car_ahead == null:
+		return false
+	var s_m := _progress / GameConfig.PIXELS_PER_METRE
+
+	# A car that has come to a stop is an obstacle rather than a rival, and you
+	# get past an obstacle wherever you find it.
+	if awareness.speed_ahead < STOPPED_RIVAL_MS:
+		return true
+
+	# Anywhere else, the move has to be somewhere the road allows one.
+	if not model.pass_is_on(s_m):
+		return false
+
+	# And it has to fit. How long a pass takes is how long it takes to cover
+	# the gap plus both cars' lengths at the speed difference between them —
+	# which for a small difference is a very long time, and is exactly why
+	# following a slightly slower car for half a lap is the correct answer
+	# rather than a failure of nerve.
+	var closing := maxf(awareness.closing_speed, 0.01)
+	var to_cover := awareness.gap_ahead + PASS_CLEARANCE_M
+	var seconds := to_cover / closing
+	var room_needed := seconds * maxf(car.speed_ms, 1.0)
+	var room := model.pass_room(s_m)
+
+	# A bold driver will start a move they are not certain of finishing; a
+	# cautious one wants it comfortably in hand. Neither will try one that
+	# plainly does not fit.
+	var confidence := lerpf(1.35, 0.85, profile.aggression)
+	return room > room_needed * confidence
+
+
+## How much of the plan's speed this driver asks for, right now.
+##
+## Built from the two traits that describe pace — the ceiling they drive to and
+## how much of the grip they will commit — and then moved by mood, so a corner
+## comes at nine tenths and the next at full commitment.
+func _pace_factor() -> float:
+	var ability := profile.pace_ceiling * 0.6 + profile.commitment * 0.4
+	return lerpf(PACE_FLOOR, PACE_CEILING, clampf(ability, 0.0, 1.0)) * _mood
 
 
 ## Consistency as a wandering commitment rather than per-frame noise. Jitter on
@@ -376,99 +483,43 @@ func _shift(_delta: float) -> void:
 		car.transmission.shift_to(1)
 
 
-## A point further along the centreline, offset onto whatever line this driver
-## is actually capable of taking.
+## A point further down the road, on the line this driver is capable of taking.
+##
+## The line itself is solved once for the track and shared by the whole field.
+## What varies between drivers is how much of it they use: the offsets are
+## scaled by line quality, so a weak driver ends up somewhere near the middle of
+## the road taking every corner at its tightest radius — which is exactly what a
+## weak driver does — while a good one is on the apex.
 func _point_ahead(distance_px: float) -> Vector2:
-	var length := maxf(track.total_length_px, 1.0)
-	var target := _progress + distance_px
-	if track.spec.closed:
-		target = fposmod(target, length)
-	else:
-		# A point-to-point stage has an end. Wrapping past it would aim the car
-		# back at the start line, which is how a stage car ends up driving into
-		# the scenery on the run to the finish.
-		target = minf(target, length)
-	var sample := track._sample_at(target)
-	# Habitual line, apex and any overtaking move, together clamped to the road.
-	# Without the clamp a committed pass stacks on top of an apex offset and
-	# aims the car at the barrier — which is exactly how the quickest drivers
-	# were damaging themselves while overtaking.
+	var ppm := GameConfig.PIXELS_PER_METRE
+	var s_m := _progress / ppm + distance_px / ppm
+	var i := model.index_at(s_m)
+
+	# Habitual quirk, the racing line as far as this driver can use it, and any
+	# overtaking move — together clamped to the road. Without the clamp a
+	# committed pass stacks on top of an apex offset and aims the car at the
+	# barrier, which is how the quickest drivers used to damage themselves while
+	# overtaking.
 	var usable := maxf(track.spec.width * 0.5 - 2.2, 0.5)
 	var offset_m := clampf(
-		line_bias_m + _apex_offset(target, sample) + _overtake_side * OVERTAKE_OFFSET_M,
+		line_bias_m
+			+ line.offsets[i] * lerpf(0.15, 1.0, profile.line_quality)
+			+ _overtake_side * OVERTAKE_OFFSET_M,
 		-usable, usable)
-	return sample["pos"] + sample["normal"] * offset_m * GameConfig.PIXELS_PER_METRE
-
-
-## How far toward the inside of the upcoming bend this driver puts the car.
-##
-## Tightening the line at the apex is most of what separates a good line from a
-## bad one, and it is the thing weak drivers simply do not do — they sit
-## somewhere near the middle of the road and take every corner at its tightest
-## possible radius.
-func _apex_offset(offset_px: float, sample: Dictionary) -> float:
-	if profile.line_quality <= 0.05:
-		return 0.0
-	var ppm := GameConfig.PIXELS_PER_METRE
-	var chord := CURVATURE_CHORD_M * ppm
-	var length := maxf(track.total_length_px, 1.0)
-
-	var before := _raw_point(offset_px - chord, length)
-	var after := _raw_point(offset_px + chord, length)
-	var here: Vector2 = sample["pos"]
-	var dir_in := (here - before).normalized()
-	var dir_out := (after - here).normalized()
-	var turn := dir_out - dir_in
-	if turn.length() < 0.02:
-		return 0.0
-
-	# Which side the road is turning toward is the inside of the bend.
-	var normal: Vector2 = sample["normal"]
-	var inside := signf(turn.dot(normal))
-	var sharpness := clampf(turn.length() * 2.0, 0.0, 1.0)
-	# Never aim closer to the edge than a car's width leaves room for.
-	var usable := maxf(track.spec.width * 0.5 - 2.5, 0.0)
-	return inside * usable * sharpness * profile.line_quality
-
-
-func _raw_point(offset_px: float, length: float) -> Vector2:
-	var target := fposmod(offset_px, length) if track.spec.closed \
-		else clampf(offset_px, 0.0, length)
-	return track._sample_at(target)["pos"]
+	return model.positions[i] + model.normals[i] * offset_m * ppm
 
 
 ## How far the car has strayed from its intended line, in metres. Positive is
 ## to the right of the road's direction of travel.
 func _lateral_error() -> float:
-	var here := track._sample_at(_progress)
-	var offset: Vector2 = car.global_position - here["pos"]
-	var lateral: float = offset.dot(here["normal"]) / GameConfig.PIXELS_PER_METRE
-	return lateral - line_bias_m
+	var ppm := GameConfig.PIXELS_PER_METRE
+	var i := model.index_at(_progress / ppm)
+	var offset: Vector2 = car.global_position - model.positions[i]
+	var lateral: float = offset.dot(model.normals[i]) / ppm
+	# Measured against where this driver is trying to be, not against the middle
+	# of the road. A car sitting perfectly on the apex is not off line, and
+	# treating it as though it were made every driver back off in exactly the
+	# place the line was earning its keep.
+	var wanted := line_bias_m + line.offsets[i] * lerpf(0.15, 1.0, profile.line_quality)
+	return lateral - wanted
 
-
-## Curvature of the road at a point some distance ahead.
-##
-## The three sample points are spaced a fixed chord apart rather than scaled to
-## the scan distance. Three points a couple of metres apart on a real corner
-## are so close to collinear that the circle through them is numerically
-## meaningless — which showed up as the AI believing a hairpin was a straight
-## and arriving at it flat out.
-func _curvature_radius_at(distance_px: float) -> float:
-	var chord := CURVATURE_CHORD_M * GameConfig.PIXELS_PER_METRE
-	var length := maxf(track.total_length_px, 1.0)
-	var a := _raw_point(_progress + distance_px - chord, length)
-	var b := _raw_point(_progress + distance_px, length)
-	var c := _raw_point(_progress + distance_px + chord, length)
-	return _radius_through(a, b, c) / GameConfig.PIXELS_PER_METRE
-
-
-## Radius of the circle through three points. Straight lines give a huge radius,
-## which is exactly the "no need to slow down" signal we want.
-static func _radius_through(a: Vector2, b: Vector2, c: Vector2) -> float:
-	var ab := a.distance_to(b)
-	var bc := b.distance_to(c)
-	var ca := c.distance_to(a)
-	var area := absf((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) * 0.5
-	if area < 0.001:
-		return 100000.0
-	return (ab * bc * ca) / (4.0 * area)

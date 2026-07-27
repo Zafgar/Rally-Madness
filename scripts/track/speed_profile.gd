@@ -34,12 +34,37 @@ extends RefCounted
 ## and the line is an approximation of itself. This is the margin that makes
 ## the profile drivable rather than theoretical.
 const GRIP_USE := 0.92
-## The same for braking. Lower, because braking happens while the car is still
-## turning in and the two share the same tyres.
-const BRAKE_USE := 0.85
-## And for accelerating out, which on a rear-drive car on gravel is the least
-## of the three.
-const DRIVE_USE := 0.78
+## The same for braking, and far lower — which is not caution, it is
+## calibration.
+##
+## The obvious formula for available deceleration is grip times gravity times
+## the car's brake force, and it is wrong in the one direction that matters. The
+## brake probe measured it: a Trabant achieved slightly more than that formula
+## predicted, a Golf a little less, a Delta S4 four fifths of it, and a GT2 RS
+## barely half. The error grows with grip, because peak mu is what the tyre
+## makes at exactly the right slip ratio and a real stop averages a good deal
+## less than that. So the plan was most optimistic about precisely the fastest
+## cars in the game, every one of their braking points was late, and the
+## overshoot grew with speed — which is why turning the AI up filled the field
+## with wrecks rather than making it quick.
+##
+## The car's own brake force is gone from the sum for the same reason. It scales
+## the brake torque, and brake torque is not the limit: every car in the game
+## can lock its wheels. The tyres are the limit, and they are already in mu.
+##
+## This value is what makes the worst case in the probe land under a hundred
+## per cent — the plan asking for less than the car can give, everywhere.
+const BRAKE_USE := 0.58
+## And for accelerating out.
+##
+## Nearly all of it, and higher than the other two on purpose. A margin on the
+## cornering ceiling and on braking is real caution — arriving too fast is a
+## crash. A margin on acceleration is not caution at all: if the target on the
+## exit is optimistic the car simply holds full throttle and the physics sorts
+## out what it can actually deliver. Set at 0.78 this quietly capped every
+## corner exit in the game, and on a twisty stage, where a car is accelerating
+## out of something almost all the time, it cost about ten seconds a lap.
+const DRIVE_USE := 0.95
 
 ## Passes of the backward/forward solve. Two is enough on a closed circuit,
 ## where the second pass carries the first's result across the start line.
@@ -49,6 +74,9 @@ const SOLVE_PASSES := 3
 var model: TrackModel
 var line: RacingLine
 var stats: VehicleStats
+## How much of the calibrated braking this driver's plan uses. One is the
+## measured limit; less is a driver who brakes earlier than they need to.
+var brake_margin: float = 1.0
 ## Target speed in metres per second at every sample.
 var speeds: PackedFloat32Array = PackedFloat32Array()
 ## The purely local grip ceiling, kept for the bench and for the AI's
@@ -56,12 +84,19 @@ var speeds: PackedFloat32Array = PackedFloat32Array()
 var limits: PackedFloat32Array = PackedFloat32Array()
 
 
+## `brake_margin` scales how much of the calibrated braking the plan assumes,
+## so a nervous driver's plan genuinely has earlier braking points in it rather
+## than the same points approached more slowly. Those are different things and
+## they look different from the outside: one driver rolls into the corner off
+## the throttle early, the other stands on the brakes late. One is what a novice
+## does.
 static func solve(p_model: TrackModel, p_line: RacingLine,
-		p_stats: VehicleStats) -> SpeedProfile:
+		p_stats: VehicleStats, brake_margin: float = 1.0) -> SpeedProfile:
 	var profile := SpeedProfile.new()
 	profile.model = p_model
 	profile.line = p_line
 	profile.stats = p_stats
+	profile.brake_margin = clampf(brake_margin, 0.3, 1.0)
 	profile._grip_ceiling()
 	profile._solve()
 	return profile
@@ -118,13 +153,23 @@ func _solve() -> void:
 			speeds[i] = minf(speeds[i], reachable)
 
 
-## Deceleration available at a sample, in m/s². Limited by the tyres and by how
-## much brake the car actually has, and reduced by whatever grip the corner is
-## already using — a car at the limit laterally has nothing left for stopping,
-## which is the whole reason trail braking is a skill rather than a default.
+## What this car can shed in a straight line on this surface, in m/s².
+##
+## Public and static because the brake probe measures against exactly this
+## expression. A calibration that lives in two places drifts apart, and the
+## first thing to go wrong is the number nobody is checking any more.
+static func straight_line_decel(p_stats: VehicleStats,
+		surface: TireModel.Surface) -> float:
+	return TireModel.surface_mu(p_stats, surface, true) * 9.81 * BRAKE_USE
+
+
+## Deceleration available at a sample, in m/s². Limited by the tyres, and
+## reduced by whatever grip the corner is already using — a car at the limit
+## laterally has nothing left for stopping, which is the whole reason trail
+## braking is a skill rather than a default.
 func _braking_decel(i: int) -> float:
+	var available := straight_line_decel(stats, model.surface_at(i)) * brake_margin
 	var mu := TireModel.surface_mu(stats, model.surface_at(i), true)
-	var available := mu * 9.81 * BRAKE_USE * stats.brake_force
 	var lateral_use := clampf(speeds[i] * speeds[i]
 		/ maxf(line.radius_at(i) * mu * 9.81, 0.001), 0.0, 1.0)
 	# The friction circle: what is left for the long axis when the lateral axis
