@@ -127,7 +127,11 @@ func _physics_process(delta: float) -> void:
 		var car := _director.entrants[i].car
 		if car == null:
 			continue
-		if car.speed_ms < 2.0:
+		# Only while the car is still in the race. Counting the winner sitting
+		# on the finish line waiting for everyone else gave the leader the worst
+		# "stopped" figure on the sheet, which is exactly backwards and cost a
+		# round of chasing the wrong thing.
+		if car.speed_ms < 2.0 and _director.entrants[i].is_racing():
 			_crawling[i] += delta
 		# Committed to a move: the driver has picked a side and is holding it.
 		# This is the direct answer to "does it overtake or only follow" —
@@ -213,6 +217,22 @@ func _report(results: Array) -> void:
 		print("\nbest lap %.2f s, slowest %.2f s — the field is spread over %.1f%%"
 			% [laps[0], laps[-1], spread])
 		print("median   %.2f s" % laps[laps.size() / 2])
+
+	# Where the spread comes from. A field strung out over fifty per cent is a
+	# procession, but the fix is completely different depending on whether the
+	# back markers are in slower cars or are slower drivers — and those two are
+	# indistinguishable from lap times alone.
+	print("\n%-22s %8s %8s %8s" % ["driver", "best lap", "car", "driver"])
+	for i in _director.entrants.size():
+		var e: RaceEntrant = _director.entrants[i]
+		var index := 0.0
+		if e.car != null and e.car.stats != null:
+			index = e.car.stats.performance_index()
+		print("%-22s %8s %8.0f %8d" % [
+			e.display_name,
+			("%.2f" % _best_lap[i]) if _best_lap[i] < INF else "-",
+			index,
+			FieldPreview.rating_for(e.ai.profile) if e.ai != null else 0])
 	var attacking := 0.0
 	for t in _committed:
 		attacking += t

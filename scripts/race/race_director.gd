@@ -12,6 +12,18 @@ const COUNTDOWN_SECONDS := 3.5
 ## results screen open forever — which is exactly what a wrecked player, or a
 ## player who put the controller down, will do.
 const FINISH_WINDOW_SECONDS := 60.0
+## How much longer than the winner the rest of the field may take, as a
+## fraction of the winner's own time.
+##
+## This was 0.30, which sounds generous and is not: on a narrow road a mass
+## start puts everybody except the leader into a queue, and a queue runs at
+## about two thirds of the leader's pace whatever the cars and drivers in it
+## are worth. A race probe showed seven of eight cars timed out while all eight
+## were still circulating with nothing wrong with them.
+const OUTSIDE_PACE_MARGIN := 0.60
+## The absolute ceiling on the reprieve below, as a multiple of the window. A
+## car on its way home gets to the flag; it does not get all afternoon.
+const FLAG_REPRIEVE_LIMIT := 1.8
 ## A car making no progress at all for this long is classified as retired. This
 ## catches the case where nobody has finished yet, so the finish window has not
 ## started, but the field is going nowhere.
@@ -611,7 +623,7 @@ func _check_format_conditions(delta: float) -> void:
 		if e.best_lap > 0.0 and (leader_lap <= 0.0 or e.best_lap < leader_lap):
 			leader_lap = e.best_lap
 	if leader_lap > 0.0:
-		window = maxf(window, leader_lap * float(maxi(event.laps, 1)) * 0.30)
+		window = maxf(window, leader_lap * float(maxi(event.laps, 1)) * OUTSIDE_PACE_MARGIN)
 	var players_done := _all_players_done()
 	if players_done and _player_done_time >= 0.0:
 		window = minf(window, (_player_done_time - maxf(_leader_finish_time, 0.0))
@@ -623,13 +635,39 @@ func _check_format_conditions(delta: float) -> void:
 			continue
 		# Past the window, whoever is left is classified rather than waited for.
 		# They keep their placing; they just stop holding up the results.
-		if _leader_finish_time >= 0.0 and race_time - _leader_finish_time > window:
+		if _leader_finish_time >= 0.0 and race_time - _leader_finish_time > window \
+				and not _deserves_the_flag(e, race_time, window):
 			e.mark_dnf("outside the time limit")
 			continue
 		still_going = true
 
 	if not still_going:
 		_finish_race()
+
+
+## Whether a car past the time limit should be allowed to complete the lap it
+## is on rather than being classified where it stands.
+##
+## Measurement is what forced this. In an eight-car race on a narrow gravel
+## road, seven cars were classified as outside the time limit — and the report
+## showed all eight still running, nothing wrecked, nothing broken. Their lap
+## times had nothing to do with how good their cars or their drivers were:
+## everyone behind the leader was in a queue, held to the pace of the car
+## ahead. That is what a mass start on a rally road produces, and cutting the
+## queue for being a queue is not a result anybody would accept.
+##
+## So a car that is genuinely on its way home gets to the flag. What it does
+## not get is forever: it has to be moving, it has to be on its last lap, and
+## there is still an absolute ceiling, because the reason the window exists —
+## one abandoned car holding the results screen open — has not gone away.
+func _deserves_the_flag(e: RaceEntrant, race_time: float, window: float) -> bool:
+	if e.car == null or _leader_finish_time < 0.0:
+		return false
+	if race_time - _leader_finish_time > window * FLAG_REPRIEVE_LIMIT:
+		return false
+	if e.car.speed_ms < COASTING_SPEED_MS:
+		return false
+	return e.lap >= maxi(e.laps_target - 1, 0)
 
 
 ## Whether every entrant somebody is actually sitting in front of is done —
