@@ -41,3 +41,12 @@ func metres_to_px(m: float) -> float:
 
 func px_to_metres(px: float) -> float:
 	return px / PIXELS_PER_METRE
+
+
+## Whether to bake and play sound at all.
+##
+## Headless runs — the smoke test, the career simulation, the benches — have no
+## audio device and no listener, and baking a dozen engines for nobody would add
+## seconds to every test run. The audio system is the only thing that asks.
+func audio_enabled() -> bool:
+	return DisplayServer.get_name() != "headless"

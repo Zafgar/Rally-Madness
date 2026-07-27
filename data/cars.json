@@ -60,7 +60,11 @@
         "wheel_radius": 0.3,
         "wheel_inertia": 1.9
       },
-      "starter_choice": true
+      "starter_choice": true,
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
+      }
     },
     {
       "id": "trabant_601",
@@ -109,6 +113,11 @@
         "traction_control": 0,
         "wheel_radius": 0.29,
         "wheel_inertia": 1.3
+      },
+      "engine": {
+        "cylinders": 2,
+        "config": "inline",
+        "two_stroke": true
       }
     },
     {
@@ -158,6 +167,10 @@
         "traction_control": 0.0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.8
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -208,6 +221,10 @@
         "wheel_inertia": 1.1,
         "abs_strength": 0,
         "traction_control": 0
+      },
+      "engine": {
+        "cylinders": 2,
+        "config": "inline"
       }
     },
     {
@@ -258,7 +275,11 @@
         "wheel_radius": 0.3,
         "wheel_inertia": 1.8
       },
-      "starter_choice": true
+      "starter_choice": true,
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
+      }
     },
     {
       "id": "citroen_2cv",
@@ -310,7 +331,11 @@
         "abs_strength": 0,
         "traction_control": 0
       },
-      "starter_choice": true
+      "starter_choice": true,
+      "engine": {
+        "cylinders": 2,
+        "config": "flat"
+      }
     },
     {
       "id": "wartburg_353",
@@ -359,6 +384,11 @@
         "traction_control": 0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.9
+      },
+      "engine": {
+        "cylinders": 3,
+        "config": "inline",
+        "two_stroke": true
       }
     },
     {
@@ -408,6 +438,10 @@
         "traction_control": 0.0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.8
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -457,6 +491,10 @@
         "traction_control": 0.0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.8
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -507,6 +545,10 @@
         "traction_control": 0,
         "wheel_radius": 0.29,
         "wheel_inertia": 1.7
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -556,6 +598,10 @@
         "traction_control": 0.0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.8
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -608,7 +654,11 @@
         "abs_strength": 0,
         "traction_control": 0
       },
-      "starter_choice": true
+      "starter_choice": true,
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
+      }
     },
     {
       "id": "vw_beetle_1300",
@@ -659,6 +709,10 @@
         "wheel_inertia": 1.7,
         "abs_strength": 0,
         "traction_control": 0
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "flat"
       }
     },
     {
@@ -708,6 +762,10 @@
         "traction_control": 0,
         "wheel_radius": 0.29,
         "wheel_inertia": 1.6
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -758,6 +816,10 @@
         "wheel_inertia": 1.9,
         "abs_strength": 0,
         "traction_control": 0
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -808,7 +870,12 @@
         "wheel_radius": 0.3,
         "wheel_inertia": 1.8
       },
-      "starter_choice": true
+      "starter_choice": true,
+      "engine": {
+        "cylinders": 4,
+        "config": "vee",
+        "vee_angle": 60.0
+      }
     },
     {
       "id": "citroen_ax_gt",
@@ -858,6 +925,10 @@
         "traction_control": 0.0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.8
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -908,6 +979,10 @@
         "wheel_inertia": 1.6,
         "abs_strength": 0,
         "traction_control": 0
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -958,6 +1033,10 @@
         "traction_control": 0.0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.8
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1008,6 +1087,10 @@
         "traction_control": 0.0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.8
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1058,6 +1141,10 @@
         "traction_control": 0.0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.8
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1108,6 +1195,10 @@
         "traction_control": 0.0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.8
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1158,6 +1249,10 @@
         "traction_control": 0.0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.8
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1208,6 +1303,10 @@
         "traction_control": 0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.9
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1260,6 +1359,10 @@
         "traction_control": 0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.9
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1310,6 +1413,10 @@
         "traction_control": 0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.9
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1360,6 +1467,10 @@
         "traction_control": 0.0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.8
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1410,6 +1521,10 @@
         "wheel_inertia": 1.5,
         "abs_strength": 0,
         "traction_control": 0
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1461,6 +1576,10 @@
         "traction_control": 0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.9
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1511,6 +1630,10 @@
         "traction_control": 0.0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.8
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1564,6 +1687,10 @@
         "wheel_inertia": 1.7,
         "abs_strength": 0,
         "traction_control": 0
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1617,6 +1744,10 @@
         "wheel_inertia": 1.6,
         "abs_strength": 0,
         "traction_control": 0
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1669,6 +1800,10 @@
         "traction_control": 0,
         "wheel_radius": 0.3,
         "wheel_inertia": 1.9
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1721,6 +1856,10 @@
         "wheel_inertia": 2,
         "abs_strength": 0,
         "traction_control": 0
+      },
+      "engine": {
+        "cylinders": 6,
+        "config": "inline"
       }
     },
     {
@@ -1774,6 +1913,10 @@
         "traction_control": 0,
         "wheel_radius": 0.32,
         "wheel_inertia": 2.2
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1828,6 +1971,10 @@
         "traction_control": 0,
         "wheel_radius": 0.32,
         "wheel_inertia": 2.2
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1884,6 +2031,10 @@
         "traction_control": 0,
         "wheel_radius": 0.32,
         "wheel_inertia": 2.2
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "flat"
       }
     },
     {
@@ -1939,6 +2090,10 @@
         "traction_control": 0,
         "wheel_radius": 0.32,
         "wheel_inertia": 2.2
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -1993,6 +2148,10 @@
         "traction_control": 0,
         "wheel_radius": 0.32,
         "wheel_inertia": 2.2
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -2049,6 +2208,10 @@
         "traction_control": 0,
         "wheel_radius": 0.32,
         "wheel_inertia": 2.2
+      },
+      "engine": {
+        "cylinders": 5,
+        "config": "inline"
       }
     },
     {
@@ -2104,6 +2267,10 @@
         "traction_control": 0.45,
         "wheel_radius": 0.34,
         "wheel_inertia": 2.4
+      },
+      "engine": {
+        "cylinders": 5,
+        "config": "inline"
       }
     },
     {
@@ -2162,6 +2329,10 @@
         "traction_control": 0.35,
         "wheel_radius": 0.34,
         "wheel_inertia": 2.4
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "flat"
       }
     },
     {
@@ -2218,6 +2389,10 @@
         "traction_control": 0.3,
         "wheel_radius": 0.34,
         "wheel_inertia": 2.4
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -2276,6 +2451,10 @@
         "traction_control": 0.55,
         "wheel_radius": 0.34,
         "wheel_inertia": 2.4
+      },
+      "engine": {
+        "cylinders": 3,
+        "config": "inline"
       }
     },
     {
@@ -2332,6 +2511,10 @@
         "traction_control": 0.25,
         "wheel_radius": 0.34,
         "wheel_inertia": 2.4
+      },
+      "engine": {
+        "cylinders": 6,
+        "config": "inline"
       }
     },
     {
@@ -2389,6 +2572,10 @@
         "traction_control": 0.65,
         "wheel_radius": 0.34,
         "wheel_inertia": 2.4
+      },
+      "engine": {
+        "cylinders": 6,
+        "config": "flat"
       }
     },
     {
@@ -2442,6 +2629,11 @@
         "traction_control": 0,
         "wheel_radius": 0.33,
         "wheel_inertia": 1.8
+      },
+      "engine": {
+        "cylinders": 6,
+        "config": "vee",
+        "vee_angle": 65.0
       }
     },
     {
@@ -2496,6 +2688,11 @@
         "wheel_radius": 0.33,
         "wheel_inertia": 1.8,
         "gear_spread": 1.3
+      },
+      "engine": {
+        "cylinders": 6,
+        "config": "vee",
+        "vee_angle": 90.0
       }
     },
     {
@@ -2553,6 +2750,10 @@
         "wheel_radius": 0.33,
         "wheel_inertia": 1.8,
         "gear_spread": 1.27
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -2611,6 +2812,10 @@
         "wheel_radius": 0.33,
         "wheel_inertia": 1.8,
         "gear_spread": 1.2
+      },
+      "engine": {
+        "cylinders": 5,
+        "config": "inline"
       }
     },
     {
@@ -2667,6 +2872,10 @@
         "wheel_radius": 0.33,
         "wheel_inertia": 1.8,
         "gear_spread": 1.27
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -2724,6 +2933,10 @@
         "wheel_radius": 0.33,
         "wheel_inertia": 1.8,
         "gear_spread": 1.3
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -2777,6 +2990,10 @@
         "traction_control": 0,
         "wheel_radius": 0.34,
         "wheel_inertia": 1.5
+      },
+      "engine": {
+        "cylinders": 4,
+        "config": "inline"
       }
     },
     {
@@ -2838,6 +3055,11 @@
         "wheel_radius": 0.42,
         "wheel_inertia": 5.6,
         "speed_limiter_kmh": 180
+      },
+      "engine": {
+        "cylinders": 6,
+        "config": "vee",
+        "vee_angle": 60.0
       }
     },
     {
@@ -2895,6 +3117,11 @@
         "traction_control": 0.8,
         "wheel_radius": 0.35,
         "wheel_inertia": 2.5
+      },
+      "engine": {
+        "cylinders": 6,
+        "config": "vee",
+        "vee_angle": 60.0
       }
     },
     {
@@ -2954,6 +3181,10 @@
         "traction_control": 0.7,
         "wheel_radius": 0.35,
         "wheel_inertia": 2
+      },
+      "engine": {
+        "cylinders": 6,
+        "config": "flat"
       }
     },
     {
@@ -3011,6 +3242,11 @@
         "wheel_radius": 0.35,
         "wheel_inertia": 2.3,
         "speed_limiter_kmh": 260
+      },
+      "engine": {
+        "cylinders": 10,
+        "config": "vee",
+        "vee_angle": 90.0
       }
     }
   ]

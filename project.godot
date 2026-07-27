@@ -22,6 +22,7 @@ CarDatabase="*res://scripts/autoload/car_database.gd"
 EventDatabase="*res://scripts/autoload/event_database.gd"
 PlayerManager="*res://scripts/autoload/player_manager.gd"
 NetManager="*res://scripts/autoload/net_manager.gd"
+AudioDirector="*res://scripts/autoload/audio_director.gd"
 
 [display]
 

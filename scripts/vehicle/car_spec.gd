@@ -44,6 +44,11 @@ var reference_top_speed_kmh: float = 0.0
 ## sitting on the right suspension.
 var stock_parts: Dictionary = {}
 
+## What the engine physically is: cylinder count, layout, stroke. Only the
+## audio uses it, and only the audio can: how many cylinders a car has is
+## audible and nothing else about it is.
+var engine_layout: EngineLayout = null
+
 ## Offered as a choice when starting a new career. Not every bottom-tier car is:
 ## the starter tier is also the free-to-repair safety net, and a new player
 ## choosing between sixteen near-identical shopping cars is choosing between
@@ -108,6 +113,7 @@ static func from_dict(d: Dictionary) -> CarSpec:
 
 	c.upgrade_ceiling = int(d.get("upgrade_ceiling", c.tier + 1))
 	c.starter_choice = bool(d.get("starter_choice", false))
+	c.engine_layout = EngineLayout.from_dict(d.get("engine", {}))
 	c.reference_power_hp = float(d.get("power_hp", 0.0))
 	c.reference_top_speed_kmh = float(d.get("top_speed_kmh", 0.0))
 	return c
