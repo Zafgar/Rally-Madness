@@ -47,13 +47,13 @@ func top_gear() -> int:
 	return stats.gear_count()
 
 
-## Wheel angular speed implied by road speed, in rad/s.
-static func wheel_omega(forward_speed_ms: float, wheel_radius: float) -> float:
-	return forward_speed_ms / maxf(wheel_radius, 0.05)
-
-
-## Update engine speed from road speed, then run the automatic box.
-func update(delta: float, forward_speed_ms: float, wheel_radius: float, throttle: float) -> void:
+## Update engine speed from the *driven wheels*, then run the automatic box.
+##
+## Deriving revs from road speed instead looks equivalent and is not: a car
+## sitting in a cloud of tyre smoke is doing no road speed and screaming its
+## head off. Reading the driven axle is what makes wheelspin audible and
+## visible on the tacho.
+func update(delta: float, driven_omega: float, road_speed_ms: float, throttle: float) -> void:
 	if _shift_cooldown > 0.0:
 		_shift_cooldown -= delta
 
@@ -74,17 +74,16 @@ func update(delta: float, forward_speed_ms: float, wheel_radius: float, throttle
 		var target := lerpf(stats.idle_rpm, stats.redline_rpm, throttle)
 		rpm = lerpf(rpm, target, clampf(delta * 4.0, 0.0, 1.0))
 	else:
-		var omega := wheel_omega(absf(forward_speed_ms), wheel_radius)
-		rpm = omega * absf(ratio) * 60.0 / TAU
+		rpm = absf(driven_omega) * absf(ratio) * 60.0 / TAU
 		rpm = maxf(rpm, stats.idle_rpm)
 
 	rpm = minf(rpm, stats.redline_rpm)
 
 	if mode == Mode.AUTOMATIC:
-		_auto_shift(forward_speed_ms, throttle)
+		_auto_shift(road_speed_ms, throttle)
 
 
-func _auto_shift(forward_speed_ms: float, throttle: float) -> void:
+func _auto_shift(road_speed_ms: float, throttle: float) -> void:
 	if is_shifting or _shift_cooldown > 0.0:
 		return
 	# Pulling away from a stop, and reverse, are handled by the caller.

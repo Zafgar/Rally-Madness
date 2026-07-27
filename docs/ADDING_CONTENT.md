@@ -135,3 +135,55 @@ Two things learned the hard way:
 Objectives are `finish_top` (with `objective_value` as the position),
 `win_count`, or `no_wrecks`. The payoff should be worth the risk: a contract the
 player is certain to complete is not a decision.
+
+## An AI driver — `data/drivers.json`
+
+```json
+{
+  "id": "club_hero", "name": "Club Hero",
+  "description": "Quick at their home event, out of their depth anywhere else.",
+  "commitment": 0.78, "pace_ceiling": 0.88, "consistency": 0.55,
+  "line_quality": 0.70, "braking_skill": 0.65, "throttle_discipline": 0.60,
+  "recovery": 0.55, "aggression": 0.70, "mechanical_sympathy": 0.45,
+  "manual_gearbox": true,
+  "weight": 1.0,
+  "skill_range": [0.3, 0.8]
+}
+```
+
+Every trait is 0..1. `skill_range` is the event `ai_skill` band the archetype
+normally appears in; `weight` biases selection within that band. Out-of-band
+archetypes still show up occasionally, which is deliberate.
+
+**`pace_ceiling` is the one to get right.** It caps how fast the driver goes
+regardless of what they are driving. Without it, a timid archetype in a fast car
+becomes a fast driver — the exact opposite of what makes a field interesting.
+
+Make traits disagree with each other. `commitment: 0.9, consistency: 0.25` is a
+driver who is genuinely quick and genuinely unreliable, and that is far more
+interesting to race than a uniformly mediocre one. An archetype whose traits are
+all the same number is just a difficulty slider with a name.
+
+Check the result with the probe rather than by eye:
+
+```bash
+godot --headless --fixed-fps 60 --path . res://tests/ai_probe.tscn \
+      -- gravel_loop impreza_gc8 club_hero tires_gravel
+```
+
+It reports distance covered, crashes and the car's condition after 90 seconds —
+the three numbers that say whether an archetype is doing what its description
+claims.
+
+## A tuning part that changes driver aids
+
+ABS and traction control live in the `electronics` slot and are ordinary parts:
+
+```json
+{ "id": "elec_abs_retrofit", "slot": "electronics", "tier": 2, "price": 9800,
+  "mods": { "abs_strength": { "add": 0.70 }, "mass_kg": { "add": 14 } } }
+```
+
+`abs_strength` and `traction_control` are 0 for none and 1 for a system that
+will not let the wheels lock or spin at all. A multiplier of `0.0` removes an
+aid the car came with, which is how `elec_defeat` works.

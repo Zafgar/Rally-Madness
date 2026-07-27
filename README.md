@@ -28,9 +28,10 @@ take a seat, pick an event, hit **START RACE**.
 # Full check: data integrity, physics model, damage, economy, and a live race.
 godot --headless --fixed-fps 60 --path . res://tests/smoke_test.tscn
 
-# Watch one AI car drive one track, for tuning the driver model.
+# Watch one AI car drive one track, for tuning the driver model. The third
+# argument is a driver archetype from data/drivers.json, or a bare skill number.
 godot --headless --fixed-fps 60 --path . res://tests/ai_probe.tscn \
-      -- gravel_loop impreza_gc8 0.6 tires_gravel
+      -- gravel_loop impreza_gc8 works_driver tires_gravel
 ```
 
 The smoke test exits non-zero on failure, so it drops straight into CI. It runs
@@ -77,10 +78,11 @@ What actually reaches the road each tick:
    away to a lower sliding value. How far it falls, and how fast, is the entire
    difference between a car that snaps into a spin and one that holds a
    controllable drift.
-4. **Drive and brake forces** — engine torque through the gearbox, split
-   front/rear by the drivetrain layout, plus brakes split by bias.
-5. **Friction ellipse** — a tire has one budget of grip; spending it all
-   longitudinally leaves nothing for cornering.
+4. **Wheel dynamics** — each axle's wheels have their own rotational speed,
+   so slip ratio is a consequence rather than an input. This is what makes
+   lock-up and wheelspin exist at all.
+5. **Combined slip** — longitudinal and lateral are solved together from one
+   slip vector, because a tyre opposes the direction it is actually sliding.
 
 Jumps use a fake Z axis: height and vertical speed integrated separately, with
 tire forces switched off while airborne, and landing speed feeding straight into
@@ -91,6 +93,40 @@ in 2D, which is what makes 4-way split-screen and 12-car LAN cheap.
 hatch sits near 0.62, a mid-engine Group B car near 0.42, a 911 near 0.38 — and
 they drive completely differently as a result, without a line of special-case
 code.
+
+### Lock-up, ABS and why the brakes "fail"
+
+Stand on the brakes in a car with no ABS and the wheels stop turning. The
+brakes have not failed — the tyre has stopped doing two jobs at once. A locked
+wheel slides almost straight backwards relative to the road, so nearly all of
+its friction goes into fighting that slide and there is almost nothing left to
+turn the car with. It also stops *worse*, because sliding friction is lower
+than the peak at around 10–15% slip.
+
+Both of those fall out of the model rather than being special-cased, and the
+smoke test measures them:
+
+| From 30 m/s on tarmac | No ABS | ABS |
+|---|---|---|
+| Stopping distance | 60.1 m | **46.9 m** |
+| Grip still available to steer, with 10° of lock held on | 14% | **35%** |
+
+ABS is a PI controller with a feed-forward term that holds the wheel just past
+its grip peak. Three things were tried and rejected on the way, all of which
+looked correct and stopped *worse than no ABS at all*: bang-bang control (lets
+the wheel spin back to zero slip, where a tyre makes no force), proportional
+only (output is zero at the setpoint, so it overshoots every cycle), and high
+gains (drives the loop into oscillation, and the force curve is not symmetric
+about its peak).
+
+The handbrake deliberately bypasses ABS — it is a cable to the rear calipers —
+which is why it still breaks the tail loose on a car whose brake pedal never
+could.
+
+Traction control works the same way in reverse, trimming torque when the driven
+wheels light up. Neither is universal: tier 0–1 cars have no ABS, and **Group B
+cars have nothing at all**, which is most of what makes them frightening. Both
+can be retrofitted, or deleted, in the `electronics` tuning slot.
 
 ---
 
@@ -115,6 +151,41 @@ slicks each have per-surface multipliers, so turning up to the winter trial on
 the wrong rubber genuinely ends your event.
 
 ---
+
+## Controller feedback
+
+Every effect corresponds to something real. A driver should be able to tell,
+without looking, whether the wheels have locked, whether ABS is working,
+whether the rears are spinning, and what the road surface is — because each of
+those is a distinct physical event.
+
+**Rumble** works today on any pad Godot recognises. Engine note spread across
+the two motors by revs, surface texture scaled by speed, distinct signatures
+for wheelspin, lock-up and a slide, and transient jolts for impacts and
+landings. Mid-air is conspicuously smooth, which is what sells a jump.
+
+**Adaptive triggers** are the PS5-specific half:
+
+| Situation | Brake (L2) |
+|---|---|
+| Normal | Progressive resistance, softer as the tyres wear |
+| ABS working | Pulses at 14 Hz, following the real pressure-release signal |
+| Locked, no ABS | **Goes light** — there is no more braking to be had, and the resistance vanishing is the cue to release |
+
+| Situation | Throttle (R2) |
+|---|---|
+| Normal | Resistance rising with engine load, so boost arriving is felt |
+| Wheelspin | Buzzes at 24 Hz |
+| Traction control cutting in | Slower, softer flutter |
+| On the limiter | A wall at the top of the travel |
+
+> **Adaptive triggers need a native extension.** Godot has no API for them —
+> the L2/R2 resistance motors are driven by DualSense-specific HID output
+> reports. `DualSenseBackend` detects such an extension at runtime and drives
+> it; with none installed it logs a warning once and everything except trigger
+> resistance still works. The feel logic itself is hardware-free and unit
+> tested, so it can be verified without a pad in the room — but it has **not
+> been validated against real hardware in this repository**.
 
 ## Progression
 
@@ -173,18 +244,54 @@ can claim, so a modified client cannot ask for eight seats.
 
 ---
 
+## AI drivers
+
+A single "skill" number makes every rival the same driver turned up or down.
+Instead, each has a **DriverProfile** of traits that pull in different
+directions — commitment, consistency, line quality, braking, throttle
+discipline, recovery, aggression, mechanical sympathy — so a field contains
+people rather than difficulty settings.
+
+The important one is **`pace_ceiling`**: a hard cap on how fast a driver goes
+*regardless of the car*. Without it, handing a nervous club driver a Group B car
+turns them into a works driver, which is exactly backwards. They drive at the
+pace they always did, in something far more frightening.
+
+Eight archetypes ship in `data/drivers.json`, weighted by event difficulty so a
+club night still gets the occasional quick driver and a works event still gets
+someone out of their depth. Same car, same track, 90 seconds each:
+
+| Archetype | Distance covered | Crashes | Car condition |
+|---|---|---|---|
+| Nervous Novice | 2032 m | 6 | 0.49 |
+| Sunday Driver | 2033 m | 1 | 0.89 |
+| Steady Privateer | 2078 m | 1 | 0.94 |
+| Old Hand | 2122 m | 2 | 0.76 |
+| Works Driver | 2279 m | 1 | 0.97 |
+| Reckless Local | 2301 m | 1 | 0.90 |
+| Young Charger | 2345 m | 3 | 0.90 |
+
+Slow-and-safe, slow-and-messy, fast-and-clean and fast-and-crashy are all
+distinct outcomes, which is the point. Weak drivers also leave the car in
+automatic and never use the rev range, brake far too early, and sit near the
+middle of the road instead of apexing — they are not simply a scaled-down works
+driver.
+
+---
+
 ## Layout
 
 ```
 data/           cars, parts, events, sponsors, tracks — all JSON
 scripts/
   autoload/     EventBus, GameConfig, SaveSystem, databases, PlayerManager, NetManager
-  vehicle/      the driving model: stats, tires, engine, transmission, nitro, damage
+  vehicle/      the driving model: stats, axles, tires, engine, transmission, nitro, damage
+  haptics/      rumble and adaptive-trigger feel, and the backends behind it
   tuning/       parts, loadouts, and the calculator that folds them together
   career/       profiles, owned cars, events, sponsors
   track/        track spec and the builder that turns a centreline into a scene
   race/         race director, entrants, race scene
-  ai/           the AI driver
+  ai/           the AI driver and its personality archetypes
   ui/           split screen and HUD
   input/        device polling and the command struct
 tests/          headless smoke test and the AI probe
@@ -208,13 +315,11 @@ Thin or missing, roughly in the order they matter:
 1. **Garage and showroom UI.** Buying cars, fitting parts and adjusting the
    setup sheet all work through `PlayerProfile` and `TuningCalculator`, but the
    only front end is a placeholder menu. This is the biggest gap.
-2. **AI racing line.** The AI follows the track centreline, which is the
-   tightest way through any corner, and it cannot see other cars. It drives
-   cleanly alone — about one crash per 90 seconds at low skill on the club loop
-   — but a full field still trades paint. The fix is a proper curvature-
-   minimising line within the track width, plus opponent avoidance; the driver
-   already brakes on a real braking-distance scan and reads the surface ahead,
-   so the line is the missing piece.
+2. **AI opponent awareness.** Rivals cannot see each other, so a full field
+   still trades paint. Everything else is in place — braking-distance scanning,
+   surface look-ahead, pure-pursuit steering and apexing — so this is the
+   remaining piece, along with a properly optimised racing line rather than an
+   apex offset from the centreline.
 3. **Art.** Cars and tracks are coloured polygons. The rendering is deliberately
    separated from the physics, so replacing `Visual` in `rally_car.tscn` with
    sprites changes nothing else.

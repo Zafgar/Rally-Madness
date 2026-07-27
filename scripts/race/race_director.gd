@@ -74,8 +74,8 @@ func _spawn_players() -> void:
 			continue
 
 		var car := _make_car(owned.spec(), owned.loadout, owned.damage, grid_index)
-		seat.car = car
 		car.is_locally_controlled = true
+		PlayerManager.bind_car(seat.slot, car)
 
 		var entrant := RaceEntrant.new()
 		entrant.car = car
@@ -116,15 +116,22 @@ func _spawn_ai() -> void:
 		entrant.car = car
 		entrant.display_name = _ai_name(i, rng)
 		entrant.laps_target = event.laps
-		# Spread the field's skill around the event's level so a race is not
-		# six identical drivers.
-		var skill := clampf(event.ai_skill + rng.randf_range(-0.12, 0.12), 0.05, 1.0)
-		# Each rival is given its own offset from the centreline. The AI has no
-		# awareness of other cars yet, so keeping them on visibly different
-		# lines is what stops the field converging into one another in every
-		# corner.
+
+		# Rivals are people, not difficulty settings: the archetype decides how
+		# they drive, and it is picked from a band around the event's level
+		# rather than being the event's level. A club meeting still gets the
+		# occasional quick driver and a works event still gets someone out of
+		# their depth.
+		var driver := DriverProfile.pick_for(event.ai_skill, rng)
+		entrant.driver_name = driver.display_name
+
+		# Each rival also gets its own habitual offset from the centreline. The
+		# AI has no awareness of other cars yet, so keeping them on visibly
+		# different lines is what stops the field converging into one another
+		# in every corner.
 		var lane_span := maxf(track_spec.width * 0.5 - 3.0, 1.0)
-		entrant.ai = AIDriver.new(car, builder, skill, rng.randf_range(-lane_span, lane_span))
+		entrant.ai = AIDriver.new(car, builder, driver,
+			rng.randf_range(-lane_span, lane_span), rng.randi())
 		entrants.append(entrant)
 		_entrant_by_car_id[car.car_id] = entrant
 		grid_index += 1
@@ -397,6 +404,8 @@ func _finish_race() -> void:
 	for r in results:
 		_apply_result(r)
 	PlayerManager.save_all_profiles()
+	# The race is over; stop shaking everyone's hands.
+	PlayerManager.release_haptics()
 
 	EventBus.race_finished.emit(results)
 	race_complete.emit(results)

@@ -20,6 +20,7 @@ const STAT_KEYS := [
 	"tarmac_grip", "dirt_grip", "snow_grip", "tire_wear_rate",
 	"max_steer_deg", "steering_rate", "steering_speed_falloff",
 	"brake_force", "brake_bias_front", "handbrake_lock",
+	"abs_strength", "traction_control", "wheel_radius", "wheel_inertia",
 	"downforce", "drag_area", "rolling_resistance",
 	"nitro_capacity", "nitro_power", "nitro_regen", "nitro_heat",
 	"durability_body", "durability_engine", "durability_suspension", "crash_resistance",
@@ -96,6 +97,21 @@ var brake_bias_front: float = 0.62
 ## How completely the handbrake locks the rear. 1.0 = full lock, instant slide.
 var handbrake_lock: float = 0.9
 
+## Anti-lock braking authority. 0.0 is no ABS at all — stand on the brakes and
+## the wheels lock, the car slides straight on and the steering does nothing.
+## 1.0 is a modern system that will not let them lock. Period cars and Group B
+## rally machines sit at 0.0, which is a large part of their character.
+var abs_strength: float = 0.0
+## Traction control authority, 0.0 for none. Trims torque when the driven
+## wheels light up.
+var traction_control: float = 0.0
+
+## Rolling radius, metres. Sets how gearing turns into road speed.
+var wheel_radius: float = 0.32
+## Rotational inertia of one axle's wheels, kg*m^2. Lighter wheels spin up and
+## lock more readily, which is why they are both quicker and twitchier.
+var wheel_inertia: float = 2.2
+
 # --- Aero ---
 var downforce: float = 0.0
 var drag_area: float = 0.72
@@ -160,6 +176,20 @@ func front_torque_share() -> float:
 		Drivetrain.FWD: return 1.0
 		Drivetrain.RWD: return 0.0
 		_: return clampf(awd_front_bias, 0.0, 1.0)
+
+
+## Total brake torque available at the wheels, Nm.
+##
+## Scaled so a healthy braking system can comfortably lock the tyres. That is
+## the point: the limit has to live in the contact patch, not in the calipers,
+## or lock-up and ABS are not modelling anything.
+func max_brake_torque() -> float:
+	const LOCK_MARGIN := 1.5
+	return mass_kg * 9.81 * LOCK_MARGIN * wheel_radius * brake_force
+
+
+func has_abs() -> bool:
+	return abs_strength > 0.0
 
 
 func gear_count() -> int:

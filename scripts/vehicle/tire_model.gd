@@ -57,18 +57,6 @@ static func curve(normalized_slip: float, release: float) -> float:
 	return signf(normalized_slip) * f
 
 
-## Lateral force coefficient for a slip angle, signed to oppose the slip.
-static func lateral(slip_angle: float, stats: VehicleStats) -> float:
-	var peak := BASE_PEAK_SLIP_ANGLE * stats.slip_forgiveness
-	return -curve(slip_angle / peak, stats.drift_release)
-
-
-## Longitudinal force coefficient for a slip ratio.
-static func longitudinal(slip_ratio: float, stats: VehicleStats) -> float:
-	var peak := BASE_PEAK_SLIP_RATIO * stats.slip_forgiveness
-	return curve(slip_ratio / peak, stats.drift_release)
-
-
 ## Effective friction coefficient for one axle, folding in the compound's
 ## surface specialisation. This is where gravel tires beat slicks in a forest.
 static func surface_mu(stats: VehicleStats, surface: Surface, lateral_axis: bool) -> float:
@@ -85,18 +73,6 @@ static func surface_mu(stats: VehicleStats, surface: Surface, lateral_axis: bool
 			compound = (stats.dirt_grip + stats.tarmac_grip) * 0.5
 	var axis_grip := stats.grip_lat if lateral_axis else stats.grip_long
 	return base * compound * axis_grip
-
-
-## Friction ellipse. A tire has one budget of grip to spend; asking for
-## everything longitudinally leaves nothing for cornering. Returns the scale to
-## apply to both components so the combined demand stays inside the circle.
-static func combined_limit(fx: float, fy: float, fx_max: float, fy_max: float) -> float:
-	if fx_max <= 0.0 or fy_max <= 0.0:
-		return 0.0
-	var demand := sqrt(pow(fx / fx_max, 2.0) + pow(fy / fy_max, 2.0))
-	if demand <= 1.0:
-		return 1.0
-	return 1.0 / demand
 
 
 static func surface_from_string(name: String) -> Surface:

@@ -12,7 +12,7 @@ extends RefCounted
 const SLOTS := [
 	"engine", "intake", "exhaust", "turbo", "ecu", "cooling",
 	"gearbox", "clutch", "differential",
-	"suspension", "springs", "dampers", "antiroll", "brakes",
+	"suspension", "springs", "dampers", "antiroll", "brakes", "electronics",
 	"tires", "wheels",
 	"chassis", "weight", "aero", "armor", "nitro",
 ]

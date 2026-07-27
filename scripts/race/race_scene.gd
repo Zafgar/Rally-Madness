@@ -119,8 +119,12 @@ func _results_table(results: Array) -> String:
 	var lines := ["[b]%s — results[/b]" % director.event.display_name]
 	for r in results:
 		var time_text: String = "DNF" if r["dnf"] else RaceHUDFormat.time(r["time"])
-		lines.append("%2d. %-22s %10s  best %s" % [
-			r["position"], r["name"], time_text, RaceHUDFormat.time(r["best_lap"])])
+		var entrant: RaceEntrant = r["entrant"]
+		# Naming the archetype makes the field legible: it explains why one
+		# rival was three seconds a lap quicker and another put it in a ditch.
+		var kind := "you" if entrant.is_player() else entrant.driver_name
+		lines.append("%2d. %-22s %-18s %10s  best %s" % [
+			r["position"], r["name"], kind, time_text, RaceHUDFormat.time(r["best_lap"])])
 	return "\n".join(lines)
 
 

@@ -37,6 +37,9 @@ func _ready() -> void:
 	_test_data_integrity()
 	_test_tuning()
 	_test_physics_model()
+	_test_wheel_dynamics()
+	_test_driver_profiles()
+	_test_haptics()
 	_test_damage_and_economy()
 	_test_progression()
 	_test_command_encoding()
@@ -171,17 +174,35 @@ func _test_physics_model() -> void:
 	_check(stats.front_torque_share() > 0.0 and stats.front_torque_share() < 1.0,
 		"AWD splits torque between both axles")
 
-	# The tire curve must peak at the peak slip angle and fall off past it.
-	var peak := TireModel.lateral(TireModel.BASE_PEAK_SLIP_ANGLE * stats.slip_forgiveness, stats)
-	var past := TireModel.lateral(TireModel.BASE_PEAK_SLIP_ANGLE * stats.slip_forgiveness * 3.0, stats)
-	_check(absf(peak) > absf(past), "grip falls off past the peak slip angle")
-	_check(signf(peak) < 0.0, "lateral force opposes the slip angle")
+	# The grip curve must rise to a peak at normalised slip 1.0 and fall away
+	# past it. Everything about how a car behaves at the limit comes from that
+	# shape.
+	var peak := TireModel.curve(1.0, stats.drift_release)
+	var past := TireModel.curve(3.0, stats.drift_release)
+	var below := TireModel.curve(0.5, stats.drift_release)
+	_check(peak > below, "grip builds up to the slip peak")
+	_check(peak > past, "and falls away past it")
+	_check(past > TireModel.SLIDE_RATIO * 0.9,
+		"a fully sliding tyre still makes some force, just less")
+	_check(TireModel.curve(-1.0, stats.drift_release) < 0.0,
+		"and the force opposes the slip")
 
-	# The friction ellipse must actually clamp a combined demand.
-	var limit := TireModel.combined_limit(900.0, 900.0, 1000.0, 1000.0)
-	_check(limit < 1.0, "asking for grip in both directions gets scaled back")
-	_check(is_equal_approx(TireModel.combined_limit(100.0, 100.0, 1000.0, 1000.0), 1.0),
-		"a modest demand is left alone")
+	# Cornering and driving share one grip budget. Asking for both at once must
+	# give less of each than asking for either alone — the friction circle.
+	var axle := Axle.new(true, stats.wheel_radius)
+	axle.inertia = stats.wheel_inertia
+	var load := stats.mass_kg * 0.5 * 9.81
+	var mu := TireModel.surface_mu(stats, TireModel.Surface.TARMAC, true)
+
+	# Several steps, not one: brake torque changes the wheel's speed, and the
+	# slip ratio that costs cornering force only shows up on the frames after
+	# that. A single step measures the state before anything has happened.
+	var pure_lateral := _settled_axle_force(axle, stats, mu, load, 0.0)
+	var combined := _settled_axle_force(axle, stats, mu, load,
+		stats.max_brake_torque() * 0.5)
+	_check(absf(combined.y) < absf(pure_lateral.y),
+		"braking hard costs cornering force (%.0f N vs %.0f N)" % [
+			absf(combined.y), absf(pure_lateral.y)])
 
 	# Engine torque must peak somewhere inside the rev range, not at idle.
 	var engine := EngineModel.new(stats)
@@ -202,6 +223,420 @@ func _test_physics_model() -> void:
 		gearbox.update(1.0 / 60.0, speed, 0.32, 1.0)
 	_check(gearbox.gear > 1, "the automatic box upshifts as speed builds")
 	_check(gearbox.rpm <= stats.redline_rpm + 1.0, "revs never exceed the limiter")
+
+
+## Wheel lock-up, ABS and traction control.
+##
+## Axle is pure logic with no physics body, so a braking event can be simulated
+## exactly and deterministically here: one axle, a mass to decelerate, and a
+## loop. That makes "does ABS actually stop shorter" a measured number rather
+## than a claim.
+## Runs an axle at a fixed slip angle and road speed until its wheel speed has
+## settled, then reports the force it is making.
+func _settled_axle_force(
+	axle: Axle,
+	stats: VehicleStats,
+	mu: float,
+	load: float,
+	brake_torque: float
+) -> Vector2:
+	const SLIP_ANGLE := 0.14
+	axle.sync_to_road(25.0)
+	var force := Vector2.ZERO
+	for i in 40:
+		force = axle.update(1.0 / 120.0, 25.0, SLIP_ANGLE, 0.0, brake_torque, 0.0,
+			mu, mu, load, stats, 0.0, 0.0, 0.0)
+	return force
+
+
+func _test_wheel_dynamics() -> void:
+	_section("wheel dynamics")
+
+	var spec := CarDatabase.get_car("golf_gti_mk2")
+	var no_abs := TuningCalculator.resolve(spec, spec.default_loadout())
+	_check(not no_abs.has_abs(), "a 1987 hot hatch has no ABS")
+
+	var with_abs_loadout := spec.default_loadout()
+	with_abs_loadout.set_part("electronics", "elec_abs_retrofit")
+	var with_abs := TuningCalculator.resolve(spec, with_abs_loadout)
+	_check(with_abs.has_abs(), "the ABS retrofit fits and takes effect")
+
+	# Two separate claims, so two separate runs. Straight-line braking is about
+	# stopping distance; braking while turning is about whether the car still
+	# goes where it is pointed. Measuring both in one run conflates them — a
+	# tyre that is busy cornering is not braking as hard, which made ABS look
+	# worse than locked wheels until the runs were split.
+	var locked_run := _simulate_braking(no_abs, 0.0)
+	var abs_run := _simulate_braking(with_abs, 0.0)
+	var locked_turn := _simulate_braking(no_abs, 0.175)     # ~10 degrees of lock
+	var abs_turn := _simulate_braking(with_abs, 0.175)
+
+	_check(locked_run["locked_fraction"] > 0.6,
+		"without ABS, standing on the brakes locks the wheels and keeps them locked")
+	_check(abs_run["locked_fraction"] < 0.1,
+		"with ABS, they do not stay locked (%.0f%% of the stop)" % [
+			abs_run["locked_fraction"] * 100.0])
+	_check(abs_run["abs_fired"], "and the ABS reports itself working")
+	# The whole point: a sliding tyre makes less force than one at peak slip.
+	_check(abs_run["distance"] < locked_run["distance"],
+		"ABS stops shorter than locked wheels (%.1f m vs %.1f m)" % [
+			abs_run["distance"], locked_run["distance"]])
+	# A locked wheel slides almost straight backwards, so nearly all of its
+	# friction fights the slide and almost none is left to turn the car. This
+	# is the answer to "do the brakes fail?" — the brakes are fine, it is the
+	# tyre that has stopped doing two jobs at once.
+	_check(locked_turn["steering_share"] < 0.15,
+		"turning the wheel under locked braking does almost nothing (%.0f%% of grip)" % [
+			locked_turn["steering_share"] * 100.0])
+	_check(abs_turn["steering_share"] > locked_turn["steering_share"] * 2.0,
+		"under ABS the car still steers (%.0f%% of grip)" % [
+			abs_turn["steering_share"] * 100.0])
+	# ABS is felt as pressure being bled off and put back, not as a constant.
+	_check(abs_run["release_swing"] > 0.15,
+		"ABS pressure oscillates rather than sitting at a constant")
+
+	print("  braking from 30 m/s, straight:")
+	print("    no ABS  %.1f m  (wheels locked %.0f%% of the stop)" % [
+		locked_run["distance"], locked_run["locked_fraction"] * 100.0])
+	print("    ABS     %.1f m  (%.0f%% shorter, slip held at %.2f)" % [
+		abs_run["distance"], (1.0 - abs_run["distance"] / locked_run["distance"]) * 100.0,
+		abs_run["mean_slip"]])
+	print("  same again with 10 deg of steering held on:")
+	print("    no ABS  %.0f%% of grip still steering the car" % [
+		locked_turn["steering_share"] * 100.0])
+	print("    ABS     %.0f%%" % [abs_turn["steering_share"] * 100.0])
+
+	# --- Wheelspin and traction control ------------------------------------
+	var powerful := CarDatabase.get_car("porsche_gt2_rs")
+	var raw_loadout := powerful.default_loadout()
+	raw_loadout.set_part("electronics", "elec_defeat")
+	var raw := TuningCalculator.resolve(powerful, raw_loadout)
+	_check(raw.traction_control <= 0.0, "the aids delete really removes traction control")
+
+	var tc_loadout := powerful.default_loadout()
+	tc_loadout.set_part("electronics", "elec_traction")
+	var traction := TuningCalculator.resolve(powerful, tc_loadout)
+
+	var raw_launch := _simulate_launch(raw)
+	var tc_launch := _simulate_launch(traction)
+	_check(raw_launch["max_slip"] > Axle.SPIN_SLIP,
+		"700 hp through the rear wheels spins them up from a standstill")
+	_check(tc_launch["max_slip"] < raw_launch["max_slip"],
+		"traction control reins that in (%.2f vs %.2f slip)" % [
+			tc_launch["max_slip"], raw_launch["max_slip"]])
+	_check(tc_launch["tc_fired"], "and reports itself working")
+
+	# --- The handbrake must bypass ABS -------------------------------------
+	# Otherwise a modern car could never be thrown into a corner on it.
+	var modern := CarDatabase.get_car("gr_yaris")
+	var modern_stats := TuningCalculator.resolve(modern, modern.default_loadout())
+	_check(modern_stats.has_abs(), "the reference modern car has ABS")
+	var hb := Axle.new(false, modern_stats.wheel_radius)
+	hb.inertia = modern_stats.wheel_inertia
+	hb.sync_to_road(25.0)
+	var load := modern_stats.mass_kg * 0.4 * 9.81
+	for i in 60:
+		hb.update(1.0 / 60.0, 25.0, 0.0, 0.0, 0.0, modern_stats.max_brake_torque(),
+			1.0, 1.0, load, modern_stats, 0.0, 0.0, 0.0)
+	_check(hb.locked, "the handbrake still locks the rear axle despite ABS")
+
+
+## Braking run from 30 m/s under full pedal, optionally with steering held on
+## so there is something for the cornering force to do. Returns the stopping
+## distance and what the axle managed on the way.
+func _simulate_braking(stats: VehicleStats, steer_angle: float) -> Dictionary:
+	var axle := Axle.new(true, stats.wheel_radius)
+	axle.inertia = stats.wheel_inertia
+	var speed := 30.0
+	axle.sync_to_road(speed)
+
+	# Treat the whole car as riding on this one axle so the deceleration is
+	# realistic; the comparison between the two runs is what matters.
+	var mass := stats.mass_kg
+	var load := mass * 9.81
+	var mu_long := TireModel.surface_mu(stats, TireModel.Surface.TARMAC, false)
+	var mu_lat := TireModel.surface_mu(stats, TireModel.Surface.TARMAC, true)
+	var brake_torque := stats.max_brake_torque()
+
+	var dt := 1.0 / 120.0
+	var distance := 0.0
+	var steps := 0
+	var locked_steps := 0
+	var abs_fired := false
+	var steering_share := 0.0
+	var slip_sum := 0.0
+	var release_min := 1.0
+	var release_max := 0.0
+
+	for i in 2400:
+		var force := axle.update(dt, speed, steer_angle, 0.0, brake_torque, 0.0,
+			mu_long, mu_lat, load, stats, 0.0, 0.0, 0.0)
+		speed += force.x / mass * dt
+		if speed <= 0.5:
+			break
+		distance += speed * dt
+		steps += 1
+		if axle.locked:
+			locked_steps += 1
+		steering_share += axle.lateral_share()
+		slip_sum += axle.slip_ratio
+		if axle.abs_active:
+			abs_fired = true
+			release_min = minf(release_min, axle.abs_release)
+			release_max = maxf(release_max, axle.abs_release)
+
+	return {
+		"distance": distance,
+		"locked_fraction": float(locked_steps) / maxf(float(steps), 1.0),
+		"steering_share": steering_share / maxf(float(steps), 1.0),
+		"mean_slip": slip_sum / maxf(float(steps), 1.0),
+		"abs_fired": abs_fired,
+		"release_swing": maxf(release_max - release_min, 0.0),
+	}
+
+
+## Standing start in first gear, to see whether the driven wheels light up.
+func _simulate_launch(stats: VehicleStats) -> Dictionary:
+	var axle := Axle.new(false, stats.wheel_radius)
+	axle.inertia = stats.wheel_inertia
+	var gearbox := Transmission.new(stats)
+	var motor := EngineModel.new(stats)
+	gearbox.shift_to(1)
+
+	var speed := 0.5
+	var mass := stats.mass_kg
+	var load := mass * (1.0 - stats.weight_bias_front) * 9.81
+	var mu := TireModel.surface_mu(stats, TireModel.Surface.TARMAC, false)
+	var dt := 1.0 / 120.0
+	var max_slip := 0.0
+	var tc_fired := false
+
+	for i in 240:
+		motor.update_boost(dt, gearbox.rpm, 1.0)
+		gearbox.update(dt, axle.omega, speed, 1.0)
+		var ratio := gearbox.gear_ratio()
+		var torque := motor.output_torque(gearbox.rpm, 1.0) * ratio * gearbox.clutch * 0.88
+		var force := axle.update(dt, speed, 0.0, torque, 0.0, 0.0,
+			mu, mu, load, stats, ratio, gearbox.clutch, 1.0)
+		speed += force.x / mass * dt
+		max_slip = maxf(max_slip, axle.slip_ratio)
+		tc_fired = tc_fired or axle.tc_active
+
+	return {"max_slip": max_slip, "tc_fired": tc_fired, "speed": speed}
+
+
+## AI driver archetypes.
+##
+## The behaviour these produce is measured separately by tests/ai_probe.tscn,
+## which drives each archetype round a track and reports what they managed.
+## What is checked here is that the data describes distinct people and that
+## selection puts the right ones in the right events.
+func _test_driver_profiles() -> void:
+	_section("driver profiles")
+
+	var pool := DriverProfile.load_pool()
+	_check(pool.size() >= 4, "there are enough archetypes for a varied field")
+
+	var by_id := {}
+	for entry in pool:
+		var p: DriverProfile = entry["profile"]
+		by_id[p.archetype] = p
+		for trait_name in ["commitment", "consistency", "line_quality", "braking_skill",
+				"throttle_discipline", "recovery", "aggression", "mechanical_sympathy"]:
+			var value: float = p.get(trait_name)
+			_check(value >= 0.0 and value <= 1.0,
+				"'%s' has a sane %s (%.2f)" % [p.archetype, trait_name, value])
+		_check(p.pace_ceiling > 0.0 and p.pace_ceiling <= 1.2,
+			"'%s' has a sane pace ceiling" % p.archetype)
+
+	var slow: DriverProfile = by_id.get("sunday_driver")
+	var fast: DriverProfile = by_id.get("works_driver")
+	if slow != null and fast != null:
+		_check(slow.pace_rating() < fast.pace_rating(),
+			"a Sunday driver rates slower than a works driver (%.2f vs %.2f)" % [
+				slow.pace_rating(), fast.pace_rating()])
+		# The point of pace_ceiling: put the timid one in the fastest car in the
+		# game and they still will not drive it quickly.
+		_check(slow.pace_ceiling < 0.8,
+			"and is capped well below the car's potential no matter what they drive")
+		_check(not slow.uses_manual_gearbox and fast.uses_manual_gearbox,
+			"weak drivers leave it in automatic; good ones shift for themselves")
+
+	# Traits must be genuinely independent, not one slider in disguise. A
+	# driver who is quick and wild has to be expressible.
+	var wild: DriverProfile = by_id.get("reckless_local")
+	if wild != null:
+		_check(wild.commitment > 0.7 and wild.consistency < 0.4,
+			"a reckless driver is committed *and* unreliable, not just 'worse'")
+		_check(wild.mechanical_sympathy < 0.4, "and hard on the car")
+
+	# from_skill must still work as a fallback and stay monotonic.
+	var low := DriverProfile.from_skill(0.1)
+	var high := DriverProfile.from_skill(0.9)
+	_check(low.pace_rating() < high.pace_rating(),
+		"the plain-skill fallback still orders drivers correctly")
+
+	# Variation must not turn an archetype into a different one.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 99
+	if fast != null:
+		var varied := fast.varied(rng)
+		_check(absf(varied.commitment - fast.commitment) < 0.15,
+			"per-driver variation keeps an archetype recognisable")
+		_check(varied.archetype == fast.archetype, "and keeps its identity")
+
+	# Selection must bias toward the event's level without being exclusive.
+	var club_pace := 0.0
+	var works_pace := 0.0
+	var samples := 200
+	rng.seed = 7
+	for i in samples:
+		club_pace += DriverProfile.pick_for(0.3, rng).pace_rating()
+		works_pace += DriverProfile.pick_for(0.9, rng).pace_rating()
+	club_pace /= float(samples)
+	works_pace /= float(samples)
+	_check(works_pace > club_pace,
+		"a works event fields faster drivers than a club night (%.2f vs %.2f)" % [
+			works_pace, club_pace])
+	print("  %d archetypes; mean pace %.2f at club level, %.2f at works level" % [
+		pool.size(), club_pace, works_pace])
+
+
+## Controller feedback.
+##
+## HapticState is pure logic, so what the pad would be told can be checked
+## exactly without any hardware present. Each assertion below is a claim about
+## what a driver should be able to feel without looking at the screen.
+func _test_haptics() -> void:
+	_section("haptics")
+
+	var car := _make_bench_car("golf_gti_mk2", "elec_defeat")     # no ABS
+	var abs_car := _make_bench_car("golf_gti_mk2", "elec_abs_retrofit")
+	var state := HapticState.new()
+
+	# --- Engine ---
+	car.transmission.rpm = car.stats.idle_rpm
+	car.command.throttle = 0.0
+	state.update(car, 0.016)
+	var idle_rumble := state.rumble_low + state.rumble_high
+	_check(idle_rumble > 0.0, "the engine idles through the pad")
+
+	car.transmission.rpm = car.stats.redline_rpm * 0.9
+	car.command.throttle = 1.0
+	state.update(car, 0.016)
+	_check(state.rumble_low + state.rumble_high > idle_rumble,
+		"and gets stronger as it revs and pulls")
+
+	# --- Surface ---
+	car.speed_ms = 25.0
+	car.surface = TireModel.Surface.TARMAC
+	state.update(car, 0.016)
+	var tarmac_high := state.rumble_high
+	car.surface = TireModel.Surface.GRAVEL
+	state.update(car, 0.016)
+	_check(state.rumble_high > tarmac_high, "gravel is rougher through the pad than tarmac")
+
+	car.airborne = true
+	state.update(car, 0.016)
+	var airborne_total := state.rumble_low + state.rumble_high
+	car.airborne = false
+	state.update(car, 0.016)
+	_check(state.rumble_low + state.rumble_high > airborne_total,
+		"and mid-air is conspicuously smooth")
+
+	# --- Locked wheels with no ABS: the pedal goes light -------------------
+	car.axle_front.locked = true
+	car.axle_rear.locked = true
+	state.update(car, 0.016)
+	_check(state.brake_effect.mode == TriggerEffect.Mode.FEEDBACK,
+		"a locked brake pedal still offers resistance rather than switching off")
+	_check(state.brake_effect.strength <= HapticState.BRAKE_LOCKED_RESISTANCE + 0.01,
+		"but it goes light, because there is no more braking to be had")
+	car.axle_front.locked = false
+	car.axle_rear.locked = false
+	state.update(car, 0.016)
+	var normal_brake := state.brake_effect.strength
+	_check(normal_brake > HapticState.BRAKE_LOCKED_RESISTANCE * 2.0,
+		"a working brake pedal is firm (%.2f vs %.2f locked)" % [
+			normal_brake, HapticState.BRAKE_LOCKED_RESISTANCE])
+
+	# --- ABS: the pedal pulses --------------------------------------------
+	abs_car.axle_front.abs_active = true
+	abs_car.axle_front.abs_release = 0.6
+	var abs_state := HapticState.new()
+	abs_state.update(abs_car, 0.016)
+	_check(abs_state.brake_effect.mode == TriggerEffect.Mode.VIBRATION,
+		"ABS is felt as the pedal pulsing under the foot")
+	_check(abs_state.brake_effect.frequency > 8.0 and abs_state.brake_effect.frequency < 20.0,
+		"at a frequency a foot can actually resolve (%.0f Hz)" % [
+			abs_state.brake_effect.frequency])
+
+	# --- Wheelspin and the limiter ----------------------------------------
+	car.axle_rear.spinning = true
+	car.axle_rear.slip_ratio = 0.6
+	state.update(car, 0.016)
+	_check(state.throttle_effect.mode == TriggerEffect.Mode.VIBRATION,
+		"wheelspin buzzes the throttle trigger")
+	_check(state.rumble_high > 0.3, "and shows up in the high-frequency motor")
+	car.axle_rear.spinning = false
+	car.axle_rear.slip_ratio = 0.0
+
+	car.engine.rev_limiting = true
+	state.update(car, 0.016)
+	_check(state.throttle_effect.mode == TriggerEffect.Mode.WEAPON,
+		"the rev limiter puts a wall at the top of the throttle travel")
+	car.engine.rev_limiting = false
+
+	# --- Impacts are transient --------------------------------------------
+	state.update(car, 0.016)
+	var quiet := state.rumble_low
+	state.add_impact(0.8)
+	state.update(car, 0.016)
+	var jolt := state.rumble_low
+	_check(jolt > quiet + 0.2, "a crash jolts the pad")
+	for i in 60:
+		state.update(car, 0.016)
+	_check(state.rumble_low < quiet + 0.05,
+		"and then stops, rather than becoming the new normal")
+
+	# --- A wreck goes quiet ------------------------------------------------
+	car.damage.integrity["body"] = 0.0
+	car.damage.apply("body", 1.0)
+	state.update(car, 0.016)
+	_check(state.throttle_effect.mode == TriggerEffect.Mode.OFF
+			and state.brake_effect.mode == TriggerEffect.Mode.OFF,
+		"a wrecked car has nothing to say through the pedals")
+
+	# --- Backend plumbing --------------------------------------------------
+	var effect_a := TriggerEffect.feedback(0.1, 0.5)
+	var effect_b := TriggerEffect.feedback(0.1, 0.51)
+	_check(not effect_b.differs_from(effect_a),
+		"a negligible trigger change is not re-sent to the pad")
+	_check(TriggerEffect.vibration(0.1, 0.5, 14.0).differs_from(effect_a),
+		"a real one is")
+
+	var backend := HapticsDirector.make_backend()
+	_check(backend is RumbleBackend, "the backend always provides rumble")
+	# Honest reporting matters here: on a machine with no native extension the
+	# triggers genuinely will not resist, and the build should say so.
+	print("  backend: %s" % backend.backend_name())
+	_check(backend.supports_triggers() == Engine.has_singleton("DualSense")
+			or not backend.supports_triggers(),
+		"adaptive trigger support is reported honestly")
+
+	car.free()
+	abs_car.free()
+
+
+## A configured car outside the scene tree, for testing logic that reads
+## vehicle state without needing a running race.
+func _make_bench_car(spec_id: String, electronics: String) -> RallyCar:
+	var spec := CarDatabase.get_car(spec_id)
+	var loadout := spec.default_loadout()
+	loadout.set_part("electronics", electronics)
+	var car: RallyCar = CAR_SCENE.instantiate()
+	car.configure(spec, loadout)
+	return car
 
 
 func _test_damage_and_economy() -> void:

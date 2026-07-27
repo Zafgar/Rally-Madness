@@ -15,6 +15,7 @@ class LocalPlayer:
 	var device: DeviceInput
 	var profile: PlayerProfile
 	var car: RallyCar
+	var haptics: HapticsDirector
 	var ready_to_race: bool = false
 
 	func display_name() -> String:
@@ -34,12 +35,22 @@ func _ready() -> void:
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if accepting_joins:
 		_poll_for_joins()
 	for seat in seats:
 		if seat.device != null and seat.car != null and seat.car.is_locally_controlled:
 			seat.car.command = seat.device.poll()
+		if seat.haptics != null:
+			seat.haptics.update(delta)
+
+
+func _notification(what: int) -> void:
+	# Never leave a pad buzzing because the window lost focus or the game quit.
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT \
+			or what == NOTIFICATION_WM_CLOSE_REQUEST \
+			or what == NOTIFICATION_PREDELETE:
+		release_haptics()
 
 
 func _poll_for_joins() -> void:
@@ -67,6 +78,9 @@ func join(device_id: int) -> LocalPlayer:
 	var seat := LocalPlayer.new()
 	seat.slot = _next_free_slot()
 	seat.device = DeviceInput.new(device_id)
+	# Each seat drives its own pad: in a four-way split screen the four pads
+	# have to be telling four different stories.
+	seat.haptics = HapticsDirector.new(device_id, HapticsDirector.make_backend())
 	seats.append(seat)
 	_claimed_devices[device_id] = seat.slot
 	EventBus.local_player_joined.emit(seat.slot, device_id)
@@ -120,7 +134,24 @@ func save_all_profiles() -> void:
 			SaveSystem.save_profile(seat.profile)
 
 
+## Hands a seat the car it will drive, and wires that seat's pad to it.
+func bind_car(slot: int, car: RallyCar) -> void:
+	var seat := get_seat(slot)
+	if seat == null:
+		return
+	seat.car = car
+	if seat.haptics != null:
+		seat.haptics.bind(car)
+
+
+func release_haptics() -> void:
+	for seat in seats:
+		if seat.haptics != null:
+			seat.haptics.release()
+
+
 func clear_cars() -> void:
+	release_haptics()
 	for seat in seats:
 		seat.car = null
 

@@ -22,6 +22,13 @@ var _status_label: Label
 var _rpm_bar: ProgressBar
 var _nitro_bar: ProgressBar
 var _damage_bars: Dictionary = {}
+var _indicators: Dictionary = {}
+
+## Unlit telemetry lights stay visible but recede, so their layout does not
+## shift when one comes on.
+const INDICATOR_IDLE := Color(0.32, 0.33, 0.38)
+const INDICATOR_ACTIVE := Color(1.0, 0.85, 0.25)
+const INDICATOR_ALARM := Color(1.0, 0.30, 0.22)
 
 var race_time: float = 0.0
 var position_text: String = ""
@@ -69,6 +76,18 @@ func _build() -> void:
 	_rpm_bar = _make_bar(Color(0.9, 0.25, 0.2), 8)
 	_rpm_bar.custom_minimum_size = Vector2(180, 8)
 	bottom_left.add_child(_rpm_bar)
+
+	# Tyre-state telemetry. On a pad these are felt rather than read, but they
+	# have to be visible too — not every player has a DualSense, and "why did
+	# the car not turn just then" deserves an answer on screen.
+	var indicator_row := HBoxContainer.new()
+	indicator_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	indicator_row.add_theme_constant_override("separation", 8)
+	bottom_left.add_child(indicator_row)
+	for key in ["ABS", "TC", "LOCK", "SPIN"]:
+		var light := _make_label(key, 12, INDICATOR_IDLE)
+		indicator_row.add_child(light)
+		_indicators[key] = light
 
 	_nitro_bar = _make_bar(Color(0.25, 0.75, 1.0), 8)
 	_nitro_bar.custom_minimum_size = Vector2(180, 8)
@@ -182,6 +201,12 @@ func _process(delta: float) -> void:
 			nfill.bg_color = Color(1, 0.5, 0.1) if car.nitro.heat_fraction() > 0.8 \
 				else Color(0.25, 0.75, 1.0)
 
+	_set_indicator("ABS", car.abs_engaged(), INDICATOR_ACTIVE)
+	_set_indicator("TC", car.traction_control_engaged(), INDICATOR_ACTIVE)
+	# Locked and spinning are failures, not assists, so they read as warnings.
+	_set_indicator("LOCK", car.wheels_locked(), INDICATOR_ALARM)
+	_set_indicator("SPIN", car.wheels_spinning(), INDICATOR_ALARM)
+
 	if car.damage != null:
 		for component in _damage_bars:
 			var bar: ProgressBar = _damage_bars[component]
@@ -195,6 +220,13 @@ func _process(delta: float) -> void:
 	_position_label.text = position_text
 	_lap_label.text = lap_text
 	_time_label.text = format_time(race_time)
+
+
+func _set_indicator(key: String, active: bool, colour: Color) -> void:
+	var light: Label = _indicators.get(key)
+	if light == null:
+		return
+	light.add_theme_color_override("font_color", colour if active else INDICATOR_IDLE)
 
 
 func set_race_info(p_position: int, field: int, lap: int, laps: int, time: float) -> void:

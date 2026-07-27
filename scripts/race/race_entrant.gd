@@ -5,6 +5,9 @@ extends RefCounted
 
 var car: RallyCar
 var display_name: String = ""
+## For AI entrants, which archetype is behind the wheel. Shown on the results
+## screen so a player can tell the reckless local from the works driver.
+var driver_name: String = ""
 ## -1 for AI, otherwise the local seat index.
 var seat_slot: int = -1
 var profile: PlayerProfile

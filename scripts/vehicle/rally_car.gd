@@ -14,8 +14,6 @@ extends RigidBody2D
 const GRAVITY := 9.81
 ## Drivetrain losses between crank and road.
 const DRIVELINE_EFFICIENCY := 0.88
-## Newtons of braking at full pedal per kilogram of car, before brake_force.
-const BRAKE_FORCE_PER_KG := 11.0
 ## Below this speed the slip-angle model is meaningless, so we fade it out.
 const LOW_SPEED_MS := 2.5
 ## Air density * 0.5, folded into the drag term.
@@ -29,6 +27,8 @@ var spec: CarSpec
 var transmission: Transmission
 var engine: EngineModel
 var nitro: NitroSystem
+var axle_front: Axle
+var axle_rear: Axle
 var damage: DamageModel
 var command := VehicleCommand.new()
 
@@ -88,6 +88,12 @@ func _ready() -> void:
 func configure(p_spec: CarSpec, loadout: TuningLoadout, saved_damage: Dictionary = {}) -> void:
 	spec = p_spec
 	stats = TuningCalculator.resolve(p_spec, loadout, saved_damage)
+
+	wheel_radius = stats.wheel_radius
+	axle_front = Axle.new(true, wheel_radius)
+	axle_rear = Axle.new(false, wheel_radius)
+	axle_front.inertia = stats.wheel_inertia
+	axle_rear.inertia = stats.wheel_inertia
 
 	transmission = Transmission.new(stats)
 	engine = EngineModel.new(stats)
@@ -193,7 +199,12 @@ func _integrate_grounded(
 
 	engine.update_boost(delta, transmission.rpm, throttle)
 	var nitro_mult := nitro.update(delta, command.nitro, throttle)
-	transmission.update(delta, v_local.x, wheel_radius, throttle)
+
+	# Revs come off the driven wheels, not the road, so wheelspin actually
+	# revs the engine.
+	var front_share := stats.front_torque_share()
+	var driven_omega := axle_front.omega * front_share + axle_rear.omega * (1.0 - front_share)
+	transmission.update(delta, driven_omega, v_local.x, throttle)
 
 	# --- Vertical loads -----------------------------------------------------
 	var weight := stats.mass_kg * GRAVITY
@@ -235,49 +246,52 @@ func _integrate_grounded(
 	mu_long_f *= tire_health
 	mu_long_r *= tire_health
 
-	# --- Lateral forces -----------------------------------------------------
-	var fy_front := TireModel.lateral(slip_angle_front, stats) * mu_lat_f * load_front * model_blend
-	var fy_rear := TireModel.lateral(slip_angle_rear, stats) * mu_lat_r * load_rear * model_blend
-
-	# --- Drive force --------------------------------------------------------
+	# --- Driveline torque ---------------------------------------------------
 	var crank_torque := engine.output_torque(transmission.rpm, throttle, nitro_mult)
 	var ratio := transmission.gear_ratio()
 	var wheel_torque := crank_torque * ratio * transmission.clutch * DRIVELINE_EFFICIENCY
-	var drive_force := wheel_torque / maxf(wheel_radius, 0.05)
 
 	# Engine braking only reaches the ground through the driven wheels.
 	var engine_brake := engine.braking_torque(transmission.rpm, throttle)
 	if not is_zero_approx(ratio):
-		drive_force -= signf(v_local.x) * engine_brake * absf(ratio) / maxf(wheel_radius, 0.05)
+		wheel_torque -= signf(driven_omega) * engine_brake * absf(ratio)
 
-	var front_share := stats.front_torque_share()
-	var fx_front := drive_force * front_share
-	var fx_rear := drive_force * (1.0 - front_share)
+	# --- Brake torque -------------------------------------------------------
+	var max_brake_torque := stats.max_brake_torque() * tire_health
+	var brake_front := brake * max_brake_torque * stats.brake_bias_front
+	var brake_rear := brake * max_brake_torque * (1.0 - stats.brake_bias_front)
 
-	# --- Braking ------------------------------------------------------------
-	var max_brake := stats.mass_kg * BRAKE_FORCE_PER_KG * stats.brake_force
-	var brake_total := brake * max_brake * tire_health
-	var brake_dir := -signf(v_local.x) if absf(v_local.x) > 0.2 else 0.0
-	fx_front += brake_dir * brake_total * stats.brake_bias_front
-	fx_rear += brake_dir * brake_total * (1.0 - stats.brake_bias_front)
-
-	# --- Handbrake ----------------------------------------------------------
-	# A locked rear axle can make no lateral force worth the name. That is the
-	# whole trick: yank it, the tail steps out, and the car rotates.
+	# The handbrake is a cable straight to the rear calipers. It bypasses ABS,
+	# which is exactly why yanking it still steps the tail out on a car whose
+	# ABS would never let the brake pedal do the same.
+	var handbrake_rear := 0.0
 	if command.handbrake:
-		var lock := stats.handbrake_lock
-		fx_rear += brake_dir * max_brake * 0.75 * lock
-		fy_rear *= 1.0 - lock * 0.82
+		handbrake_rear = max_brake_torque * 0.85 * stats.handbrake_lock
 
-	# --- Combined slip ------------------------------------------------------
-	var limit_f := TireModel.combined_limit(
-		fx_front, fy_front, mu_long_f * load_front, mu_lat_f * load_front)
-	var limit_r := TireModel.combined_limit(
-		fx_rear, fy_rear, mu_long_r * load_rear, mu_lat_r * load_rear)
-	fx_front *= limit_f
-	fy_front *= limit_f
-	fx_rear *= limit_r
-	fy_rear *= limit_r
+	# --- Axles --------------------------------------------------------------
+	# Each axle solves its own combined slip and hands back both force
+	# components at once. The force is whatever the tyre actually produces at
+	# its current slip, not what the driver asked for — ask for more than it
+	# can give and you get a locked wheel that stops worse and steers not at
+	# all, because its grip has all gone into the slide.
+	var force_front := axle_front.update(
+		delta, v_local.x, slip_angle_front,
+		wheel_torque * front_share, brake_front, 0.0,
+		mu_long_f, mu_lat_f, load_front,
+		stats, ratio, transmission.clutch, front_share)
+	var force_rear := axle_rear.update(
+		delta, v_local.x, slip_angle_rear,
+		wheel_torque * (1.0 - front_share), brake_rear, handbrake_rear,
+		mu_long_r, mu_lat_r, load_rear,
+		stats, ratio, transmission.clutch, 1.0 - front_share)
+
+	# The low-speed fade applies to cornering force only. Fading the
+	# longitudinal component too would mean the car could never pull away from
+	# a standstill — there would be no force left to move it.
+	var fx_front := force_front.x
+	var fy_front := force_front.y * model_blend
+	var fx_rear := force_rear.x
+	var fy_rear := force_rear.y * model_blend
 
 	# --- Resistances --------------------------------------------------------
 	var surface_drag: float = TireModel.SURFACE_DRAG.get(surface, 1.0)
@@ -309,7 +323,10 @@ func _integrate_grounded(
 
 	wheel_slip = absf(slip_angle_rear) + absf(slip_angle_front)
 	is_drifting = absf(slip_angle_rear) > 0.22 and speed_ms > 6.0
-	damage.apply_tire_wear(delta, wheel_slip, surface_drag)
+	# Sliding tread wears whether it is sliding sideways, spinning up or locked
+	# solid — a flat-spotted tyre from one big lock-up is a real outcome.
+	var longitudinal_scrub := absf(axle_front.slip_ratio) + absf(axle_rear.slip_ratio)
+	damage.apply_tire_wear(delta, wheel_slip + longitudinal_scrub, surface_drag)
 
 	# Sliding sideways at speed on gravel rewards nitro on bottles that regen.
 	if is_drifting:
@@ -349,8 +366,22 @@ func _integrate_airborne(
 	state.apply_torque(air_yaw)
 	state.apply_torque(-omega * stats.mass_kg * 0.25 * ppm)
 
+	# Wheels are still turning up here, just with nothing to push against. That
+	# is why a car lands with its wheels already spun up if the driver kept
+	# their foot in — and why it snaps sideways if they did.
+	var ratio := transmission.gear_ratio()
+	var front_share := stats.front_torque_share()
+	var crank := engine.output_torque(transmission.rpm, command.throttle)
+	var free_torque := crank * ratio * transmission.clutch * DRIVELINE_EFFICIENCY
+	# Zero load means zero force: the wheels turn but nothing pushes back.
+	axle_front.update(delta, v_local.x, 0.0, free_torque * front_share, 0.0, 0.0,
+		0.0, 0.0, 0.0, stats, ratio, transmission.clutch, front_share)
+	axle_rear.update(delta, v_local.x, 0.0, free_torque * (1.0 - front_share), 0.0, 0.0,
+		0.0, 0.0, 0.0, stats, ratio, transmission.clutch, 1.0 - front_share)
+
+	var driven_omega := axle_front.omega * front_share + axle_rear.omega * (1.0 - front_share)
 	engine.update_boost(delta, transmission.rpm, command.throttle)
-	transmission.update(delta, v_local.x, wheel_radius, command.throttle)
+	transmission.update(delta, driven_omega, v_local.x, command.throttle)
 	_last_accel_x = 0.0
 
 
@@ -469,6 +500,12 @@ func respawn() -> void:
 	vertical_speed = 0.0
 	airborne = false
 	_last_accel_x = 0.0
+	_contacting.clear()
+	_prev_velocity = Vector2.ZERO
+	# Wheels have to match road speed or the car respawns with them locked.
+	if axle_front != null:
+		axle_front.sync_to_road(0.0)
+		axle_rear.sync_to_road(0.0)
 	if transmission != null:
 		transmission.shift_to(0)
 
@@ -483,6 +520,52 @@ func repair_and_reset() -> void:
 
 func speed_kmh() -> float:
 	return speed_ms * 3.6
+
+
+# --- Feedback queries -------------------------------------------------------
+# Read by the HUD and, more importantly, by the haptics: these are the events a
+# driver is supposed to feel through the pad rather than read off a gauge.
+
+func abs_engaged() -> bool:
+	return axle_front != null and (axle_front.abs_active or axle_rear.abs_active)
+
+
+## 0..1 pressure-release signal while ABS works. It oscillates naturally as the
+## system bleeds pressure and puts it back, so the trigger effect can follow it
+## directly rather than faking a pulse.
+func abs_pulse() -> float:
+	if axle_front == null:
+		return 0.0
+	return maxf(axle_front.abs_release, axle_rear.abs_release)
+
+
+## True when a wheel has stopped turning while the car is still moving. On a
+## car without ABS this is what standing on the brakes gets you: a longer stop
+## and no steering at all.
+func wheels_locked() -> bool:
+	return axle_front != null and (axle_front.locked or axle_rear.locked)
+
+
+func front_locked() -> bool:
+	return axle_front != null and axle_front.locked
+
+
+func wheels_spinning() -> bool:
+	return axle_front != null and (axle_front.spinning or axle_rear.spinning)
+
+
+func traction_control_engaged() -> bool:
+	return axle_front != null and (axle_front.tc_active or axle_rear.tc_active)
+
+
+## Worst longitudinal slip across the axles, signed: negative is locking up,
+## positive is spinning up.
+func worst_slip_ratio() -> float:
+	if axle_front == null:
+		return 0.0
+	var f := axle_front.slip_ratio
+	var r := axle_rear.slip_ratio
+	return f if absf(f) > absf(r) else r
 
 
 ## Applied on clients from the host's snapshot. The body is moved outright
