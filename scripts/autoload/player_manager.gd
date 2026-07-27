@@ -118,8 +118,19 @@ func assign_profile(slot: int, profile: PlayerProfile) -> void:
 	EventBus.profile_loaded.emit(slot, profile)
 
 
-## Convenience for a quick session: give every seat that has no profile a
-## default one named after the seat.
+## Seats that have joined but have no career attached yet. The front end walks
+## these through profile creation rather than inventing one for them — picking a
+## name, a face and a first car is the start of the game, not paperwork to skip.
+func seats_without_profiles() -> Array:
+	var out := []
+	for seat in seats:
+		if seat.profile == null:
+			out.append(seat)
+	return out
+
+
+## Quick-start fallback: give every profile-less seat a default career. Used by
+## the tests and by the straight-into-a-race path, never by the front end.
 func ensure_profiles() -> void:
 	for seat in seats:
 		if seat.profile == null:

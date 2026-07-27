@@ -21,6 +21,24 @@ var reverse_ratio: float = 3.2
 
 ## Slots this chassis can accept. Empty means "all of them".
 var supported_slots: Array[String] = []
+## Slots this chassis specifically cannot take, whatever else it accepts.
+var blocked_slots: Array[String] = []
+
+## Highest part tier this chassis will accept.
+##
+## A Lada can be usefully improved — better tyres, a rebuild, a cage — but no
+## amount of money turns it into a Group B car, and being able to bolt a
+## sequential race gearbox and WRC dampers to one would make the whole
+## progression pointless. Defaults to one tier above the car, so every chassis
+## has real headroom without ever catching the tier above it.
+var upgrade_ceiling: int = 1
+
+## Published real-world figures, used to calibrate the model rather than to
+## drive it. Power and top speed both fall out of the torque curve, the gearing
+## and the drag area, so holding them against reality is how those numbers get
+## checked. 0 means "not recorded".
+var reference_power_hp: float = 0.0
+var reference_top_speed_kmh: float = 0.0
 
 ## Parts fitted from new — how a rally-homologated model arrives already
 ## sitting on the right suspension.
@@ -72,15 +90,54 @@ static func from_dict(d: Dictionary) -> CarSpec:
 
 	for s in d.get("slots", []):
 		c.supported_slots.append(String(s))
+	for s in d.get("blocked_slots", []):
+		c.blocked_slots.append(String(s))
 	for slot in d.get("stock_parts", {}):
 		c.stock_parts[String(slot)] = String(d["stock_parts"][slot])
+
+	c.upgrade_ceiling = int(d.get("upgrade_ceiling", c.tier + 1))
+	c.reference_power_hp = float(d.get("power_hp", 0.0))
+	c.reference_top_speed_kmh = float(d.get("top_speed_kmh", 0.0))
 	return c
 
 
 func accepts_slot(slot: String) -> bool:
+	if blocked_slots.has(slot):
+		return false
 	if supported_slots.is_empty():
 		return true
 	return supported_slots.has(slot)
+
+
+## Whether this chassis will take a given part at all. Tier is the main gate in
+## both directions: a part can demand a good chassis, and a chassis can refuse
+## a part that is simply beyond it.
+func accepts_part(part: PartSpec) -> bool:
+	if part == null:
+		return false
+	if not accepts_slot(part.slot):
+		return false
+	if part.tier > upgrade_ceiling:
+		return false
+	if tier < part.min_car_tier:
+		return false
+	return true
+
+
+## Why a part will not fit, for the garage to show the player. Empty when it
+## will.
+func part_rejection_reason(part: PartSpec) -> String:
+	if part == null:
+		return "Unknown part"
+	if blocked_slots.has(part.slot):
+		return "This chassis has no %s to modify" % part.slot
+	if not supported_slots.is_empty() and not supported_slots.has(part.slot):
+		return "This chassis has no %s to modify" % part.slot
+	if part.tier > upgrade_ceiling:
+		return "Beyond what this chassis can take (accepts up to tier %d)" % upgrade_ceiling
+	if tier < part.min_car_tier:
+		return "Needs a tier %d chassis or better" % part.min_car_tier
+	return ""
 
 
 ## Fresh, untuned stats for this car.

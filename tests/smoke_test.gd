@@ -38,6 +38,8 @@ func _ready() -> void:
 	_test_tuning()
 	_test_physics_model()
 	_test_wheel_dynamics()
+	_test_performance_calibration()
+	_test_upgrade_ceiling()
 	_test_driver_profiles()
 	_test_haptics()
 	_test_damage_and_economy()
@@ -321,10 +323,27 @@ func _test_wheel_dynamics() -> void:
 	var tc_launch := _simulate_launch(traction)
 	_check(raw_launch["max_slip"] > Axle.SPIN_SLIP,
 		"700 hp through the rear wheels spins them up from a standstill")
-	_check(tc_launch["max_slip"] < raw_launch["max_slip"],
-		"traction control reins that in (%.2f vs %.2f slip)" % [
-			tc_launch["max_slip"], raw_launch["max_slip"]])
-	_check(tc_launch["tc_fired"], "and reports itself working")
+	_check(tc_launch["tc_fired"], "traction control fires when they do")
+
+	# Measured on gravel, where traction control earns its keep. On dry tarmac
+	# the driveline's own rotational inertia already limits wheelspin to a
+	# fraction of a second, so there is almost nothing for it to improve and any
+	# difference is inside the noise. On a loose surface the spinning is real
+	# and sustained.
+	var loose_raw := _simulate_launch(raw, TireModel.Surface.GRAVEL)
+	var full_authority := TuningCalculator.resolve(powerful, raw_loadout)
+	full_authority.traction_control = 1.0
+	var loose_managed := _simulate_launch(full_authority, TireModel.Surface.GRAVEL)
+
+	_check(loose_raw["spin_fraction"] > 0.25,
+		"on gravel, an unmanaged launch spends most of itself spinning (%.0f%%)" % [
+			loose_raw["spin_fraction"] * 100.0])
+	_check(loose_managed["spin_fraction"] < loose_raw["spin_fraction"],
+		"traction control cuts that (%.0f%% vs %.0f%%)" % [
+			loose_managed["spin_fraction"] * 100.0, loose_raw["spin_fraction"] * 100.0])
+	_check(loose_managed["speed"] > loose_raw["speed"],
+		"and the car actually goes faster for it (%.1f vs %.1f m/s)" % [
+			loose_managed["speed"], loose_raw["speed"]])
 
 	# --- The handbrake must bypass ABS -------------------------------------
 	# Otherwise a modern car could never be thrown into a corner on it.
@@ -396,7 +415,10 @@ func _simulate_braking(stats: VehicleStats, steer_angle: float) -> Dictionary:
 
 
 ## Standing start in first gear, to see whether the driven wheels light up.
-func _simulate_launch(stats: VehicleStats) -> Dictionary:
+func _simulate_launch(
+	stats: VehicleStats,
+	surface: TireModel.Surface = TireModel.Surface.TARMAC
+) -> Dictionary:
 	var axle := Axle.new(false, stats.wheel_radius)
 	axle.inertia = stats.wheel_inertia
 	var gearbox := Transmission.new(stats)
@@ -406,9 +428,11 @@ func _simulate_launch(stats: VehicleStats) -> Dictionary:
 	var speed := 0.5
 	var mass := stats.mass_kg
 	var load := mass * (1.0 - stats.weight_bias_front) * 9.81
-	var mu := TireModel.surface_mu(stats, TireModel.Surface.TARMAC, false)
+	var mu := TireModel.surface_mu(stats, surface, false)
 	var dt := 1.0 / 120.0
 	var max_slip := 0.0
+	var slip_sum := 0.0
+	var spinning_steps := 0
 	var tc_fired := false
 
 	for i in 240:
@@ -420,9 +444,172 @@ func _simulate_launch(stats: VehicleStats) -> Dictionary:
 			mu, mu, load, stats, ratio, gearbox.clutch, 1.0)
 		speed += force.x / mass * dt
 		max_slip = maxf(max_slip, axle.slip_ratio)
+		slip_sum += maxf(axle.slip_ratio, 0.0)
+		if axle.spinning:
+			spinning_steps += 1
 		tc_fired = tc_fired or axle.tc_active
 
-	return {"max_slip": max_slip, "tc_fired": tc_fired, "speed": speed}
+	return {
+		"max_slip": max_slip,
+		"mean_slip": slip_sum / 240.0,
+		# Time spent spinning is the honest measure. Peak slip always happens on
+		# the first frame, before any controller has had a chance to act.
+		"spin_fraction": float(spinning_steps) / 240.0,
+		"tc_fired": tc_fired,
+		"speed": speed,
+	}
+
+
+## Mass, torque, power and grip against reality.
+##
+## Power and top speed are not authored anywhere — they fall out of the torque
+## curve, the gearing and the drag area. That makes them the honest check on
+## whether those inputs are right, and it is a check the catalogue failed badly
+## before it existed: boost was being multiplied onto torque figures that
+## already included it, so the Group B cars made 800 hp instead of 480.
+##
+## tests/spec_bench.tscn prints the whole table; this holds the line.
+func _test_performance_calibration() -> void:
+	_section("performance vs reality")
+
+	var power_off := 0
+	var speed_off := 0
+	var worst_power := 0.0
+	var worst_speed := 0.0
+
+	for spec in CarDatabase.all():
+		var stats := TuningCalculator.resolve(spec, spec.default_loadout())
+		_check(spec.reference_power_hp > 0.0,
+			"'%s' records a real power figure to be checked against" % spec.id)
+		_check(spec.reference_top_speed_kmh > 0.0,
+			"'%s' records a real top speed" % spec.id)
+		if spec.reference_power_hp <= 0.0:
+			continue
+
+		var hp := PerformanceModel.peak_power_hp(stats)
+		var power_error: float = absf(hp - spec.reference_power_hp) / spec.reference_power_hp
+		if power_error > 0.12:
+			power_off += 1
+			print("    %s: %.0f hp against a real %.0f" % [
+				spec.id, hp, spec.reference_power_hp])
+		worst_power = maxf(worst_power, power_error)
+
+		var kmh := PerformanceModel.top_speed_kmh(stats)
+		var speed_error: float = absf(kmh - spec.reference_top_speed_kmh) \
+			/ spec.reference_top_speed_kmh
+		if speed_error > 0.15:
+			speed_off += 1
+			print("    %s: %.0f km/h against a real %.0f" % [
+				spec.id, kmh, spec.reference_top_speed_kmh])
+		worst_speed = maxf(worst_speed, speed_error)
+
+		# Sanity that does not depend on the reference figures.
+		_check(stats.mass_kg > 300.0 and stats.mass_kg < 4000.0,
+			"'%s' has a plausible mass" % spec.id)
+		_check(PerformanceModel.time_to_speed(stats, 100.0) < 60.0,
+			"'%s' can actually reach 100 km/h" % spec.id)
+
+	_check(power_off == 0, "every car's power matches its real figure within 12%%")
+	_check(speed_off == 0, "every car's top speed matches within 15%%")
+	print("  %d cars checked; worst power error %.0f%%, worst top speed error %.0f%%" % [
+		CarDatabase.all().size(), worst_power * 100.0, worst_speed * 100.0])
+
+	# Power must rise with revs the way torque times speed says it does, or the
+	# curve is not a curve.
+	var reference := CarDatabase.get_car("golf_gti_mk2").to_base_stats()
+	var peak: Dictionary = PerformanceModel.peak_power(reference)
+	_check(peak["rpm"] > PerformanceModel.peak_torque(reference)["rpm"],
+		"peak power arrives after peak torque, as it must")
+
+	# Boost describes the hole below it, not a multiplier on the rated figure.
+	# Getting this backwards was the original calibration bug.
+	var turbo_car := CarDatabase.get_car("impreza_gc8").to_base_stats()
+	var motor := EngineModel.new(turbo_car)
+	_check(motor.off_boost_fraction() < 1.0, "an engine off boost makes less than its rated torque")
+	motor.boost = 1.0
+	_check(is_equal_approx(
+		motor.output_torque(PerformanceModel.peak_torque(turbo_car)["rpm"], 1.0),
+		turbo_car.engine_torque_nm),
+		"and exactly its rated torque on full boost")
+
+
+## Low-tier cars must not be buildable into high-tier ones.
+func _test_upgrade_ceiling() -> void:
+	_section("upgrade ceilings")
+
+	var starter := CarDatabase.get_car("lada_2101")
+	var group_b := CarDatabase.get_car("delta_s4")
+	_check(starter.upgrade_ceiling < group_b.upgrade_ceiling,
+		"a starter chassis accepts lower-tier parts than a Group B car")
+
+	# The specific thing that must not be possible.
+	var race_box := PartDatabase.get_part("gearbox_sequential")
+	var wrc_dampers := PartDatabase.get_part("susp_wrc")
+	_check(not starter.accepts_part(race_box),
+		"a sequential race gearbox will not fit a Lada")
+	_check(not starter.accepts_part(wrc_dampers), "and neither will WRC dampers")
+	_check(not starter.part_rejection_reason(race_box).is_empty(),
+		"and the garage can say why")
+	_check(group_b.accepts_part(race_box), "a Group B car takes them happily")
+
+	# A loadout that names an illegal part must be ignored, not honoured. Saves
+	# from an older build, or edited by hand, must not smuggle one in.
+	var cheat := starter.default_loadout()
+	cheat.set_part("gearbox", "gearbox_sequential")
+	var cheated := TuningCalculator.resolve(starter, cheat)
+	var honest := TuningCalculator.resolve(starter, starter.default_loadout())
+	_check(is_equal_approx(cheated.shift_time, honest.shift_time),
+		"an illegal part in a saved loadout has no effect")
+
+	# Every tier must still gain something real from what it can fit, or
+	# upgrading a cheap car would be pointless.
+	for tier in range(0, 5):
+		var cars := CarDatabase.by_tier(tier)
+		if cars.is_empty():
+			continue
+		var spec: CarSpec = cars[0]
+		var stock := TuningCalculator.resolve(spec, spec.default_loadout())
+		var built := TuningCalculator.resolve(spec, _max_legal_loadout(spec))
+		var gain := PerformanceModel.peak_power_hp(built) \
+			/ maxf(PerformanceModel.peak_power_hp(stock), 1.0)
+		_check(gain > 1.15, "tier %d cars gain real power from upgrades (%.0f%%)" % [
+			tier, (gain - 1.0) * 100.0])
+		# The ladder has to hold overall. Compared on performance_index rather
+		# than raw power, and against the best of the higher tier rather than
+		# the first: a Stratos is tier 4 for being light and vicious, not for
+		# its 206 hp, so a power-only comparison says nothing useful.
+		if tier <= 2:
+			var best_higher := 0.0
+			for rival in CarDatabase.by_tier(tier + 2):
+				var rival_built := TuningCalculator.resolve(rival, _max_legal_loadout(rival))
+				best_higher = maxf(best_higher, rival_built.performance_index())
+			if best_higher > 0.0:
+				_check(built.performance_index() < best_higher,
+					"a built tier %d car stays behind the best built tier %d one" % [
+						tier, tier + 2])
+
+	# Building an old car has to cost more than buying a newer one, or the
+	# showroom is pointless.
+	var cosworth := CarDatabase.get_car("sierra_cosworth")
+	var build_cost := _max_legal_loadout(cosworth).total_value()
+	_check(build_cost > cosworth.price * 3,
+		"a full build costs far more than the car (%d vs %d)" % [build_cost, cosworth.price])
+	print("  Lada accepts up to tier %d parts, Group B up to tier %d" % [
+		starter.upgrade_ceiling, group_b.upgrade_ceiling])
+
+
+## The most expensive legal part in every slot for a chassis.
+func _max_legal_loadout(spec: CarSpec) -> TuningLoadout:
+	var loadout := spec.default_loadout()
+	var stats := spec.to_base_stats()
+	for slot in PartSpec.SLOTS:
+		var best: PartSpec = null
+		for part in PartDatabase.available_for(slot, spec, stats):
+			if best == null or part.price > best.price:
+				best = part
+		if best != null:
+			loadout.set_part(slot, best.id)
+	return loadout
 
 
 ## AI driver archetypes.
@@ -684,6 +871,47 @@ func _test_damage_and_economy() -> void:
 
 func _test_progression() -> void:
 	_section("progression")
+	# --- Starting a career -------------------------------------------------
+	# Five starter cars, and the choice has to be a real one: all free to
+	# repair, but they must not all drive the same.
+	var starters := CarDatabase.starter_cars()
+	_check(starters.size() >= 5, "there are at least five cars to start with")
+	var biases: Array[float] = []
+	for spec in starters:
+		var stats: VehicleStats = spec.to_base_stats()
+		biases.append(stats.weight_bias_front)
+		_check(spec.price == 0 or spec.tier == GameConfig.STARTER_TIER,
+			"'%s' is a genuine starter car" % spec.id)
+		_check(TuningCalculator.repair_cost(spec, spec.default_loadout(),
+			{"body": 0.1, "engine": 0.1, "suspension": 0.1, "tires": 0.1}) == 0,
+			"'%s' is free to repair" % spec.id)
+	biases.sort()
+	_check(biases[biases.size() - 1] - biases[0] > 0.15,
+		"the starter cars have genuinely different balance (%.2f to %.2f front)" % [
+			biases[0], biases[biases.size() - 1]])
+	# Front-drive, rear-drive and a rear-engined one, so the first choice
+	# teaches something rather than being a colour swatch.
+	var layouts := {}
+	for spec in starters:
+		layouts[spec.drivetrain] = true
+	_check(layouts.size() >= 2, "and more than one drivetrain layout among them")
+
+	# The chosen car must actually be the one the player gets.
+	var chosen: CarSpec = starters[starters.size() - 1]
+	var picked := PlayerProfile.create_new("smoketest_pick", "Picker", chosen, 3)
+	_check(picked.active_car() != null and picked.active_car().spec_id == chosen.id,
+		"the starter car a player picks is the one they get")
+	_check(picked.avatar_id == 3, "and the profile picture they picked")
+	# Both must survive a round trip to disk.
+	SaveSystem.save_profile(picked)
+	SaveSystem._cache.erase("smoketest_pick")
+	var reloaded := SaveSystem.load_profile("smoketest_pick")
+	_check(reloaded != null and reloaded.avatar_id == 3,
+		"the profile picture survives being saved and loaded")
+	_check(reloaded != null and reloaded.active_car().spec_id == chosen.id,
+		"and so does the car")
+	SaveSystem.delete_profile("smoketest_pick")
+
 	var profile := PlayerProfile.create_new("smoketest", "Smoke Tester")
 	_check(profile.active_car() != null, "a new profile starts with a car")
 	_check(profile.level == 1, "a new profile starts at level 1")

@@ -247,6 +247,10 @@ func _integrate_grounded(
 	mu_long_r *= tire_health
 
 	# --- Driveline torque ---------------------------------------------------
+	# An electronic limiter simply stops fuelling. Nothing else changes, which
+	# is why a limited car still pulls hard right up to the wall.
+	if stats.speed_limiter_kmh > 0.0 and speed_ms * 3.6 > stats.speed_limiter_kmh:
+		throttle = 0.0
 	var crank_torque := engine.output_torque(transmission.rpm, throttle, nitro_mult)
 	var ratio := transmission.gear_ratio()
 	var wheel_torque := crank_torque * ratio * transmission.clutch * DRIVELINE_EFFICIENCY

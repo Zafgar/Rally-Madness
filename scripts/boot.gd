@@ -6,6 +6,7 @@ extends Control
 ## later and will use the same PlayerManager / EventDatabase calls this does.
 
 const RACE_SCENE_PATH := "res://scenes/race.tscn"
+const NEW_PROFILE_SCENE := preload("res://scenes/ui/new_profile.tscn")
 
 var _seat_list: VBoxContainer
 var _event_list: ItemList
@@ -15,6 +16,7 @@ var _net_status: Label
 var _address_field: LineEdit
 
 var _available: Array[EventSpec] = []
+var _profile_screen: NewProfileScreen = null
 
 
 func _ready() -> void:
@@ -143,7 +145,6 @@ func _refresh_seats() -> void:
 	for child in _seat_list.get_children():
 		child.queue_free()
 
-	PlayerManager.ensure_profiles()
 	if PlayerManager.seat_count() == 0:
 		var empty := Label.new()
 		empty.text = "No drivers yet."
@@ -152,19 +153,45 @@ func _refresh_seats() -> void:
 		return
 
 	for seat in PlayerManager.seats:
-		var line := Label.new()
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		_seat_list.add_child(row)
+
 		var profile := seat.profile
-		var car := profile.active_car() if profile != null else null
-		var car_name := car.display_name() if car != null else "no car"
+		if profile == null:
+			# A seat with no career gets an invitation, not a silent default.
+			var setup := Button.new()
+			setup.text = "P%d  —  set up a career" % (seat.slot + 1)
+			setup.pressed.connect(_open_profile_setup.bind(seat.slot))
+			row.add_child(setup)
+			var existing := SaveSystem.list_profiles()
+			if not existing.is_empty():
+				var load_button := MenuButton.new()
+				load_button.text = "Load"
+				var menu := load_button.get_popup()
+				for i in existing.size():
+					menu.add_item("%s  (Lv%d)" % [existing[i]["name"], existing[i]["level"]], i)
+				menu.id_pressed.connect(_on_profile_picked.bind(seat.slot, existing))
+				row.add_child(load_button)
+			continue
+
+		var face := DriverAvatar.new()
+		face.avatar_id = profile.avatar_id
+		face.background = Color(0, 0, 0, 0)
+		face.custom_minimum_size = Vector2(28, 28)
+		row.add_child(face)
+
+		var car := profile.active_car()
+		var line := Label.new()
 		line.text = "P%d  %s  —  Lv%d  %d cr  %s  [%s]" % [
 			seat.slot + 1,
 			seat.display_name(),
-			profile.level if profile else 1,
-			profile.money if profile else 0,
-			car_name,
+			profile.level,
+			profile.money,
+			car.display_name() if car != null else "no car",
 			seat.device.device_name() if seat.device else "?",
 		]
-		_seat_list.add_child(line)
+		row.add_child(line)
 
 
 # --- Events -----------------------------------------------------------------
@@ -230,6 +257,52 @@ func _on_event_selected(index: int) -> void:
 	_start_button.disabled = blocked or profile == null
 
 
+func _open_profile_setup(slot: int) -> void:
+	if _profile_screen != null:
+		return
+	_profile_screen = NEW_PROFILE_SCENE.instantiate()
+	_profile_screen.set_anchors_preset(Control.PRESET_CENTER)
+	_profile_screen.created.connect(_on_profile_created.bind(slot))
+	_profile_screen.cancelled.connect(_close_profile_setup)
+	var layer := CanvasLayer.new()
+	layer.name = "ProfileSetupLayer"
+	add_child(layer)
+	var centre := CenterContainer.new()
+	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.6)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(dim)
+	layer.add_child(centre)
+	centre.add_child(_profile_screen)
+
+
+func _close_profile_setup() -> void:
+	if _profile_screen == null:
+		return
+	var layer := get_node_or_null("ProfileSetupLayer")
+	if layer != null:
+		layer.queue_free()
+	_profile_screen = null
+
+
+func _on_profile_created(profile: PlayerProfile, slot: int) -> void:
+	PlayerManager.assign_profile(slot, profile)
+	_close_profile_setup()
+	_refresh_seats()
+	_refresh_events()
+
+
+func _on_profile_picked(index: int, slot: int, listing: Array) -> void:
+	if index < 0 or index >= listing.size():
+		return
+	var profile := SaveSystem.load_profile(listing[index]["id"])
+	if profile != null:
+		PlayerManager.assign_profile(slot, profile)
+		_refresh_seats()
+		_refresh_events()
+
+
 func _on_start_pressed() -> void:
 	var index := _event_list.get_selected_items()
 	if index.is_empty() or _available.is_empty():
@@ -248,14 +321,12 @@ func _on_start_pressed() -> void:
 # --- Networking -------------------------------------------------------------
 
 func _on_host_pressed() -> void:
-	PlayerManager.ensure_profiles()
 	var err := NetManager.host_game()
 	if err != OK:
 		_net_status.text = "Could not host (error %d)" % err
 
 
 func _on_join_pressed() -> void:
-	PlayerManager.ensure_profiles()
 	var address := _address_field.text.strip_edges()
 	if address.is_empty():
 		address = "127.0.0.1"

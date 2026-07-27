@@ -13,6 +13,9 @@ const DEFAULT_RATING := 1200
 
 var profile_id: String = ""
 var display_name: String = "Driver"
+## Index into DriverAvatar.PRESETS. Profile pictures are drawn rather than
+## loaded, so this is all that needs saving.
+var avatar_id: int = 0
 var created_unix: int = 0
 var last_played_unix: int = 0
 
@@ -42,15 +45,28 @@ var stat_distance_km: float = 0.0
 var _next_uid: int = 1
 
 
-static func create_new(id: String, name: String) -> PlayerProfile:
+## A brand new career.
+##
+## The starter car is a choice, not an assignment: the five tier-0 cars drive
+## very differently — rear-engined, front-drive, light and revvy — and picking
+## one is the player's first real decision. Passing null falls back to the
+## first starter, which keeps quick-start and headless paths simple.
+static func create_new(
+	id: String,
+	name: String,
+	starter: CarSpec = null,
+	p_avatar_id: int = 0
+) -> PlayerProfile:
 	var p := PlayerProfile.new()
 	p.profile_id = id
 	p.display_name = name
+	p.avatar_id = p_avatar_id
 	p.created_unix = int(Time.get_unix_time_from_system())
 	p.last_played_unix = p.created_unix
-	# Everyone starts with a free starter car so the first race needs no
-	# purchase, and so there is always something to fall back on later.
-	var starter := CarDatabase.default_starter()
+	# The first car is free, so the first race needs no purchase and there is
+	# always something to fall back on later.
+	if starter == null:
+		starter = CarDatabase.default_starter()
 	if starter != null:
 		var car := p.add_car(starter)
 		p.active_car_uid = car.uid
@@ -259,6 +275,7 @@ func to_dict() -> Dictionary:
 		"version": 1,
 		"profile_id": profile_id,
 		"display_name": display_name,
+		"avatar_id": avatar_id,
 		"created_unix": created_unix,
 		"last_played_unix": last_played_unix,
 		"money": money,
@@ -284,6 +301,7 @@ static func from_dict(d: Dictionary) -> PlayerProfile:
 	var p := PlayerProfile.new()
 	p.profile_id = String(d.get("profile_id", ""))
 	p.display_name = String(d.get("display_name", "Driver"))
+	p.avatar_id = int(d.get("avatar_id", 0))
 	p.created_unix = int(d.get("created_unix", 0))
 	p.last_played_unix = int(d.get("last_played_unix", 0))
 	p.money = int(d.get("money", 12000))

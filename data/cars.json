@@ -22,11 +22,14 @@
       "drivetrain": "RWD",
       "category": "classic",
       "description": "Slow, soft and indestructible. Free to repair, forever.",
+      "power_hp": 62,
+      "top_speed_kmh": 140,
+      "upgrade_ceiling": 1,
       "reverse": 3.87,
       "gears": [3.75, 2.3, 1.49, 1],
       "stats": {
         "mass_kg": 955, "weight_bias_front": 0.52, "cg_height_m": 0.55, "wheelbase_m": 2.42,
-        "track_width_m": 1.35, "engine_torque_nm": 87, "torque_curve_bias": -0.35,
+        "track_width_m": 1.35, "engine_torque_nm": 87, "torque_curve_bias": 0.3,
         "idle_rpm": 850, "redline_rpm": 5600, "final_drive": 4.3, "grip_lat": 0.86,
         "grip_long": 0.9, "dirt_grip": 0.98, "tarmac_grip": 0.94, "max_steer_deg": 34,
         "brake_force": 0.72, "shift_time": 0.45, "drag_area": 0.78, "durability_body": 115,
@@ -45,6 +48,9 @@
       "drivetrain": "FWD",
       "category": "classic",
       "description": "600 kilos of duroplast and two strokes. Astonishingly light.",
+      "power_hp": 26,
+      "top_speed_kmh": 100,
+      "upgrade_ceiling": 1,
       "reverse": 3.65,
       "gears": [3.65, 2.1, 1.35, 0.92],
       "stats": {
@@ -52,7 +58,7 @@
         "track_width_m": 1.26, "engine_torque_nm": 51, "torque_curve_bias": 0.15,
         "idle_rpm": 900, "redline_rpm": 4600, "final_drive": 4.08, "grip_lat": 0.8,
         "grip_long": 0.84, "dirt_grip": 1.02, "tarmac_grip": 0.88, "max_steer_deg": 36,
-        "brake_force": 0.62, "shift_time": 0.5, "drag_area": 0.72, "durability_body": 80,
+        "brake_force": 0.62, "shift_time": 0.5, "drag_area": 0.88, "durability_body": 80,
         "durability_engine": 90, "durability_suspension": 100, "crash_resistance": 0.85,
         "abs_strength": 0, "traction_control": 0, "wheel_radius": 0.29, "wheel_inertia": 1.3
       }
@@ -68,6 +74,9 @@
       "drivetrain": "FWD",
       "category": "classic",
       "description": "Front-drive, nose-heavy, and it pulls straight out of hairpins.",
+      "power_hp": 50,
+      "top_speed_kmh": 130,
+      "upgrade_ceiling": 1,
       "reverse": 3.6,
       "gears": [3.6, 2.05, 1.3, 0.88],
       "stats": {
@@ -91,6 +100,9 @@
       "drivetrain": "RWD",
       "category": "classic",
       "description": "Engine behind the rear axle. Lift mid-corner and find out.",
+      "power_hp": 54,
+      "top_speed_kmh": 140,
+      "upgrade_ceiling": 1,
       "reverse": 3.27,
       "gears": [3.8, 2.12, 1.41, 0.97],
       "stats": {
@@ -115,6 +127,9 @@
       "drivetrain": "RWD",
       "category": "classic",
       "description": "Light, revvy and endlessly tunable. The obvious first project.",
+      "power_hp": 68,
+      "top_speed_kmh": 155,
+      "upgrade_ceiling": 1,
       "reverse": 3.64,
       "gears": [3.66, 2.22, 1.44, 1],
       "stats": {
@@ -138,6 +153,9 @@
       "drivetrain": "FWD",
       "category": "road",
       "description": "The benchmark hot hatch. Nose-led, tidy, hard to upset.",
+      "power_hp": 139,
+      "top_speed_kmh": 208,
+      "upgrade_ceiling": 2,
       "reverse": 3.38,
       "gears": [3.45, 2.12, 1.44, 1.13, 0.91],
       "stats": {
@@ -161,6 +179,9 @@
       "drivetrain": "RWD",
       "category": "rally",
       "description": "Live rear axle, willing tail. The classroom for left-foot braking.",
+      "power_hp": 110,
+      "top_speed_kmh": 175,
+      "upgrade_ceiling": 2,
       "reverse": 3.32,
       "gears": [3.36, 1.81, 1.26, 1],
       "stats": {
@@ -185,6 +206,9 @@
       "drivetrain": "FWD",
       "category": "road",
       "description": "Lift-off oversteer as a factory feature. Sharp, and it bites.",
+      "power_hp": 130,
+      "top_speed_kmh": 206,
+      "upgrade_ceiling": 2,
       "reverse": 3.33,
       "gears": [3.31, 1.88, 1.28, 0.98, 0.79],
       "stats": {
@@ -209,6 +233,9 @@
       "drivetrain": "RWD",
       "category": "road",
       "description": "Not fast. Perfectly balanced. Rewards the driver, not the wallet.",
+      "power_hp": 130,
+      "top_speed_kmh": 195,
+      "upgrade_ceiling": 2,
       "reverse": 3.48,
       "gears": [3.59, 2.06, 1.39, 1, 0.86],
       "stats": {
@@ -233,6 +260,9 @@
       "drivetrain": "FWD",
       "category": "road",
       "description": "The high-revving answer to the Golf. Stronger top end, softer body.",
+      "power_hp": 156,
+      "top_speed_kmh": 220,
+      "upgrade_ceiling": 2,
       "reverse": 3.31,
       "gears": [3.42, 2.14, 1.48, 1.13, 0.89],
       "stats": {
@@ -256,6 +286,9 @@
       "drivetrain": "AWD",
       "category": "rally",
       "description": "Six championships of homologation. Points wherever you look.",
+      "power_hp": 210,
+      "top_speed_kmh": 220,
+      "upgrade_ceiling": 3,
       "reverse": 3.58,
       "gears": [3.5, 2.18, 1.48, 1.12, 0.9],
       "stats": {
@@ -281,6 +314,9 @@
       "drivetrain": "AWD",
       "category": "rally",
       "description": "Flat-four low down, symmetrical AWD, endlessly forgiving on gravel.",
+      "power_hp": 240,
+      "top_speed_kmh": 225,
+      "upgrade_ceiling": 3,
       "reverse": 3.33,
       "gears": [3.45, 2.06, 1.45, 1.09, 0.83],
       "stats": {
@@ -306,6 +342,9 @@
       "drivetrain": "AWD",
       "category": "rally",
       "description": "Sharper and angrier than the Impreza. Less patient with mistakes.",
+      "power_hp": 270,
+      "top_speed_kmh": 230,
+      "upgrade_ceiling": 3,
       "reverse": 3.42,
       "gears": [3.42, 2.11, 1.42, 1.03, 0.72],
       "stats": {
@@ -332,6 +371,9 @@
       "drivetrain": "RWD",
       "category": "road",
       "description": "Huge turbo, long wheelbase, rear drive. Boost arrives all at once.",
+      "power_hp": 204,
+      "top_speed_kmh": 240,
+      "upgrade_ceiling": 3,
       "reverse": 3.36,
       "gears": [3.36, 1.81, 1.26, 1, 0.83],
       "stats": {
@@ -356,6 +398,9 @@
       "drivetrain": "AWD",
       "category": "rally",
       "description": "The car that made four-wheel drive compulsory. Nose-heavy and stubborn.",
+      "power_hp": 200,
+      "top_speed_kmh": 220,
+      "upgrade_ceiling": 3,
       "reverse": 3.5,
       "gears": [3.6, 2.13, 1.36, 0.97, 0.78],
       "stats": {
@@ -382,6 +427,9 @@
       "drivetrain": "AWD",
       "category": "rally",
       "description": "Heavier than its rivals but planted, and it never runs out of grip early.",
+      "power_hp": 208,
+      "top_speed_kmh": 220,
+      "upgrade_ceiling": 3,
       "reverse": 3.25,
       "gears": [3.28, 1.89, 1.27, 0.92, 0.73],
       "stats": {
@@ -406,6 +454,9 @@
       "drivetrain": "AWD",
       "category": "rally",
       "description": "Driver-adjustable centre diff. The setup sheet actually matters here.",
+      "power_hp": 265,
+      "top_speed_kmh": 250,
+      "upgrade_ceiling": 4,
       "reverse": 3.55,
       "gears": [3.64, 2.24, 1.59, 1.14, 0.89, 0.71],
       "stats": {
@@ -415,7 +466,7 @@
         "turbo_lag": 0.45, "grip_lat": 1.18, "grip_long": 1.24, "dirt_grip": 1.16,
         "tarmac_grip": 1.12, "awd_front_bias": 0.41, "diff_lock_front": 0.5,
         "diff_lock_rear": 0.65, "max_steer_deg": 33, "brake_force": 1.12, "shift_time": 0.24,
-        "slip_forgiveness": 1.1, "drag_area": 0.68, "downforce": 12, "durability_body": 105,
+        "slip_forgiveness": 1.1, "drag_area": 0.68, "downforce": 0.24, "durability_body": 105,
         "durability_engine": 98, "durability_suspension": 118, "crash_resistance": 1.08,
         "abs_strength": 0.88, "traction_control": 0.35, "wheel_radius": 0.34,
         "wheel_inertia": 2.4
@@ -432,6 +483,9 @@
       "drivetrain": "AWD",
       "category": "rally",
       "description": "Active yaw control in a homologation special. Turns in like nothing else.",
+      "power_hp": 280,
+      "top_speed_kmh": 250,
+      "upgrade_ceiling": 4,
       "reverse": 3.42,
       "gears": [2.93, 1.95, 1.41, 1.03, 0.76],
       "stats": {
@@ -441,7 +495,7 @@
         "turbo_lag": 0.35, "grip_lat": 1.22, "grip_long": 1.26, "dirt_grip": 1.15,
         "tarmac_grip": 1.16, "awd_front_bias": 0.4, "diff_lock_rear": 0.7,
         "max_steer_deg": 34, "brake_force": 1.15, "shift_time": 0.22,
-        "grip_balance_front": 0.54, "drag_area": 0.69, "downforce": 15,
+        "grip_balance_front": 0.54, "drag_area": 0.69, "downforce": 0.3,
         "durability_body": 100, "durability_engine": 94, "durability_suspension": 112,
         "crash_resistance": 1.04, "abs_strength": 0.85, "traction_control": 0.3,
         "wheel_radius": 0.34, "wheel_inertia": 2.4
@@ -458,6 +512,9 @@
       "drivetrain": "AWD",
       "category": "road",
       "description": "Rear-biased AWD that only sends power forward when it has to.",
+      "power_hp": 330,
+      "top_speed_kmh": 250,
+      "upgrade_ceiling": 4,
       "reverse": 3.55,
       "gears": [3.83, 2.36, 1.69, 1.31, 1, 0.79],
       "stats": {
@@ -467,7 +524,7 @@
         "turbo_lag": 0.5, "grip_lat": 1.2, "grip_long": 1.26, "dirt_grip": 0.96,
         "tarmac_grip": 1.18, "awd_front_bias": 0.2, "diff_lock_rear": 0.7,
         "max_steer_deg": 32, "brake_force": 1.14, "shift_time": 0.23, "drag_area": 0.7,
-        "downforce": 18, "durability_body": 105, "durability_engine": 96,
+        "downforce": 0.36, "durability_body": 105, "durability_engine": 96,
         "durability_suspension": 105, "crash_resistance": 1.08, "abs_strength": 0.85,
         "traction_control": 0.25, "wheel_radius": 0.34, "wheel_inertia": 2.4
       }
@@ -483,6 +540,9 @@
       "drivetrain": "FWD",
       "category": "road",
       "description": "440 Nm through the front wheels. The diff is doing heroic work.",
+      "power_hp": 305,
+      "top_speed_kmh": 263,
+      "upgrade_ceiling": 4,
       "reverse": 3.46,
       "gears": [3.42, 2.14, 1.45, 1.03, 0.79, 0.66],
       "stats": {
@@ -491,7 +551,7 @@
         "idle_rpm": 800, "redline_rpm": 6500, "final_drive": 3.82, "turbo_boost": 1.36,
         "turbo_lag": 0.4, "grip_lat": 1.16, "grip_long": 1.2, "dirt_grip": 0.95,
         "tarmac_grip": 1.16, "diff_lock_front": 0.7, "max_steer_deg": 33, "brake_force": 1.12,
-        "shift_time": 0.25, "drag_area": 0.72, "downforce": 10, "durability_body": 102,
+        "shift_time": 0.25, "drag_area": 0.72, "downforce": 0.2, "durability_body": 102,
         "durability_engine": 98, "durability_suspension": 100, "crash_resistance": 1.05,
         "abs_strength": 0.9, "traction_control": 0.45, "wheel_radius": 0.34,
         "wheel_inertia": 2.4
@@ -508,6 +568,9 @@
       "drivetrain": "AWD",
       "category": "rally",
       "description": "A homologation car built in the modern era, for no reason but rallying.",
+      "power_hp": 261,
+      "top_speed_kmh": 230,
+      "upgrade_ceiling": 4,
       "reverse": 3.25,
       "gears": [3.54, 1.91, 1.31, 1, 0.79, 0.63],
       "stats": {
@@ -517,10 +580,10 @@
         "turbo_lag": 0.32, "grip_lat": 1.22, "grip_long": 1.26, "dirt_grip": 1.18,
         "tarmac_grip": 1.16, "awd_front_bias": 0.45, "diff_lock_front": 0.6,
         "diff_lock_rear": 0.6, "max_steer_deg": 35, "brake_force": 1.16, "shift_time": 0.22,
-        "slip_forgiveness": 1.12, "drag_area": 0.66, "downforce": 14, "durability_body": 104,
-        "durability_engine": 102, "durability_suspension": 120, "crash_resistance": 1.1,
-        "abs_strength": 0.92, "traction_control": 0.55, "wheel_radius": 0.34,
-        "wheel_inertia": 2.4
+        "slip_forgiveness": 1.12, "drag_area": 0.66, "downforce": 0.28,
+        "durability_body": 104, "durability_engine": 102, "durability_suspension": 120,
+        "crash_resistance": 1.1, "abs_strength": 0.92, "traction_control": 0.55,
+        "wheel_radius": 0.34, "wheel_inertia": 2.4
       }
     },
 
@@ -534,18 +597,22 @@
       "drivetrain": "AWD",
       "category": "road",
       "description": "Engine behind the rear axle. Traction out of corners, weight over the tail.",
+      "power_hp": 450,
+      "top_speed_kmh": 306,
+      "upgrade_ceiling": 4,
       "reverse": 3.55,
       "gears": [3.91, 2.29, 1.58, 1.19, 0.97, 0.81],
       "stats": {
         "mass_kg": 1565, "weight_bias_front": 0.39, "cg_height_m": 0.43, "wheelbase_m": 2.45,
-        "track_width_m": 1.58, "engine_torque_nm": 530, "torque_curve_bias": -0.1,
+        "track_width_m": 1.58, "engine_torque_nm": 530, "torque_curve_bias": 0.15,
         "idle_rpm": 750, "redline_rpm": 7500, "final_drive": 3.44, "turbo_boost": 1.4,
         "turbo_lag": 0.28, "grip_lat": 1.28, "grip_long": 1.3, "dirt_grip": 0.88,
         "tarmac_grip": 1.22, "awd_front_bias": 0.22, "max_steer_deg": 32, "brake_force": 1.24,
         "shift_time": 0.1, "grip_balance_front": 0.45, "drift_release": 1.2,
-        "drag_area": 0.62, "downforce": 22, "durability_body": 100, "durability_engine": 104,
-        "durability_suspension": 98, "crash_resistance": 1.06, "abs_strength": 0.95,
-        "traction_control": 0.65, "wheel_radius": 0.34, "wheel_inertia": 2.4
+        "drag_area": 0.56, "downforce": 0.44, "durability_body": 100,
+        "durability_engine": 104, "durability_suspension": 98, "crash_resistance": 1.06,
+        "abs_strength": 0.95, "traction_control": 0.65, "wheel_radius": 0.34,
+        "wheel_inertia": 2.4
       }
     },
 
@@ -559,6 +626,9 @@
       "drivetrain": "RWD",
       "category": "rally",
       "description": "Two-metre wheelbase, mid-engine, no patience. Rotates on a thought.",
+      "power_hp": 190,
+      "top_speed_kmh": 232,
+      "upgrade_ceiling": 4,
       "reverse": 2.86,
       "gears": [2.58, 1.71, 1.25, 0.96, 0.79],
       "stats": {
@@ -584,6 +654,9 @@
       "drivetrain": "AWD",
       "category": "rally",
       "description": "Group B at its most absurd. Wait for the boost, then hold on.",
+      "power_hp": 476,
+      "top_speed_kmh": 250,
+      "upgrade_ceiling": 4,
       "reverse": 3.1,
       "gears": [2.85, 1.86, 1.36, 1.06, 0.85],
       "stats": {
@@ -593,9 +666,10 @@
         "turbo_lag": 1.25, "grip_lat": 1.26, "grip_long": 1.34, "dirt_grip": 1.24,
         "tarmac_grip": 1.1, "awd_front_bias": 0.5, "diff_lock_front": 0.7,
         "diff_lock_rear": 0.7, "max_steer_deg": 36, "brake_force": 1.1, "shift_time": 0.24,
-        "slip_forgiveness": 0.9, "drag_area": 0.78, "downforce": 30, "durability_body": 88,
+        "slip_forgiveness": 0.9, "drag_area": 0.78, "downforce": 0.6, "durability_body": 88,
         "durability_engine": 72, "durability_suspension": 100, "crash_resistance": 0.88,
-        "abs_strength": 0, "traction_control": 0, "wheel_radius": 0.33, "wheel_inertia": 1.8
+        "abs_strength": 0, "traction_control": 0, "wheel_radius": 0.33, "wheel_inertia": 1.8,
+        "gear_spread": 1.2
       }
     },
 
@@ -609,6 +683,9 @@
       "drivetrain": "AWD",
       "category": "rally",
       "description": "Mid-engine four-wheel drive in a supermini shell. Almost neutral.",
+      "power_hp": 500,
+      "top_speed_kmh": 220,
+      "upgrade_ceiling": 4,
       "reverse": 3,
       "gears": [2.75, 1.82, 1.36, 1.08, 0.88],
       "stats": {
@@ -618,9 +695,10 @@
         "turbo_lag": 1.05, "grip_lat": 1.28, "grip_long": 1.34, "dirt_grip": 1.26,
         "tarmac_grip": 1.14, "awd_front_bias": 0.33, "diff_lock_rear": 0.75,
         "max_steer_deg": 37, "brake_force": 1.12, "shift_time": 0.22,
-        "slip_forgiveness": 0.95, "drag_area": 0.72, "downforce": 28, "durability_body": 85,
+        "slip_forgiveness": 0.95, "drag_area": 0.9, "downforce": 0.56, "durability_body": 85,
         "durability_engine": 74, "durability_suspension": 98, "crash_resistance": 0.85,
-        "abs_strength": 0, "traction_control": 0, "wheel_radius": 0.33, "wheel_inertia": 1.8
+        "abs_strength": 0, "traction_control": 0, "wheel_radius": 0.33, "wheel_inertia": 1.8,
+        "gear_spread": 1.27
       }
     },
 
@@ -634,6 +712,9 @@
       "drivetrain": "AWD",
       "category": "rally",
       "description": "Purpose-built, composite-bodied, and the most powerful of the lot.",
+      "power_hp": 600,
+      "top_speed_kmh": 240,
+      "upgrade_ceiling": 4,
       "reverse": 2.9,
       "gears": [2.65, 1.78, 1.32, 1.04, 0.86],
       "stats": {
@@ -643,9 +724,9 @@
         "turbo_lag": 1.1, "grip_lat": 1.3, "grip_long": 1.36, "dirt_grip": 1.26,
         "tarmac_grip": 1.18, "awd_front_bias": 0.37, "diff_lock_front": 0.7,
         "diff_lock_rear": 0.7, "max_steer_deg": 36, "brake_force": 1.16, "shift_time": 0.21,
-        "drag_area": 0.7, "downforce": 34, "durability_body": 90, "durability_engine": 70,
+        "drag_area": 0.86, "downforce": 0.68, "durability_body": 90, "durability_engine": 70,
         "durability_suspension": 102, "crash_resistance": 0.9, "abs_strength": 0,
-        "traction_control": 0, "wheel_radius": 0.33, "wheel_inertia": 1.8
+        "traction_control": 0, "wheel_radius": 0.33, "wheel_inertia": 1.8, "gear_spread": 1.3
       }
     },
 
@@ -659,6 +740,9 @@
       "drivetrain": "AWD",
       "category": "rally",
       "description": "Supercharged and turbocharged together, so there is no hole to fall into.",
+      "power_hp": 480,
+      "top_speed_kmh": 225,
+      "upgrade_ceiling": 4,
       "reverse": 2.95,
       "gears": [2.72, 1.8, 1.34, 1.06, 0.87],
       "stats": {
@@ -668,9 +752,9 @@
         "turbo_lag": 0.35, "grip_lat": 1.28, "grip_long": 1.34, "dirt_grip": 1.25,
         "tarmac_grip": 1.15, "awd_front_bias": 0.3, "diff_lock_rear": 0.75,
         "max_steer_deg": 37, "brake_force": 1.12, "shift_time": 0.21, "drag_area": 0.71,
-        "downforce": 30, "durability_body": 80, "durability_engine": 68,
+        "downforce": 0.6, "durability_body": 80, "durability_engine": 68,
         "durability_suspension": 95, "crash_resistance": 0.82, "abs_strength": 0,
-        "traction_control": 0, "wheel_radius": 0.33, "wheel_inertia": 1.8
+        "traction_control": 0, "wheel_radius": 0.33, "wheel_inertia": 1.8, "gear_spread": 1.27
       }
     },
 
@@ -684,6 +768,9 @@
       "drivetrain": "AWD",
       "category": "rally",
       "description": "Naturally aspirated V6. No lag at all, and it screams to nine thousand.",
+      "power_hp": 410,
+      "top_speed_kmh": 210,
+      "upgrade_ceiling": 4,
       "reverse": 2.95,
       "gears": [2.69, 1.83, 1.38, 1.09, 0.9],
       "stats": {
@@ -692,9 +779,9 @@
         "idle_rpm": 1100, "redline_rpm": 9000, "final_drive": 4.15, "grip_lat": 1.26,
         "grip_long": 1.3, "dirt_grip": 1.24, "tarmac_grip": 1.12, "awd_front_bias": 0.35,
         "diff_lock_rear": 0.7, "max_steer_deg": 37, "brake_force": 1.1, "shift_time": 0.22,
-        "drag_area": 0.74, "downforce": 26, "durability_body": 86, "durability_engine": 90,
+        "drag_area": 0.98, "downforce": 0.52, "durability_body": 86, "durability_engine": 90,
         "durability_suspension": 96, "crash_resistance": 0.86, "abs_strength": 0,
-        "traction_control": 0, "wheel_radius": 0.33, "wheel_inertia": 1.8
+        "traction_control": 0, "wheel_radius": 0.33, "wheel_inertia": 1.8, "gear_spread": 1.3
       }
     },
 
@@ -708,16 +795,19 @@
       "drivetrain": "RWD",
       "category": "hyper",
       "description": "700 horsepower, rear drive, rear engine. Tarmac only, if you value the car.",
+      "power_hp": 700,
+      "top_speed_kmh": 340,
+      "upgrade_ceiling": 4,
       "reverse": 3.55,
       "gears": [3.91, 2.29, 1.65, 1.3, 1.08, 0.88, 0.72],
       "stats": {
         "mass_kg": 1470, "weight_bias_front": 0.38, "cg_height_m": 0.4, "wheelbase_m": 2.45,
-        "track_width_m": 1.6, "engine_torque_nm": 750, "torque_curve_bias": -0.05,
+        "track_width_m": 1.6, "engine_torque_nm": 750, "torque_curve_bias": 0.35,
         "idle_rpm": 750, "redline_rpm": 7200, "final_drive": 3.44, "turbo_boost": 1.55,
         "turbo_lag": 0.4, "grip_lat": 1.38, "grip_long": 1.4, "dirt_grip": 0.72,
         "tarmac_grip": 1.34, "diff_lock_rear": 0.8, "max_steer_deg": 31, "brake_force": 1.35,
         "shift_time": 0.09, "grip_balance_front": 0.44, "slip_forgiveness": 0.8,
-        "drift_release": 1.45, "drag_area": 0.64, "downforce": 55, "durability_body": 95,
+        "drift_release": 1.45, "drag_area": 0.55, "downforce": 1.1, "durability_body": 95,
         "durability_engine": 100, "durability_suspension": 88, "crash_resistance": 0.98,
         "abs_strength": 0.95, "traction_control": 0.7, "wheel_radius": 0.35,
         "wheel_inertia": 2
@@ -734,6 +824,9 @@
       "drivetrain": "AWD",
       "category": "hyper",
       "description": "A raised, gravel-shod V10. Absurd, and genuinely quick off tarmac.",
+      "power_hp": 610,
+      "top_speed_kmh": 260,
+      "upgrade_ceiling": 4,
       "reverse": 3.2,
       "gears": [3.91, 2.44, 1.81, 1.46, 1.19, 0.97, 0.84],
       "stats": {
@@ -742,10 +835,10 @@
         "idle_rpm": 800, "redline_rpm": 8500, "final_drive": 3.7, "grip_lat": 1.32,
         "grip_long": 1.34, "dirt_grip": 1.18, "tarmac_grip": 1.24, "awd_front_bias": 0.3,
         "diff_lock_rear": 0.75, "max_steer_deg": 34, "brake_force": 1.28, "shift_time": 0.1,
-        "suspension_travel": 1.25, "drag_area": 0.72, "downforce": 30, "durability_body": 92,
+        "suspension_travel": 1.25, "drag_area": 0.72, "downforce": 0.6, "durability_body": 92,
         "durability_engine": 98, "durability_suspension": 108, "crash_resistance": 0.95,
         "abs_strength": 0.95, "traction_control": 0.75, "wheel_radius": 0.35,
-        "wheel_inertia": 2.3
+        "wheel_inertia": 2.3, "speed_limiter_kmh": 260
       }
     },
 
@@ -759,16 +852,19 @@
       "drivetrain": "AWD",
       "category": "hyper",
       "description": "Heavy, brutal and impossible to unsettle. Point it and it goes.",
+      "power_hp": 600,
+      "top_speed_kmh": 315,
+      "upgrade_ceiling": 4,
       "reverse": 3.38,
       "gears": [4.06, 2.3, 1.6, 1.25, 1, 0.8],
       "stats": {
         "mass_kg": 1720, "weight_bias_front": 0.54, "cg_height_m": 0.44, "wheelbase_m": 2.78,
-        "track_width_m": 1.62, "engine_torque_nm": 652, "torque_curve_bias": -0.05,
+        "track_width_m": 1.62, "engine_torque_nm": 652, "torque_curve_bias": 0.35,
         "idle_rpm": 750, "redline_rpm": 7000, "final_drive": 3.7, "turbo_boost": 1.5,
         "turbo_lag": 0.35, "grip_lat": 1.34, "grip_long": 1.4, "dirt_grip": 0.86,
         "tarmac_grip": 1.3, "awd_front_bias": 0.25, "diff_lock_rear": 0.8,
         "max_steer_deg": 31, "brake_force": 1.3, "shift_time": 0.09, "slip_forgiveness": 1.15,
-        "drag_area": 0.7, "downforce": 45, "durability_body": 108, "durability_engine": 102,
+        "drag_area": 0.6, "downforce": 0.9, "durability_body": 108, "durability_engine": 102,
         "durability_suspension": 100, "crash_resistance": 1.12, "abs_strength": 0.95,
         "traction_control": 0.8, "wheel_radius": 0.35, "wheel_inertia": 2.5
       }
@@ -784,6 +880,9 @@
       "drivetrain": "RWD",
       "category": "offroad",
       "description": "670 kilos, all suspension travel and no bodywork to bend.",
+      "power_hp": 235,
+      "top_speed_kmh": 200,
+      "upgrade_ceiling": 4,
       "reverse": 3.14,
       "gears": [3.27, 2.13, 1.52, 1.13, 0.89, 0.71],
       "stats": {
@@ -808,11 +907,14 @@
       "drivetrain": "AWD",
       "category": "offroad",
       "description": "Two and a half tonnes that lands jumps other cars would break on.",
+      "power_hp": 450,
+      "top_speed_kmh": 180,
+      "upgrade_ceiling": 4,
       "reverse": 3.3,
       "gears": [4.7, 3.14, 2.11, 1.67, 1.29, 1, 0.84, 0.67],
       "stats": {
         "mass_kg": 2560, "weight_bias_front": 0.56, "cg_height_m": 0.78, "wheelbase_m": 3.68,
-        "track_width_m": 1.85, "engine_torque_nm": 691, "torque_curve_bias": -0.3,
+        "track_width_m": 1.85, "engine_torque_nm": 691, "torque_curve_bias": 0.05,
         "idle_rpm": 700, "redline_rpm": 5850, "final_drive": 3.55, "turbo_boost": 1.42,
         "turbo_lag": 0.45, "grip_lat": 1.02, "grip_long": 1.16, "dirt_grip": 1.28,
         "tarmac_grip": 0.94, "awd_front_bias": 0.45, "diff_lock_rear": 0.85,
@@ -820,7 +922,8 @@
         "suspension_travel": 2.2, "slip_forgiveness": 1.3, "drag_area": 1.35,
         "rolling_resistance": 0.019, "durability_body": 150, "durability_engine": 120,
         "durability_suspension": 175, "crash_resistance": 1.55, "abs_strength": 0.9,
-        "traction_control": 0.6, "wheel_radius": 0.42, "wheel_inertia": 5.6
+        "traction_control": 0.6, "wheel_radius": 0.42, "wheel_inertia": 5.6,
+        "speed_limiter_kmh": 180
       }
     }
   ]

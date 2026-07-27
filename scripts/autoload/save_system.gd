@@ -40,6 +40,7 @@ func list_profiles() -> Array[Dictionary]:
 				out.append({
 					"id": id,
 					"name": profile.display_name,
+					"avatar_id": profile.avatar_id,
 					"level": profile.level,
 					"money": profile.money,
 					"rating": profile.rating,
@@ -86,9 +87,13 @@ func load_profile(profile_id: String) -> PlayerProfile:
 	return profile
 
 
-func create_profile(display_name: String) -> PlayerProfile:
+func create_profile(
+	display_name: String,
+	starter: CarSpec = null,
+	avatar_id: int = 0
+) -> PlayerProfile:
 	var id := _make_profile_id(display_name)
-	var profile := PlayerProfile.create_new(id, display_name)
+	var profile := PlayerProfile.create_new(id, display_name, starter, avatar_id)
 	_cache[id] = profile
 	save_profile(profile)
 	return profile

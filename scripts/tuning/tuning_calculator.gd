@@ -46,13 +46,14 @@ static func _apply_parts(stats: VehicleStats, spec: CarSpec, loadout: TuningLoad
 	var value := 0
 
 	for slot in loadout.parts:
-		if not spec.accepts_slot(slot):
-			continue
 		var part := PartDatabase.get_part(loadout.parts[slot])
 		if part == null:
 			push_warning("Loadout references missing part '%s'" % loadout.parts[slot])
 			continue
-		if not part.fits(stats):
+		# The chassis has the final say. A saved loadout from an older build,
+		# or one edited by hand, must not be able to smuggle a race gearbox
+		# onto a car that could never accept one.
+		if not spec.accepts_part(part) or not part.fits(stats):
 			continue
 		value += part.price
 		stats.fitted_parts[slot] = part.id

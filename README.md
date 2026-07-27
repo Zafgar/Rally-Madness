@@ -89,6 +89,30 @@ tire forces switched off while airborne, and landing speed feeding straight into
 suspension damage. It is the classic top-down trick and it keeps the whole game
 in 2D, which is what makes 4-way split-screen and 12-car LAN cheap.
 
+### Mass, torque, power, grip
+
+Those four decide almost everything, and only three of them are authored. Power
+is torque times crank speed, so a car defined by a torque curve, a redline and
+a set of ratios already has a power output whether anyone checked it or not —
+and top speed is simply where drive force finally loses to drag.
+
+That makes both of them a free honesty check, and the catalogue failed it
+badly until one existed. `engine_torque_nm` holds the peak torque a spec sheet
+quotes, which for a turbo car already includes boost — and boost was being
+multiplied on top of it. The Group B cars were making 800 hp instead of 480.
+Boost now describes the *hole below it* rather than a multiplier on the rated
+figure, and every one of the 33 cars lands within 12% of its real power and 15%
+of its real top speed:
+
+```bash
+godot --headless --path . res://tests/spec_bench.tscn        # the whole table
+godot --headless --path . res://tests/spec_bench.tscn -- tuned   # + build costs
+```
+
+The same pass caught `downforce` being authored on a scale ~50x too large — a
+GT2 RS was generating fifty tonnes of it at speed. The smoke test now holds all
+of this in place.
+
 **Weight distribution is the biggest character knob.** A front-transverse hot
 hatch sits near 0.62, a mid-engine Group B car near 0.42, a 911 near 0.38 — and
 they drive completely differently as a result, without a line of special-case
@@ -142,6 +166,30 @@ part costs something as well as giving something**: a big turbo brings lag,
 sticky tires wear out, a stripped interior gives up crash protection. A part
 with only upside is a balance bug, not a reward.
 
+### What a chassis will accept
+
+A Lada can be usefully improved — better tyres, a rebuild, a cage — but no
+amount of money turns it into a Group B car, and being able to bolt a
+sequential race gearbox and WRC dampers to one would make the whole progression
+pointless. Each chassis has an **upgrade ceiling**: the highest part tier it
+will accept, one tier above the car itself. Parts also gate the other way, so a
+WRC compound refuses to fit anything below tier 3.
+
+| Chassis | Ceiling | Stock → fully built |
+|---|---|---|
+| Lada 2101 (tier 0) | tier 1 | 56 → 76 hp |
+| Golf GTI (tier 1) | tier 2 | 138 → 274 hp |
+| Sierra Cosworth (tier 2) | tier 3 | 209 → 648 hp |
+| Skyline R34 (tier 3) | tier 4 | 343 → 972 hp |
+
+A saved loadout naming a part the chassis cannot take is ignored rather than
+honoured, so an old save or a hand-edited file cannot smuggle one in.
+
+The economics carry the rest of the message: building that Cosworth to 648 hp
+costs about 590,000 in parts on a 38,000 car — more than simply buying a
+factory Group B machine. You *can* build an old car to be fast. It costs more
+than the real thing, and it is still worse everywhere except in a straight line.
+
 On top of parts sits a free setup sheet — brake bias, diff preload, ride height,
 anti-roll balance, gear length, AWD split, boost pressure — that needs no
 purchase and is where a player fine-tunes a car they already own.
@@ -186,6 +234,19 @@ landings. Mid-air is conspicuously smooth, which is what sells a jump.
 > resistance still works. The feel logic itself is hardware-free and unit
 > tested, so it can be verified without a pad in the room — but it has **not
 > been validated against real hardware in this repository**.
+
+## Starting a career
+
+New game asks for three things: a name, a profile picture, and one of five
+starter cars. The picture is drawn from polygons rather than loaded, so a
+profile has a face without the project carrying image assets.
+
+The car is the real decision. All five are free to repair forever, but they do
+not drive alike — the Škoda is rear-engined and will swap ends if you lift
+mid-corner, the Wartburg is nose-heavy front-drive that simply pushes, the
+Trabant weighs six hundred kilos. The picker shows mass, power, torque, top
+speed and where the weight sits, plus a sentence on what that means, because
+"40% front" tells a first-time player nothing on its own.
 
 ## Progression
 
@@ -313,8 +374,10 @@ per-player local saves.
 Thin or missing, roughly in the order they matter:
 
 1. **Garage and showroom UI.** Buying cars, fitting parts and adjusting the
-   setup sheet all work through `PlayerProfile` and `TuningCalculator`, but the
-   only front end is a placeholder menu. This is the biggest gap.
+   setup sheet all work through `PlayerProfile` and `TuningCalculator`, and
+   `PartDatabase.catalogue_for()` already returns each part with the reason it
+   will not fit — but the only front end is a placeholder menu plus the
+   new-career screen. This is the biggest gap.
 2. **AI opponent awareness.** Rivals cannot see each other, so a full field
    still trades paint. Everything else is in place — braking-distance scanning,
    surface look-ahead, pure-pursuit steering and apexing — so this is the

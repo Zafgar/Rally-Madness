@@ -21,6 +21,7 @@ const STAT_KEYS := [
 	"max_steer_deg", "steering_rate", "steering_speed_falloff",
 	"brake_force", "brake_bias_front", "handbrake_lock",
 	"abs_strength", "traction_control", "wheel_radius", "wheel_inertia",
+	"speed_limiter_kmh",
 	"downforce", "drag_area", "rolling_resistance",
 	"nitro_capacity", "nitro_power", "nitro_regen", "nitro_heat",
 	"durability_body", "durability_engine", "durability_suspension", "crash_resistance",
@@ -111,6 +112,12 @@ var wheel_radius: float = 0.32
 ## Rotational inertia of one axle's wheels, kg*m^2. Lighter wheels spin up and
 ## lock more readily, which is why they are both quicker and twitchier.
 var wheel_inertia: float = 2.2
+
+## Electronic top-speed limiter, km/h. 0 means none. Real cars are often held
+## well below what their power could manage — a Raptor is capped by its
+## all-terrain tyres, not by running out of engine — and modelling that is the
+## honest way to match a published figure rather than fudging the drag.
+var speed_limiter_kmh: float = 0.0
 
 # --- Aero ---
 var downforce: float = 0.0
