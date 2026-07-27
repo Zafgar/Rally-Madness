@@ -39,6 +39,8 @@ var _elimination_timer: float = 0.0
 var _elimination_interval: float = 30.0
 ## Race time at which the leader finished, or -1 while nobody has.
 var _leader_finish_time: float = -1.0
+## Shared surface every car lays its tyre marks onto.
+var mark_layer: TireMarks
 
 signal standings_updated(ordered: Array)
 signal race_complete(results: Array)
@@ -53,11 +55,17 @@ func setup(p_event: EventSpec, p_track: TrackSpec, car_scene: PackedScene) -> vo
 	_track_root = builder.build()
 	add_child(_track_root)
 
+	# Marks belong to the road, not to the car that laid them.
+	mark_layer = TireMarks.new()
+	mark_layer.name = "TireMarks"
+	add_child(mark_layer)
+
 	for cp in builder.checkpoints:
 		cp.car_passed.connect(_on_checkpoint_passed)
 
 	_spawn_players()
 	_spawn_ai()
+	_share_field()
 	_begin_countdown()
 
 
@@ -125,10 +133,8 @@ func _spawn_ai() -> void:
 		var driver := DriverProfile.pick_for(event.ai_skill, rng)
 		entrant.driver_name = driver.display_name
 
-		# Each rival also gets its own habitual offset from the centreline. The
-		# AI has no awareness of other cars yet, so keeping them on visibly
-		# different lines is what stops the field converging into one another
-		# in every corner.
+		# Each rival also gets its own habitual offset from the centreline, so
+		# the field spreads across the road instead of queueing up on one line.
 		var lane_span := maxf(track_spec.width * 0.5 - 3.0, 1.0)
 		entrant.ai = AIDriver.new(car, builder, driver,
 			rng.randf_range(-lane_span, lane_span), rng.randi())
@@ -187,6 +193,8 @@ func _make_car(
 	var grid := builder.start_grid
 	var t: Transform2D = grid[grid_index % grid.size()] if not grid.is_empty() else Transform2D()
 	car.set_spawn(t)
+	car.mark_layer = mark_layer
+	car.lights_on = track_spec.night
 	car.wrecked.connect(_on_car_wrecked)
 	return car
 
@@ -205,6 +213,18 @@ func _ai_name(index: int, rng: RandomNumberGenerator) -> String:
 	var first: String = AI_FIRST_NAMES[rng.randi() % AI_FIRST_NAMES.size()]
 	var last: String = AI_LAST_NAMES[rng.randi() % AI_LAST_NAMES.size()]
 	return "%s %s" % [first, last]
+
+
+## Hands every AI the list of cars it might have to avoid. Players are in it
+## too: an AI that only sees other AI is not racing, it is performing.
+func _share_field() -> void:
+	var cars: Array = []
+	for e in entrants:
+		if e.car != null:
+			cars.append(e.car)
+	for e in entrants:
+		if e.ai != null:
+			e.ai.awareness.set_field(cars)
 
 
 # --- Flow -------------------------------------------------------------------

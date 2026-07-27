@@ -41,6 +41,11 @@ var aggression: float = 0.5
 ## Whether they look after the car. Low values keep driving flat out on a bent
 ## car and cut kerbs that break it.
 var mechanical_sympathy: float = 0.6
+## How much attention they pay to the cars around them. Low values refresh
+## their picture of the field only a few times a second, so they act on stale
+## information and get caught out by a car braking hard in front of them —
+## which is also why they compensate by leaving much bigger gaps.
+var awareness: float = 0.6
 ## Whether they shift for themselves and use the rev range properly.
 var uses_manual_gearbox: bool = false
 
@@ -73,6 +78,7 @@ static func from_dict(d: Dictionary) -> DriverProfile:
 	p.recovery = float(d.get("recovery", 0.6))
 	p.aggression = float(d.get("aggression", 0.5))
 	p.mechanical_sympathy = float(d.get("mechanical_sympathy", 0.6))
+	p.awareness = float(d.get("awareness", 0.6))
 	p.uses_manual_gearbox = bool(d.get("manual_gearbox", false))
 	return p
 
@@ -90,6 +96,7 @@ static func from_skill(skill: float) -> DriverProfile:
 	p.recovery = lerpf(0.25, 0.95, skill)
 	p.aggression = lerpf(0.3, 0.8, skill)
 	p.mechanical_sympathy = lerpf(0.4, 0.85, skill)
+	p.awareness = lerpf(0.25, 0.95, skill)
 	p.uses_manual_gearbox = skill > 0.6
 	return p
 
@@ -103,7 +110,8 @@ func varied(rng: RandomNumberGenerator, amount: float = 0.08) -> DriverProfile:
 	p.uses_manual_gearbox = uses_manual_gearbox
 	p.pace_ceiling = clampf(pace_ceiling + rng.randf_range(-amount, amount), 0.2, 1.2)
 	for trait_name in ["commitment", "consistency", "line_quality", "braking_skill",
-			"throttle_discipline", "recovery", "aggression", "mechanical_sympathy"]:
+			"throttle_discipline", "recovery", "aggression", "mechanical_sympathy",
+			"awareness"]:
 		p.set(trait_name, clampf(
 			float(get(trait_name)) + rng.randf_range(-amount, amount), 0.05, 1.0))
 	return p

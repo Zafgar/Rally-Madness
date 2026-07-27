@@ -49,6 +49,10 @@ var slip_angle_rear: float = 0.0
 var slip_angle_front: float = 0.0
 var wheel_slip: float = 0.0
 var is_drifting: bool = false
+## Times this car has hit another car. Separated from scenery contacts because
+## trading paint is a racing problem, not a driving one, and the AI's whole job
+## is to keep this number down.
+var contacts_with_cars: int = 0
 
 ## Smoothed longitudinal acceleration, used for load transfer. Reading it a
 ## frame late is standard practice and far more stable than solving the
@@ -64,8 +68,15 @@ var _rng := RandomNumberGenerator.new()
 var _spawn_transform := Transform2D()
 var _respawn_cooldown: float = 0.0
 
-@onready var _visual: Node2D = $Visual if has_node("Visual") else null
-@onready var _shadow: Node2D = $Shadow if has_node("Shadow") else null
+## Whether the headlights are on. Set by the race for night stages.
+var lights_on: bool = false
+
+var _visual: CarVisual
+var _effects: CarEffects
+var _shadow: Polygon2D
+## Where tyre marks are laid. Shared across the race so marks outlive the car
+## that made them.
+var mark_layer: TireMarks = null
 
 signal wrecked(car_id: int, cause: String)
 signal landed(car_id: int, impact: float)
@@ -102,6 +113,7 @@ func configure(p_spec: CarSpec, loadout: TuningLoadout, saved_damage: Dictionary
 	if not saved_damage.is_empty():
 		damage.restore(saved_damage)
 
+	_build_appearance(loadout)
 	transmission.gear_changed.connect(_on_gear_changed)
 	nitro.overheating.connect(func(amount): damage.apply("engine", amount))
 	nitro.state_changed.connect(func(c, a): EventBus.nitro_state_changed.emit(car_id, c, a))
@@ -111,6 +123,44 @@ func configure(p_spec: CarSpec, loadout: TuningLoadout, saved_damage: Dictionary
 
 	if is_inside_tree():
 		_apply_stats_to_body()
+
+
+## Body, wheels, particles and lights, all sized from the car's own numbers.
+func _build_appearance(loadout: TuningLoadout) -> void:
+	for old in [_visual, _effects, _shadow]:
+		if old != null:
+			old.queue_free()
+
+	_shadow = Polygon2D.new()
+	_shadow.color = Color(0, 0, 0, 0.32)
+	_shadow.z_index = -2
+	add_child(_shadow)
+
+	_visual = CarVisual.new()
+	_visual.name = "Visual"
+	add_child(_visual)
+	_visual.setup(spec, stats, loadout.paint_color if loadout else Color(0.85, 0.2, 0.15))
+
+	_effects = CarEffects.new()
+	_effects.name = "Effects"
+	add_child(_effects)
+	_effects.setup(stats)
+
+	# The shadow is the body outline, so it changes shape with the car.
+	var ppm := GameConfig.PIXELS_PER_METRE
+	var half_l := stats.wheelbase_m * 0.70 * ppm
+	var half_w := stats.track_width_m * 0.58 * ppm
+	_shadow.polygon = PackedVector2Array([
+		Vector2(-half_l, -half_w), Vector2(half_l, -half_w),
+		Vector2(half_l, half_w), Vector2(-half_l, half_w)])
+
+	# The collision box has to match what the player can see, or cars will
+	# bounce off each other before they touch.
+	var shape := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if shape != null and shape.shape is RectangleShape2D:
+		var box := RectangleShape2D.new()
+		box.size = Vector2(half_l * 2.0, half_w * 2.0)
+		shape.shape = box
 
 
 func _apply_stats_to_body() -> void:
@@ -417,14 +467,56 @@ func launch(launch_speed: float) -> void:
 
 
 func _update_visual() -> void:
-	if _visual != null:
-		# Scaling the sprite with height is the classic top-down trick for
-		# reading altitude without leaving 2D.
-		var s := 1.0 + height * 0.09
-		_visual.scale = Vector2(s, s)
+	if _visual == null:
+		return
+	# Scaling with height is the classic top-down trick for reading altitude
+	# without leaving 2D.
+	var lift := 1.0 + height * 0.09
+	_visual.scale = Vector2(lift, lift)
+	_visual.steer_angle = steer_angle
+	_visual.braking = command.brake > 0.15 or wheels_locked()
+	_visual.reversing = transmission != null \
+		and transmission.gear == Transmission.Gear.REVERSE
+	_visual.lights_on = lights_on
+	_visual.damage_body = damage.integrity["body"] if damage != null else 1.0
+	_visual.queue_redraw()
+
 	if _shadow != null:
-		_shadow.position = Vector2(height * 2.2, height * 2.2)
-		_shadow.modulate.a = clampf(0.45 - height * 0.03, 0.08, 0.45)
+		# The shadow separates from the car as it climbs, which is what sells
+		# the jump — and it does not grow with the car, it stays on the ground.
+		var ppm := GameConfig.PIXELS_PER_METRE
+		var drop := height * 0.16 * ppm
+		_shadow.position = (Vector2(0.35, 0.62).normalized() * drop).rotated(-rotation)
+		_shadow.modulate.a = clampf(1.0 - height * 0.045, 0.25, 1.0)
+
+	if _effects != null:
+		_effects.update(self)
+	_lay_tire_marks()
+
+
+## Reports each axle's slip to the mark layer. Marks come out of the same slip
+## numbers the tyre forces do, so a locked wheel really does leave the long
+## straight line it should.
+func _lay_tire_marks() -> void:
+	if mark_layer == null or airborne or damage == null or damage.wrecked:
+		return
+	if speed_ms < 2.0:
+		return
+	var ppm := GameConfig.PIXELS_PER_METRE
+	var surface_mark := TireMarks.surface_mark(surface)
+	var half_track := stats.track_width_m * 0.5 * ppm
+
+	for axle_data in [[axle_front, stats.cg_to_front_axle(), "f"],
+			[axle_rear, -stats.cg_to_rear_axle(), "r"]]:
+		var axle: Axle = axle_data[0]
+		var along: float = axle_data[1] * ppm
+		for side in [-1.0, 1.0]:
+			var local := Vector2(along, half_track * side)
+			var world: Vector2 = global_position + local.rotated(rotation)
+			mark_layer.report(
+				"%d:%s%s" % [car_id, axle_data[2], "l" if side < 0.0 else "r"],
+				world, axle.slip_magnitude,
+				surface_mark["darkness"], surface_mark["tint"])
 
 
 # --- Collisions -------------------------------------------------------------
@@ -457,6 +549,8 @@ func _read_collisions(state: PhysicsDirectBodyState2D) -> void:
 		var impulse := mass * approach
 		if impulse < GameConfig.CRASH_IMPULSE_THRESHOLD:
 			continue
+		if state.get_contact_collider_object(i) is RallyCar:
+			contacts_with_cars += 1
 		# A car in the air is not scraping anything; the fake Z axis means 2D
 		# still reports contacts it should be flying over.
 		if not airborne:

@@ -28,6 +28,9 @@ var ramps: Array[Dictionary] = []
 var surface_overrides: Array[Dictionary] = []
 
 var description: String = ""
+## Night stages darken the world and switch the headlights on. The light cones
+## are real Light2D nodes, so this changes what a driver can actually see.
+var night: bool = false
 
 
 static func load_all(path: String = TRACKS_PATH) -> Dictionary:
@@ -56,6 +59,7 @@ static func from_dict(d: Dictionary) -> TrackSpec:
 	t.width = float(d.get("width", 14.0))
 	t.checkpoint_spacing = float(d.get("checkpoint_spacing", 120.0))
 	t.description = String(d.get("description", ""))
+	t.night = bool(d.get("night", false))
 	t.default_surface = TireModel.surface_from_string(String(d.get("surface", "gravel")))
 
 	for p in d.get("waypoints", []):

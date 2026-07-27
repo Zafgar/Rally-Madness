@@ -27,6 +27,8 @@ const CURVATURE_CHORD_M := 18.0
 ## How often an inconsistent driver re-rolls their commitment for the next
 ## corner, in seconds.
 const MOOD_INTERVAL := 2.5
+## How far off line a driver pulls to make a pass, in metres.
+const OVERTAKE_OFFSET_M := 3.2
 
 var car: RallyCar
 var track: TrackBuilder
@@ -35,12 +37,18 @@ var profile: DriverProfile
 ## simply sit on it; good ones use it as a starting point and apex properly.
 var line_bias_m: float = 0.0
 
+## What this driver can see of the cars around them.
+var awareness: RivalAwareness
+
 var _command := VehicleCommand.new()
 var _progress: float = 0.0
 var _stuck_timer: float = 0.0
 var _mood_timer: float = 0.0
 ## Current commitment after consistency wander, re-rolled every MOOD_INTERVAL.
 var _mood: float = 1.0
+## Which side we have committed to for a pass, and for how much longer.
+var _overtake_side: float = 0.0
+var _overtake_hold: float = 0.0
 var _rng := RandomNumberGenerator.new()
 
 
@@ -55,6 +63,7 @@ func _init(
 	track = p_track
 	profile = p_profile
 	line_bias_m = p_line_bias
+	awareness = RivalAwareness.new(p_car, p_profile)
 	_rng.seed = p_seed if p_seed != 0 else hash(p_profile.display_name)
 	if car != null and car.transmission != null:
 		# Weaker drivers leave it in automatic and never use the rev range
@@ -71,6 +80,7 @@ func update(delta: float) -> VehicleCommand:
 	var ppm := GameConfig.PIXELS_PER_METRE
 	_progress = track.progress_at(car.global_position)
 	_update_mood(delta)
+	awareness.update(delta)
 
 	var speed := car.speed_ms
 	# A driver who does not look far ahead cannot plan, which is a large part
@@ -87,6 +97,7 @@ func update(delta: float) -> VehicleCommand:
 		(absf(lateral_error) - edge_m * 0.45) / maxf(edge_m * 0.55, 0.5), 0.0, 1.0)
 	lookahead_m *= lerpf(1.0, 0.55, edge_pressure)
 
+	_update_overtake(delta)
 	var aim := _point_ahead(lookahead_m * ppm)
 
 	# --- Steering -----------------------------------------------------------
@@ -151,6 +162,9 @@ func update(delta: float) -> VehicleCommand:
 		if remaining_m < 60.0:
 			target_speed = minf(target_speed, maxf(remaining_m * 0.5, 0.0))
 
+	# --- Traffic ------------------------------------------------------------
+	target_speed = _apply_traffic(target_speed, speed)
+
 	# --- Pedals -------------------------------------------------------------
 	if speed < target_speed * 0.95:
 		var demand := clampf((target_speed - speed) / 6.0, 0.0, 1.0)
@@ -170,6 +184,20 @@ func update(delta: float) -> VehicleCommand:
 	var lock_load := absf(_command.steer)
 	var lift := lerpf(0.85, 0.45, profile.throttle_discipline)
 	_command.throttle *= lerpf(1.0, lift, lock_load * lock_load)
+
+	# --- Avoiding contact ---------------------------------------------------
+	if awareness.emergency():
+		# How hard depends on the driver. A good one brakes decisively and
+		# leaves themselves somewhere to go; a poor one stamps on it, locks up
+		# and is a passenger.
+		_command.throttle = 0.0
+		_command.brake = maxf(_command.brake, lerpf(1.0, 0.75, profile.braking_skill))
+		if profile.recovery > 0.5 and _overtake_side != 0.0:
+			_command.steer = clampf(_command.steer + _overtake_side * 0.25, -1.0, 1.0)
+
+	# Never steer into someone who is already beside us.
+	if awareness.side_blocked(signf(_command.steer)) and absf(_command.steer) > 0.05:
+		_command.steer *= lerpf(0.15, 0.45, profile.awareness)
 
 	# --- Recovering a slide -------------------------------------------------
 	# A driver who cannot catch the car keeps their foot in and spins.
@@ -219,6 +247,64 @@ func update(delta: float) -> VehicleCommand:
 	return _command
 
 
+## Holds back for the car in front.
+##
+## The gap a driver wants is the whole difference between a nervous novice and a
+## works driver in traffic: one of them sits twenty metres back and never gets
+## past, the other runs close enough to use the tow and is ready when a gap
+## appears. Both are following the same rule with a different number in it.
+func _apply_traffic(target_speed: float, speed: float) -> float:
+	if awareness.car_ahead == null:
+		return target_speed
+
+	var gap := awareness.gap_ahead
+	var wanted := awareness.desired_gap()
+	# Passing? Then the car ahead is not the thing setting our speed.
+	if _overtake_side != 0.0 and gap > wanted * 0.6:
+		return target_speed
+
+	if gap > wanted * 2.0:
+		return target_speed
+
+	# Match their speed at the desired gap, and scrub off proportionally when
+	# closer than that. Reaction lag lives in how often the picture refreshes,
+	# not here, so a slow driver is late to this rather than gentle about it.
+	var follow_speed: float = awareness.speed_ahead + (gap - wanted) * 0.9
+	if awareness.ahead_braking:
+		follow_speed = minf(follow_speed, awareness.speed_ahead)
+	return minf(target_speed, maxf(follow_speed, 0.0))
+
+
+## Decides whether to pull out, and which way.
+##
+## Committing to a side and holding it matters more than picking the perfect
+## one: a driver who changes their mind halfway across is worse than one who
+## never tried. The commitment decays once the move is done or the gap is gone.
+func _update_overtake(delta: float) -> void:
+	if _overtake_hold > 0.0:
+		_overtake_hold -= delta
+		if awareness.car_ahead == null or awareness.side_blocked(_overtake_side):
+			_overtake_hold = 0.0
+			_overtake_side = 0.0
+		return
+
+	_overtake_side = 0.0
+	if not awareness.wants_to_overtake():
+		return
+
+	# Somewhere to go: enough road on that side, and nobody in it.
+	var usable := track.spec.width * 0.5 - 2.5
+	var here := _lateral_error() + line_bias_m
+	for side in [-1.0, 1.0]:
+		if awareness.side_blocked(side):
+			continue
+		if absf(here + side * OVERTAKE_OFFSET_M) > usable:
+			continue
+		_overtake_side = side
+		_overtake_hold = lerpf(1.2, 3.0, profile.aggression)
+		return
+
+
 ## Consistency as a wandering commitment rather than per-frame noise. Jitter on
 ## the controls looks like a broken driver; a corner taken at nine tenths and
 ## the next at full commitment looks like a human one.
@@ -260,7 +346,14 @@ func _point_ahead(distance_px: float) -> Vector2:
 		# the scenery on the run to the finish.
 		target = minf(target, length)
 	var sample := track._sample_at(target)
-	var offset_m := line_bias_m + _apex_offset(target, sample)
+	# Habitual line, apex and any overtaking move, together clamped to the road.
+	# Without the clamp a committed pass stacks on top of an apex offset and
+	# aims the car at the barrier — which is exactly how the quickest drivers
+	# were damaging themselves while overtaking.
+	var usable := maxf(track.spec.width * 0.5 - 2.2, 0.5)
+	var offset_m := clampf(
+		line_bias_m + _apex_offset(target, sample) + _overtake_side * OVERTAKE_OFFSET_M,
+		-usable, usable)
 	return sample["pos"] + sample["normal"] * offset_m * GameConfig.PIXELS_PER_METRE
 
 

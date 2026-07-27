@@ -41,6 +41,8 @@ func _ready() -> void:
 	_test_performance_calibration()
 	_test_upgrade_ceiling()
 	_test_driver_profiles()
+	_test_rival_awareness()
+	_test_visuals()
 	_test_haptics()
 	_test_damage_and_economy()
 	_test_progression()
@@ -687,6 +689,165 @@ func _test_driver_profiles() -> void:
 			works_pace, club_pace])
 	print("  %d archetypes; mean pace %.2f at club level, %.2f at works level" % [
 		pool.size(), club_pace, works_pace])
+
+
+## Racing against other cars rather than alone.
+##
+## The decision functions are tested directly with the field state set by hand.
+## Driving two real cars at each other needs a live physics world, which
+## tests/ai_probe.tscn does in field mode; what matters here is that the rules
+## themselves say the right thing.
+func _test_rival_awareness() -> void:
+	_section("rival awareness")
+
+	var timid := _archetype("nervous_novice")
+	var quick := _archetype("works_driver")
+	var car := _make_bench_car("golf_gti_mk2", "elec_none")
+
+	var timid_view := RivalAwareness.new(car, timid)
+	var quick_view := RivalAwareness.new(car, quick)
+
+	# The headline behaviour: a worse driver is more cautious, because they
+	# dare not run close.
+	_check(timid_view.desired_gap() > quick_view.desired_gap(),
+		"a nervous driver keeps a bigger gap than a works driver (%.0f m vs %.0f m)" % [
+			timid_view.desired_gap(), quick_view.desired_gap()])
+	# And they are working from a staler picture of the field, which is *why*
+	# they need the bigger gap.
+	_check(timid_view.scan_interval() > quick_view.scan_interval(),
+		"and looks around less often (every %.2fs vs %.2fs)" % [
+			timid_view.scan_interval(), quick_view.scan_interval()])
+
+	# Overtaking: being faster is not enough, you also have to be willing.
+	var rival := _make_bench_car("golf_gti_mk2", "elec_none")
+	for view in [timid_view, quick_view]:
+		view.car_ahead = rival
+		view.gap_ahead = 12.0
+		view.closing_speed = 4.0
+	_check(quick_view.wants_to_overtake(), "a works driver takes a chance to pass")
+	_check(not timid_view.wants_to_overtake(),
+		"a nervous one is faster and stays behind anyway")
+
+	# A car that is a long way ahead is not a passing opportunity yet.
+	quick_view.gap_ahead = 200.0
+	_check(not quick_view.wants_to_overtake(), "nobody lunges from two hundred metres back")
+	quick_view.gap_ahead = 12.0
+
+	# Reacting to the car in front braking hard.
+	for view in [timid_view, quick_view]:
+		view.ahead_braking = true
+		view.gap_ahead = 6.0
+		view.time_to_contact = 1.5
+	_check(quick_view.emergency(), "a hard stop in front is an emergency")
+	_check(timid_view.emergency(), "for anyone, however good")
+
+	# But the margin at which it becomes one depends on how quickly they react.
+	quick_view.ahead_braking = false
+	timid_view.ahead_braking = false
+	quick_view.gap_ahead = 40.0
+	timid_view.gap_ahead = 40.0
+	quick_view.time_to_contact = 1.6
+	timid_view.time_to_contact = 1.6
+	_check(timid_view.emergency() and not quick_view.emergency(),
+		"a slow-reacting driver panics earlier than one who can catch it")
+
+	# Never steer into someone already beside you.
+	quick_view.alongside_left = true
+	_check(quick_view.side_blocked(-1.0), "a car on the left is seen as being there")
+	_check(not quick_view.side_blocked(1.0), "and the other side stays open")
+
+	# A wreck on the racing line has to register as an obstacle, not a rival
+	# who will move.
+	rival.damage.integrity["body"] = 0.0
+	rival.damage.apply("body", 1.0)
+	_check(rival.damage.wrecked, "the test wreck is actually wrecked")
+
+	car.free()
+	rival.free()
+
+
+func _archetype(id: String) -> DriverProfile:
+	for entry in DriverProfile.load_pool():
+		var profile: DriverProfile = entry["profile"]
+		if profile.archetype == id:
+			return profile
+	return DriverProfile.from_skill(0.5)
+
+
+## Visuals and effects.
+##
+## What things look like is judged by eye with tests/screenshot.tscn. What is
+## checked here is that the drawing is driven by the car's own numbers rather
+## than by constants, because that is the property that keeps 33 cars looking
+## like 33 cars.
+func _test_visuals() -> void:
+	_section("visuals")
+
+	var small := CarDatabase.get_car("trabant_601")
+	var large := CarDatabase.get_car("f150_raptor")
+	var small_visual := CarVisual.new()
+	var large_visual := CarVisual.new()
+	small_visual.setup(small, small.to_base_stats(), Color.RED)
+	large_visual.setup(large, large.to_base_stats(), Color.BLUE)
+
+	_check(large_visual._length_px > small_visual._length_px * 1.4,
+		"a pickup is drawn much longer than a Trabant")
+	_check(large_visual._width_px > small_visual._width_px,
+		"and wider")
+	_check(large_visual._wheel_radius_px > small_visual._wheel_radius_px,
+		"with bigger wheels, because it has bigger wheels")
+
+	# The wheels have to sit on the real axles, or a mid-engine car does not
+	# look mid-engined.
+	var mid := CarDatabase.get_car("delta_s4")
+	var mid_visual := CarVisual.new()
+	mid_visual.setup(mid, mid.to_base_stats(), Color.GREEN)
+	var nose := CarDatabase.get_car("golf_gti_mk2")
+	var nose_visual := CarVisual.new()
+	nose_visual.setup(nose, nose.to_base_stats(), Color.GREEN)
+	_check(mid_visual._front_axle_px > nose_visual._front_axle_px,
+		"a mid-engine car's front axle sits further from its centre of mass")
+
+	# Every category must produce a drawable outline.
+	for spec in CarDatabase.all():
+		var visual := CarVisual.new()
+		visual.setup(spec, spec.to_base_stats(), Color.WHITE)
+		var outline := visual._silhouette(visual._length_px * 0.5, visual._width_px * 0.5)
+		_check(outline.size() >= 4, "'%s' has a drawable silhouette" % spec.id)
+		visual.free()
+
+	small_visual.free()
+	large_visual.free()
+	mid_visual.free()
+	nose_visual.free()
+
+	# Tyre marks come from slip, and each surface takes them differently.
+	var tarmac := TireMarks.surface_mark(TireModel.Surface.TARMAC)
+	var ice := TireMarks.surface_mark(TireModel.Surface.ICE)
+	_check(float(tarmac["darkness"]) > float(ice["darkness"]),
+		"tarmac holds a rubber mark; ice barely takes one")
+	for surface in TireModel.Surface.values():
+		var mark := TireMarks.surface_mark(surface)
+		_check(mark.has("darkness") and mark.has("tint"),
+			"every surface says how it marks")
+
+	# A mark is only laid when the tread is genuinely sliding.
+	var marks := TireMarks.new()
+	add_child(marks)
+	marks.report("test:fl", Vector2.ZERO, 0.4, 1.0, Color.BLACK)
+	_check(marks.get_child_count() == 0, "a gripping tyre leaves nothing")
+	marks.report("test:fl", Vector2.ZERO, 3.0, 1.0, Color.BLACK)
+	marks.report("test:fl", Vector2(40, 0), 3.0, 1.0, Color.BLACK)
+	_check(marks.get_child_count() == 1, "a sliding one lays a mark")
+	marks.queue_free()
+
+	# Night stages are what make the headlights worth having.
+	var tracks := TrackSpec.load_all()
+	var night_stages := 0
+	for id in tracks:
+		if tracks[id].night:
+			night_stages += 1
+	_check(night_stages > 0, "at least one stage runs after dark")
 
 
 ## Controller feedback.

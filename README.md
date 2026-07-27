@@ -305,6 +305,39 @@ can claim, so a modified client cannot ask for eight seats.
 
 ---
 
+## Racing other cars
+
+Drivers see each other, and how well they see is a trait like any other.
+`RivalAwareness` refreshes each driver's picture of the field on **their own
+reaction interval** — every 0.08 s for a works driver, 0.45 s for a nervous
+novice — so a poor driver is acting on information up to half a second stale.
+That is not a handicap bolted on top; it is *why* they leave bigger gaps.
+
+- **Following**: the gap a driver wants runs from 22 m for the timid to 5 m for
+  the committed. Under that, they match the car ahead's speed.
+- **Overtaking**: being faster is not enough. A pass needs road, a clear side,
+  and the nerve — `aggression > 0.35` and `line_quality > 0.45`. A cautious
+  driver is regularly quicker than the car in front and stays behind it anyway,
+  which is what makes them slow in traffic rather than only in corners.
+- **Reacting**: a car braking hard in front, or a wreck on the line, triggers an
+  emergency lift. The margin scales with `recovery`, so a good driver catches it
+  and a poor one panics early and locks up.
+- **Anticipating**: rivals are judged on where they will be in 0.6 s, not where
+  they are, so a car drifting across your nose registers before it is in front
+  of you.
+
+`tests/field_probe.tscn` puts six archetypes out together and counts contacts.
+Three seeds, 90 s, same car for everyone:
+
+| | Blind | Aware |
+|---|---|---|
+| Car-to-car contacts | 10.3 | **6.7** |
+| Cars wrecked | 1.3 | **0** |
+| Total distance covered | 9183 m | **11000 m** |
+
+The distance figure is the interesting one: the field covers 20% more ground
+not because anyone drives faster, but because nobody is stuck behind a crash.
+
 ## AI drivers
 
 A single "skill" number makes every rival the same driver turned up or down.
@@ -340,6 +373,56 @@ driver.
 
 ---
 
+## Graphics
+
+Everything is drawn from primitives. No image assets, no sprite sheets — which
+means 33 cars look like 33 cars without 33 pieces of artwork, and the same code
+renders crisply at any zoom.
+
+**Cars** come from their own numbers: body length from wheelbase, width from
+track, wheels drawn at the real axle positions and steering with the real
+steering angle. Silhouette varies by category (classic, road, rally, hyper,
+offroad). Brake lights come on under braking or lock-up, reversing lights in
+reverse, and panel damage is taken out of the outline so a battered car reads as
+battered.
+
+**Tyre marks** are laid from the *same slip data the tyre forces use*. A locked
+wheel leaves a long straight line, a drift leaves a sweeping curve, wheelspin
+leaves a short scrabble — not because each is special-cased but because in the
+model all three are the same thing. Surfaces take marks differently: tarmac
+holds rubber, ice barely marks at all.
+
+**Particles** likewise: spray from wheel slip and the surface under it, exhaust
+from throttle and revs (spitting orange on the limiter), smoke from engine
+damage, fire from actually being on fire.
+
+**Night stages** darken the world and switch on real `Light2D` headlight cones
+that steer with the wheels, so on Blackwood Sprint all you have is what the
+lights reach.
+
+**Scenery** — verges, marker posts, surface wear, trees and undergrowth — is
+generated from the track centreline, seeded from the track id so it is stable
+without being stored, and drawn in a handful of `_draw()` passes rather than as
+thousands of nodes.
+
+### Looking at it
+
+Graphics work done blind is guesswork, so there is a harness for it:
+
+```bash
+xvfb-run -a godot --path . --rendering-driver opengl3 --resolution 1280x720 \
+    res://tests/screenshot.tscn -- <track> <car> <mode> <out.png> [zoom]
+```
+
+Modes: `static` (grid), `driving` (AI laps first), `drift` (forces a slide, so
+marks and spray have something to show), `night`. Every visual decision in this
+section was made by looking at the output and changing it — which is how the
+particles were found to be emitting into a single invisible pixel, and how the
+old scene-file polygons were caught still drawing red bodies underneath the new
+ones.
+
+---
+
 ## Layout
 
 ```
@@ -348,9 +431,10 @@ scripts/
   autoload/     EventBus, GameConfig, SaveSystem, databases, PlayerManager, NetManager
   vehicle/      the driving model: stats, axles, tires, engine, transmission, nitro, damage
   haptics/      rumble and adaptive-trigger feel, and the backends behind it
+  vfx/          car bodies, tyre marks, particles and lights
   tuning/       parts, loadouts, and the calculator that folds them together
   career/       profiles, owned cars, events, sponsors
-  track/        track spec and the builder that turns a centreline into a scene
+  track/        track spec, the builder that turns a centreline into a scene, scenery
   race/         race director, entrants, race scene
   ai/           the AI driver and its personality archetypes
   ui/           split screen and HUD
@@ -383,9 +467,9 @@ Thin or missing, roughly in the order they matter:
    surface look-ahead, pure-pursuit steering and apexing — so this is the
    remaining piece, along with a properly optimised racing line rather than an
    apex offset from the centreline.
-3. **Art.** Cars and tracks are coloured polygons. The rendering is deliberately
-   separated from the physics, so replacing `Visual` in `rally_car.tscn` with
-   sprites changes nothing else.
+3. **Art direction.** Everything is drawn from primitives rather than loaded —
+   see [Graphics](#graphics). It reads clearly and costs nothing, but it is
+   placeholder-grade next to real artwork.
 4. **Audio.** None yet.
 5. **Online race flow.** Host/join, the lobby and in-race replication work; the
    results and rating hand-off across peers still needs wiring.

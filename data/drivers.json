@@ -1,7 +1,7 @@
 {
   "_comment": [
     "AI driver archetypes. Every trait is 0..1 and they are deliberately",
-    "independent — a driver can be committed and inconsistent (fast, crashes)",
+    "independent \u2014 a driver can be committed and inconsistent (fast, crashes)",
     "or cautious and precise (slow, always finishes).",
     "",
     "pace_ceiling is the important one for field variety: it caps how fast a",
@@ -17,35 +17,43 @@
       "id": "sunday_driver",
       "name": "Sunday Driver",
       "description": "Turned up because entry was cheap. Brakes for everything, never uses the road, and will not be troubling the podium.",
-      "commitment": 0.30,
+      "commitment": 0.3,
       "pace_ceiling": 0.62,
       "consistency": 0.85,
       "line_quality": 0.22,
       "braking_skill": 0.25,
-      "throttle_discipline": 0.30,
-      "recovery": 0.30,
+      "throttle_discipline": 0.3,
+      "recovery": 0.3,
       "aggression": 0.12,
-      "mechanical_sympathy": 0.90,
+      "mechanical_sympathy": 0.9,
+      "awareness": 0.45,
       "manual_gearbox": false,
       "weight": 1.0,
-      "skill_range": [0.0, 0.45]
+      "skill_range": [
+        0.0,
+        0.45
+      ]
     },
     {
       "id": "nervous_novice",
       "name": "Nervous Novice",
       "description": "Quick in a straight line, terrified everywhere else. Lifts mid-corner, which is exactly the wrong moment.",
       "commitment": 0.38,
-      "pace_ceiling": 0.70,
-      "consistency": 0.40,
-      "line_quality": 0.30,
+      "pace_ceiling": 0.7,
+      "consistency": 0.4,
+      "line_quality": 0.3,
       "braking_skill": 0.32,
       "throttle_discipline": 0.28,
       "recovery": 0.22,
-      "aggression": 0.20,
+      "aggression": 0.2,
       "mechanical_sympathy": 0.55,
+      "awareness": 0.3,
       "manual_gearbox": false,
       "weight": 1.0,
-      "skill_range": [0.0, 0.5]
+      "skill_range": [
+        0.0,
+        0.5
+      ]
     },
     {
       "id": "reckless_local",
@@ -55,14 +63,18 @@
       "pace_ceiling": 0.95,
       "consistency": 0.25,
       "line_quality": 0.35,
-      "braking_skill": 0.30,
+      "braking_skill": 0.3,
       "throttle_discipline": 0.35,
       "recovery": 0.35,
       "aggression": 0.95,
       "mechanical_sympathy": 0.15,
+      "awareness": 0.25,
       "manual_gearbox": true,
       "weight": 0.9,
-      "skill_range": [0.2, 0.8]
+      "skill_range": [
+        0.2,
+        0.8
+      ]
     },
     {
       "id": "steady_privateer",
@@ -73,30 +85,38 @@
       "consistency": 0.88,
       "line_quality": 0.62,
       "braking_skill": 0.62,
-      "throttle_discipline": 0.60,
+      "throttle_discipline": 0.6,
       "recovery": 0.55,
-      "aggression": 0.30,
+      "aggression": 0.3,
       "mechanical_sympathy": 0.85,
+      "awareness": 0.75,
       "manual_gearbox": true,
       "weight": 1.4,
-      "skill_range": [0.25, 0.8]
+      "skill_range": [
+        0.25,
+        0.8
+      ]
     },
     {
       "id": "old_hand",
       "name": "Old Hand",
       "description": "Not as quick as they were, but knows every corner and never wastes a metre of road.",
       "commitment": 0.66,
-      "pace_ceiling": 0.90,
+      "pace_ceiling": 0.9,
       "consistency": 0.95,
       "line_quality": 0.92,
       "braking_skill": 0.85,
-      "throttle_discipline": 0.80,
+      "throttle_discipline": 0.8,
       "recovery": 0.85,
-      "aggression": 0.30,
+      "aggression": 0.3,
       "mechanical_sympathy": 0.95,
+      "awareness": 0.95,
       "manual_gearbox": true,
       "weight": 1.0,
-      "skill_range": [0.4, 1.0]
+      "skill_range": [
+        0.4,
+        1.0
+      ]
     },
     {
       "id": "young_charger",
@@ -105,15 +125,19 @@
       "commitment": 0.92,
       "pace_ceiling": 1.0,
       "consistency": 0.45,
-      "line_quality": 0.70,
+      "line_quality": 0.7,
       "braking_skill": 0.78,
       "throttle_discipline": 0.72,
       "recovery": 0.65,
       "aggression": 0.85,
       "mechanical_sympathy": 0.35,
+      "awareness": 0.6,
       "manual_gearbox": true,
       "weight": 1.0,
-      "skill_range": [0.5, 1.0]
+      "skill_range": [
+        0.5,
+        1.0
+      ]
     },
     {
       "id": "works_driver",
@@ -126,11 +150,15 @@
       "braking_skill": 0.95,
       "throttle_discipline": 0.92,
       "recovery": 0.92,
-      "aggression": 0.60,
-      "mechanical_sympathy": 0.80,
+      "aggression": 0.6,
+      "mechanical_sympathy": 0.8,
+      "awareness": 0.92,
       "manual_gearbox": true,
       "weight": 1.2,
-      "skill_range": [0.7, 1.0]
+      "skill_range": [
+        0.7,
+        1.0
+      ]
     },
     {
       "id": "gravel_specialist",
@@ -139,15 +167,19 @@
       "commitment": 0.82,
       "pace_ceiling": 0.95,
       "consistency": 0.75,
-      "line_quality": 0.80,
-      "braking_skill": 0.70,
+      "line_quality": 0.8,
+      "braking_skill": 0.7,
       "throttle_discipline": 0.88,
       "recovery": 0.95,
-      "aggression": 0.70,
-      "mechanical_sympathy": 0.60,
+      "aggression": 0.7,
+      "mechanical_sympathy": 0.6,
+      "awareness": 0.8,
       "manual_gearbox": true,
       "weight": 1.0,
-      "skill_range": [0.45, 1.0]
+      "skill_range": [
+        0.45,
+        1.0
+      ]
     }
   ]
 }

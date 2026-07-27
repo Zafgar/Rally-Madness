@@ -130,6 +130,21 @@ Two things learned the hard way:
 `ramps` and `surface_overrides` index into the waypoint list. Surfaces:
 `tarmac`, `dirt`, `gravel`, `grass`, `snow`, `ice`, `mud`.
 
+`"night": true` darkens the stage and switches the headlights on. The light
+cones are real `Light2D` nodes, so it genuinely changes what a driver can see
+rather than just tinting the screen.
+
+Scenery — verges, marker posts, trees, surface wear — is generated from the
+centreline and seeded from the track id, so nothing needs placing by hand and a
+track looks the same every time it loads.
+
+Check a new track by looking at it:
+
+```bash
+xvfb-run -a godot --path . --rendering-driver opengl3 --resolution 1280x720 \
+    res://tests/screenshot.tscn -- coast_run impreza_gc8 drift shot.png 1.3
+```
+
 ## A sponsor — `data/sponsors.json`
 
 Objectives are `finish_top` (with `objective_value` as the position),

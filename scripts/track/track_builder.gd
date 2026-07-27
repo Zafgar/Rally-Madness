@@ -49,6 +49,7 @@ func build() -> Node2D:
 
 	root.add_child(_build_ground())
 	root.add_child(_build_road())
+	root.add_child(_build_scenery())
 	root.add_child(_build_surface_zones())
 	root.add_child(_build_walls())
 	root.add_child(_build_checkpoints())
@@ -106,6 +107,16 @@ func _edge_points(side: float, extra: float = 0.0) -> PackedVector2Array:
 
 # --- Visuals ----------------------------------------------------------------
 
+## Verges, surface wear, marker posts and whatever grows beside the road.
+func _build_scenery() -> Node2D:
+	var scenery := TrackScenery.new()
+	scenery.name = "Scenery"
+	# Above the ground, the road and the surface patches, below the cars.
+	scenery.z_index = -7
+	scenery.build(spec, _samples, _half_width_px())
+	return scenery
+
+
 func _build_ground() -> Node2D:
 	# A big backdrop so the world is not void-black outside the road.
 	var ground := Polygon2D.new()
@@ -117,7 +128,9 @@ func _build_ground() -> Node2D:
 		bounds.end,
 		Vector2(bounds.position.x, bounds.end.y),
 	])
-	ground.color = ROAD_COLOR_GRASS.darkened(0.15)
+	var surround: Dictionary = TrackScenery.SURROUND.get(
+		spec.default_surface, TrackScenery.SURROUND[TireModel.Surface.GRAVEL])
+	ground.color = surround["ground"]
 	ground.z_index = -20
 	return ground
 
@@ -148,6 +161,18 @@ func _build_road() -> Node2D:
 		line.closed = spec.closed
 		holder.add_child(line)
 	return holder
+
+
+## Public so scenery can tint its wear to the road it is drawn on.
+static func surface_colour(s: TireModel.Surface) -> Color:
+	match s:
+		TireModel.Surface.TARMAC: return ROAD_COLOR_TARMAC
+		TireModel.Surface.DIRT: return ROAD_COLOR_DIRT
+		TireModel.Surface.GRAVEL: return ROAD_COLOR_GRAVEL
+		TireModel.Surface.SNOW: return ROAD_COLOR_SNOW
+		TireModel.Surface.ICE: return ROAD_COLOR_ICE
+		TireModel.Surface.MUD: return ROAD_COLOR_MUD
+		_: return ROAD_COLOR_GRASS
 
 
 func _surface_color(s: TireModel.Surface) -> Color:
