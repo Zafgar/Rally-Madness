@@ -72,7 +72,7 @@ func _build() -> void:
 		var avatar := DriverAvatar.new()
 		avatar.avatar_id = i
 		avatar.background = Color(0, 0, 0, 0)
-		avatar.set_anchors_preset(Control.PRESET_FULL_RECT)
+		avatar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		avatar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		button.add_child(avatar)
 		_avatar_row.add_child(button)

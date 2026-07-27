@@ -17,10 +17,11 @@ var _address_field: LineEdit
 
 var _available: Array[EventSpec] = []
 var _profile_screen: NewProfileScreen = null
+var _career_hub: CareerHub = null
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	PlayerManager.accepting_joins = true
 	EventBus.local_player_joined.connect(_on_seat_changed)
 	EventBus.local_player_left.connect(_on_seat_changed)
@@ -33,13 +34,14 @@ func _ready() -> void:
 
 
 func _build() -> void:
+	theme = UiTheme.theme()
 	var bg := ColorRect.new()
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(0.08, 0.09, 0.11)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.color = UiTheme.BG
 	add_child(bg)
 
 	var root := MarginContainer.new()
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("margin_left", 48)
 	root.add_theme_constant_override("margin_right", 48)
 	root.add_theme_constant_override("margin_top", 32)
@@ -119,19 +121,60 @@ func _build() -> void:
 	_info_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	detail_panel.add_child(_info_label)
 
-	_start_button = Button.new()
-	_start_button.text = "START RACE"
-	_start_button.custom_minimum_size = Vector2(0, 48)
+	_start_button = UiTheme.primary_button("START RACE")
+	_start_button.custom_minimum_size = Vector2(0, 52)
 	_start_button.pressed.connect(_on_start_pressed)
 	detail_panel.add_child(_start_button)
 
+	# Everything a career does between races. The seat list stays here because
+	# it is about who is playing on this machine; the hub is about one driver.
+	var career_button := Button.new()
+	career_button.text = "CAREER  —  calendar, garage, tuning, showroom"
+	career_button.custom_minimum_size = Vector2(0, 44)
+	career_button.pressed.connect(_open_career_hub)
+	detail_panel.add_child(career_button)
+
 
 func _heading(text: String) -> Label:
-	var label := Label.new()
-	label.text = text
-	label.add_theme_font_size_override("font_size", 20)
-	label.add_theme_color_override("font_color", Color(1, 0.8, 0.35))
-	return label
+	return UiTheme.heading(text)
+
+
+# --- Career hub -------------------------------------------------------------
+
+## Opens the between-races screens for the first seated driver. It is one
+## driver's career, so it belongs to a seat rather than to the machine.
+func _open_career_hub() -> void:
+	if _career_hub != null:
+		return
+	var seat := PlayerManager.get_seat(0)
+	var profile: PlayerProfile = seat.profile if seat != null else null
+	if profile == null:
+		_info_label.text = "[color=#dd7f7f]Take a seat and load a profile first.[/color]"
+		return
+
+	var layer := CanvasLayer.new()
+	layer.name = "CareerHubLayer"
+	add_child(layer)
+	_career_hub = CareerHub.new()
+	_career_hub.profile = profile
+	_career_hub.exited.connect(_close_career_hub)
+	_career_hub.race_requested.connect(_on_career_race_requested)
+	layer.add_child(_career_hub)
+
+
+func _close_career_hub() -> void:
+	var layer := get_node_or_null("CareerHubLayer")
+	if layer != null:
+		layer.queue_free()
+	_career_hub = null
+	# Buying, selling and tuning all change what the seat can enter.
+	_refresh_seats()
+	_refresh_events()
+
+
+func _on_career_race_requested(event: EventSpec) -> void:
+	_close_career_hub()
+	_start_event(event)
 
 
 # --- Seats ------------------------------------------------------------------
@@ -268,10 +311,10 @@ func _open_profile_setup(slot: int) -> void:
 	layer.name = "ProfileSetupLayer"
 	add_child(layer)
 	var centre := CenterContainer.new()
-	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
+	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0.6)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(dim)
 	layer.add_child(centre)
 	centre.add_child(_profile_screen)
@@ -307,9 +350,11 @@ func _on_start_pressed() -> void:
 	var index := _event_list.get_selected_items()
 	if index.is_empty() or _available.is_empty():
 		return
-	var e := _available[index[0]]
-	PlayerManager.accepting_joins = false
+	_start_event(_available[index[0]])
 
+
+func _start_event(e: EventSpec) -> void:
+	PlayerManager.accepting_joins = false
 	var packed: PackedScene = load(RACE_SCENE_PATH)
 	var scene := packed.instantiate()
 	scene.event_id = e.id

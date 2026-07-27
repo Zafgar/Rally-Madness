@@ -38,7 +38,7 @@ func _ready() -> void:
 
 	split = SplitScreen.new()
 	split.name = "SplitScreen"
-	split.set_anchors_preset(Control.PRESET_FULL_RECT)
+	split.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var layer := CanvasLayer.new()
 	layer.name = "ViewLayer"
 	add_child(layer)
