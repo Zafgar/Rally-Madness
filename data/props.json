@@ -1,0 +1,510 @@
+{
+  "_comment": [
+    "Track props: everything beside and on a track that is not the track.",
+    "",
+    "A prop is data, so the same hay bale behaves identically on every stage and",
+    "adding one means adding an entry here rather than writing a scene. Two",
+    "kinds, and they are genuinely different things:",
+    "",
+    "  scenery  beyond the barrier. Drawn, never collided with, scattered",
+    "           automatically by theme. Cheap enough to have thousands of.",
+    "  hazard   on the racing surface. Collided with, and hitting one has a",
+    "           consequence - that is why it is there. mass_kg decides whether",
+    "           it is knocked aside or stops you, speed_penalty is how much",
+    "           speed a hit scrubs, damage is what it does to the bodywork.",
+    "",
+    "'themes' restricts a prop to the stages it suits; empty means anywhere.",
+    "Themes come from a track's own 'theme' field, defaulting to its surface."
+  ],
+  "props": [
+    {
+      "id": "pine",
+      "name": "Pine",
+      "kind": "scenery",
+      "shape": "conifer",
+      "radius_m": 2.6,
+      "radius_variance": 0.45,
+      "colour": "#2f4a2c",
+      "detail_colour": "#22351f",
+      "themes": [
+        "forest",
+        "gravel",
+        "mountain"
+      ],
+      "weight": 1.3,
+      "near_m": 3,
+      "far_m": 34
+    },
+    {
+      "id": "birch",
+      "name": "Birch",
+      "kind": "scenery",
+      "shape": "tree",
+      "radius_m": 2.1,
+      "radius_variance": 0.4,
+      "colour": "#4a6b39",
+      "detail_colour": "#d8d6c8",
+      "themes": [
+        "forest",
+        "gravel",
+        "coast"
+      ],
+      "weight": 1.1,
+      "near_m": 3,
+      "far_m": 34
+    },
+    {
+      "id": "snow_pine",
+      "name": "Snow-laden Pine",
+      "kind": "scenery",
+      "shape": "conifer",
+      "radius_m": 2.8,
+      "radius_variance": 0.4,
+      "colour": "#31463a",
+      "detail_colour": "#e6ecf2",
+      "themes": [
+        "snow",
+        "arctic"
+      ],
+      "weight": 1.2,
+      "near_m": 3,
+      "far_m": 34
+    },
+    {
+      "id": "scrub",
+      "name": "Scrub",
+      "kind": "scenery",
+      "shape": "bush",
+      "radius_m": 1.3,
+      "radius_variance": 0.5,
+      "colour": "#5d7040",
+      "detail_colour": "#46552f",
+      "themes": [],
+      "weight": 1.6,
+      "near_m": 2,
+      "far_m": 26
+    },
+    {
+      "id": "boulder",
+      "name": "Boulder",
+      "kind": "scenery",
+      "shape": "rock",
+      "radius_m": 1.7,
+      "radius_variance": 0.6,
+      "colour": "#5b5f63",
+      "detail_colour": "#7a7e84",
+      "themes": [
+        "mountain",
+        "quarry",
+        "gravel",
+        "coast"
+      ],
+      "weight": 0.6,
+      "near_m": 3,
+      "far_m": 30
+    },
+    {
+      "id": "marker_post",
+      "name": "Marker Post",
+      "kind": "scenery",
+      "shape": "post",
+      "radius_m": 0.5,
+      "radius_variance": 0.1,
+      "colour": "#c8ccd2",
+      "detail_colour": "#c8392d",
+      "themes": [],
+      "weight": 1.0,
+      "near_m": 0.5,
+      "far_m": 1.5
+    },
+    {
+      "id": "stone_wall_post",
+      "name": "Wall Stone",
+      "kind": "scenery",
+      "shape": "rock",
+      "radius_m": 1.0,
+      "radius_variance": 0.25,
+      "colour": "#6a655c",
+      "detail_colour": "#837d72",
+      "themes": [
+        "village",
+        "tarmac"
+      ],
+      "weight": 0.9,
+      "near_m": 2,
+      "far_m": 12
+    },
+    {
+      "id": "snow_bank",
+      "name": "Snow Bank",
+      "kind": "scenery",
+      "shape": "snow_bank",
+      "radius_m": 2.2,
+      "radius_variance": 0.5,
+      "colour": "#e8eef4",
+      "detail_colour": "#c6d2de",
+      "themes": [
+        "snow",
+        "arctic"
+      ],
+      "weight": 0.9,
+      "near_m": 2,
+      "far_m": 14
+    },
+    {
+      "id": "hay_bale",
+      "name": "Hay Bale",
+      "kind": "hazard",
+      "shape": "bale",
+      "radius_m": 0.9,
+      "radius_variance": 0.1,
+      "colour": "#c9a748",
+      "detail_colour": "#9c7f31",
+      "mass_kg": 300,
+      "speed_penalty": 0.3,
+      "damage": 0.02,
+      "movable": true,
+      "themes": []
+    },
+    {
+      "id": "tyre_stack",
+      "name": "Tyre Stack",
+      "kind": "hazard",
+      "shape": "tyre_wall",
+      "radius_m": 0.8,
+      "radius_variance": 0.05,
+      "colour": "#1c1c1f",
+      "detail_colour": "#43464b",
+      "mass_kg": 220,
+      "speed_penalty": 0.42,
+      "damage": 0.03,
+      "movable": true,
+      "themes": [
+        "tarmac",
+        "village",
+        "coast",
+        "derby"
+      ]
+    },
+    {
+      "id": "cone",
+      "name": "Cone",
+      "kind": "hazard",
+      "shape": "cone",
+      "radius_m": 0.35,
+      "radius_variance": 0.05,
+      "colour": "#e8621c",
+      "detail_colour": "#f2f2f2",
+      "mass_kg": 6,
+      "speed_penalty": 0.03,
+      "damage": 0.0,
+      "movable": true,
+      "themes": []
+    },
+    {
+      "id": "oil_drum",
+      "name": "Oil Drum",
+      "kind": "hazard",
+      "shape": "barrel",
+      "radius_m": 0.5,
+      "radius_variance": 0.05,
+      "colour": "#3f6ea8",
+      "detail_colour": "#2b4c74",
+      "mass_kg": 180,
+      "speed_penalty": 0.34,
+      "damage": 0.035,
+      "movable": true,
+      "themes": [
+        "derby",
+        "quarry",
+        "tarmac"
+      ]
+    },
+    {
+      "id": "crate",
+      "name": "Packing Crate",
+      "kind": "hazard",
+      "shape": "crate",
+      "radius_m": 0.7,
+      "radius_variance": 0.15,
+      "colour": "#8a6435",
+      "detail_colour": "#6a4b26",
+      "mass_kg": 90,
+      "speed_penalty": 0.18,
+      "damage": 0.015,
+      "movable": true,
+      "themes": [
+        "derby",
+        "quarry",
+        "village"
+      ]
+    },
+    {
+      "id": "concrete_block",
+      "name": "Concrete Block",
+      "kind": "hazard",
+      "shape": "crate",
+      "radius_m": 1.0,
+      "radius_variance": 0.1,
+      "colour": "#8c8d90",
+      "detail_colour": "#6d6e71",
+      "mass_kg": 2400,
+      "speed_penalty": 0.8,
+      "damage": 0.14,
+      "movable": false,
+      "themes": [
+        "village",
+        "tarmac",
+        "quarry"
+      ]
+    },
+    {
+      "id": "stage_sign",
+      "name": "Stage Board",
+      "kind": "hazard",
+      "shape": "sign",
+      "radius_m": 1.1,
+      "radius_variance": 0.1,
+      "colour": "#d8d4c8",
+      "detail_colour": "#c8392d",
+      "mass_kg": 25,
+      "speed_penalty": 0.06,
+      "damage": 0.005,
+      "movable": true,
+      "themes": []
+    },
+    {
+      "id": "hedge",
+      "name": "Hedge",
+      "kind": "scenery",
+      "shape": "bush",
+      "radius_m": 2.4,
+      "radius_variance": 0.3,
+      "colour": "#41663a",
+      "detail_colour": "#2d4a28",
+      "themes": [
+        "village",
+        "coast",
+        "tarmac",
+        "forest"
+      ],
+      "weight": 1.5,
+      "near_m": 2,
+      "far_m": 11
+    },
+    {
+      "id": "stone_wall",
+      "name": "Stone Wall",
+      "kind": "scenery",
+      "shape": "snow_bank",
+      "radius_m": 1.6,
+      "radius_variance": 0.25,
+      "colour": "#7b756a",
+      "detail_colour": "#5d584f",
+      "themes": [
+        "village",
+        "coast"
+      ],
+      "weight": 1.2,
+      "near_m": 2,
+      "far_m": 9
+    },
+    {
+      "id": "cottage",
+      "name": "Cottage",
+      "kind": "scenery",
+      "shape": "crate",
+      "radius_m": 4.2,
+      "radius_variance": 0.35,
+      "colour": "#8f6a4a",
+      "detail_colour": "#5c4230",
+      "themes": [
+        "village"
+      ],
+      "weight": 0.1,
+      "near_m": 13,
+      "far_m": 32
+    },
+    {
+      "id": "barn",
+      "name": "Barn",
+      "kind": "scenery",
+      "shape": "crate",
+      "radius_m": 5.5,
+      "radius_variance": 0.3,
+      "colour": "#7a3f34",
+      "detail_colour": "#53291f",
+      "themes": [
+        "village",
+        "gravel",
+        "forest"
+      ],
+      "weight": 0.06,
+      "near_m": 16,
+      "far_m": 34
+    },
+    {
+      "id": "service_van",
+      "name": "Service Van",
+      "kind": "scenery",
+      "shape": "crate",
+      "radius_m": 2.4,
+      "radius_variance": 0.15,
+      "colour": "#3f5f8c",
+      "detail_colour": "#2a4160",
+      "themes": [
+        "village",
+        "derby",
+        "quarry",
+        "gravel",
+        "coast"
+      ],
+      "weight": 0.1,
+      "near_m": 6,
+      "far_m": 16
+    },
+    {
+      "id": "scrap_pile",
+      "name": "Scrap Pile",
+      "kind": "scenery",
+      "shape": "rock",
+      "radius_m": 2.6,
+      "radius_variance": 0.45,
+      "colour": "#6b5a4a",
+      "detail_colour": "#8a7660",
+      "themes": [
+        "derby",
+        "quarry"
+      ],
+      "weight": 0.35,
+      "near_m": 5,
+      "far_m": 26
+    },
+    {
+      "id": "wrecked_shell",
+      "name": "Wrecked Shell",
+      "kind": "scenery",
+      "shape": "crate",
+      "radius_m": 2.2,
+      "radius_variance": 0.2,
+      "colour": "#5c5f63",
+      "detail_colour": "#3d4044",
+      "themes": [
+        "derby",
+        "quarry"
+      ],
+      "weight": 0.28,
+      "near_m": 5,
+      "far_m": 24
+    },
+    {
+      "id": "rock_face",
+      "name": "Rock Face",
+      "kind": "scenery",
+      "shape": "snow_bank",
+      "radius_m": 3.4,
+      "radius_variance": 0.4,
+      "colour": "#6f6a63",
+      "detail_colour": "#57534d",
+      "themes": [
+        "quarry",
+        "mountain",
+        "arctic"
+      ],
+      "weight": 0.45,
+      "near_m": 8,
+      "far_m": 32
+    },
+    {
+      "id": "dune_grass",
+      "name": "Marram Grass",
+      "kind": "scenery",
+      "shape": "bush",
+      "radius_m": 1.5,
+      "radius_variance": 0.4,
+      "colour": "#8e9c5a",
+      "detail_colour": "#6d7a41",
+      "themes": [
+        "coast"
+      ],
+      "weight": 1.3,
+      "near_m": 2,
+      "far_m": 20
+    },
+    {
+      "id": "mountain_scrub",
+      "name": "Mountain Scrub",
+      "kind": "scenery",
+      "shape": "bush",
+      "radius_m": 1.6,
+      "radius_variance": 0.4,
+      "colour": "#5a6a3e",
+      "detail_colour": "#44502e",
+      "themes": [
+        "mountain",
+        "quarry",
+        "gravel"
+      ],
+      "weight": 1.3,
+      "near_m": 2,
+      "far_m": 24
+    },
+    {
+      "id": "ice_block",
+      "name": "Ice Block",
+      "kind": "scenery",
+      "shape": "rock",
+      "radius_m": 1.4,
+      "radius_variance": 0.35,
+      "colour": "#cfe0ec",
+      "detail_colour": "#a8c0d4",
+      "themes": [
+        "arctic",
+        "snow"
+      ],
+      "weight": 0.7,
+      "near_m": 3,
+      "far_m": 26
+    },
+    {
+      "id": "spectator_group",
+      "name": "Spectators",
+      "kind": "scenery",
+      "shape": "post",
+      "radius_m": 1.1,
+      "radius_variance": 0.3,
+      "colour": "#c8552f",
+      "detail_colour": "#2f3a56",
+      "themes": [
+        "village",
+        "tarmac",
+        "coast",
+        "derby",
+        "gravel"
+      ],
+      "weight": 0.4,
+      "near_m": 3,
+      "far_m": 9
+    },
+    {
+      "id": "fallen_rock",
+      "name": "Fallen Rock",
+      "kind": "hazard",
+      "shape": "rock",
+      "radius_m": 1.1,
+      "radius_variance": 0.3,
+      "colour": "#605b54",
+      "detail_colour": "#7d776e",
+      "mass_kg": 900,
+      "speed_penalty": 0.62,
+      "damage": 0.09,
+      "movable": true,
+      "themes": [
+        "mountain",
+        "quarry",
+        "gravel",
+        "arctic"
+      ]
+    }
+  ]
+}

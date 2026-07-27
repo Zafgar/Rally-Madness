@@ -26,7 +26,7 @@ var _chosen_car: int = 0
 
 
 func _ready() -> void:
-	_starters.assign(CarDatabase.starter_cars())
+	_starters.assign(CarDatabase.starter_choices())
 	_build()
 	_refresh()
 

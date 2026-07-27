@@ -1,11 +1,15 @@
 {
   "_comment": [
-    "Tracks are a centreline plus a width, in metres. The builder derives the",
-    "road surface, the barriers, the checkpoints, the start grid and the",
-    "surface patches from that line, so a new track is just a list of points.",
-    "'ramps' and 'surface_overrides' index into the waypoint list.",
-    "closed: true joins the last waypoint back to the first (a circuit);",
-    "false leaves it as a point-to-point stage."
+    "Tracks are a centreline plus a width; everything else - road, barriers,",
+    "checkpoints, the start grid, jumps and surface changes - is derived from it",
+    "at load time. A new stage is a few dozen numbers, not a hand-built scene.",
+    "",
+    "'theme' picks which scenery props are scattered beside the road (see",
+    "data/props.json); it defaults to the surface. 'props' places hazards on the",
+    "racing surface itself, where 'side' is across the road as a fraction of half",
+    "width, so -1 is the left edge and 0 the centre line, and 'along' is metres",
+    "past the waypoint. Those are real bodies you can hit, so place them where a",
+    "driver ought to be thinking."
   ],
   "tracks": [
     {
@@ -63,6 +67,39 @@
           "at": 4,
           "launch": 5.5,
           "length": 9
+        }
+      ],
+      "theme": "gravel",
+      "props": [
+        {
+          "prop": "hay_bale",
+          "at": 3,
+          "side": -0.75,
+          "along": 0
+        },
+        {
+          "prop": "hay_bale",
+          "at": 3,
+          "side": -0.75,
+          "along": 6
+        },
+        {
+          "prop": "stage_sign",
+          "at": 6,
+          "side": 0.85,
+          "along": 0
+        },
+        {
+          "prop": "cone",
+          "at": 8,
+          "side": 0.5,
+          "along": 0
+        },
+        {
+          "prop": "cone",
+          "at": 8,
+          "side": 0.5,
+          "along": 4
         }
       ]
     },
@@ -153,6 +190,21 @@
           "to": 8,
           "surface": "mud"
         }
+      ],
+      "theme": "forest",
+      "props": [
+        {
+          "prop": "stage_sign",
+          "at": 1,
+          "side": 0.88,
+          "along": 0
+        },
+        {
+          "prop": "hay_bale",
+          "at": 4,
+          "side": -0.8,
+          "along": 0
+        }
       ]
     },
     {
@@ -209,7 +261,34 @@
           30
         ]
       ],
-      "ramps": []
+      "ramps": [],
+      "theme": "coast",
+      "props": [
+        {
+          "prop": "tyre_stack",
+          "at": 2,
+          "side": -0.86,
+          "along": 0
+        },
+        {
+          "prop": "tyre_stack",
+          "at": 2,
+          "side": -0.86,
+          "along": 8
+        },
+        {
+          "prop": "tyre_stack",
+          "at": 5,
+          "side": 0.86,
+          "along": 0
+        },
+        {
+          "prop": "cone",
+          "at": 7,
+          "side": -0.4,
+          "along": 0
+        }
+      ]
     },
     {
       "id": "mountain_stage",
@@ -325,6 +404,21 @@
           "to": 14,
           "surface": "mud"
         }
+      ],
+      "theme": "mountain",
+      "props": [
+        {
+          "prop": "fallen_rock",
+          "at": 4,
+          "side": 0.9,
+          "along": 0
+        },
+        {
+          "prop": "hay_bale",
+          "at": 7,
+          "side": -0.8,
+          "along": 0
+        }
       ]
     },
     {
@@ -395,6 +489,15 @@
           "to": 8,
           "surface": "ice"
         }
+      ],
+      "theme": "snow",
+      "props": [
+        {
+          "prop": "stage_sign",
+          "at": 1,
+          "side": 0.9,
+          "along": 0
+        }
       ]
     },
     {
@@ -435,7 +538,40 @@
           20
         ]
       ],
-      "ramps": []
+      "ramps": [],
+      "theme": "derby",
+      "props": [
+        {
+          "prop": "oil_drum",
+          "at": 1,
+          "side": 0.3,
+          "along": 0
+        },
+        {
+          "prop": "oil_drum",
+          "at": 3,
+          "side": -0.4,
+          "along": 0
+        },
+        {
+          "prop": "crate",
+          "at": 4,
+          "side": 0.2,
+          "along": 0
+        },
+        {
+          "prop": "tyre_stack",
+          "at": 5,
+          "side": -0.7,
+          "along": 0
+        },
+        {
+          "prop": "hay_bale",
+          "at": 6,
+          "side": 0.5,
+          "along": 0
+        }
+      ]
     },
     {
       "id": "village_sprint",
@@ -486,6 +622,39 @@
           -40,
           80
         ]
+      ],
+      "theme": "village",
+      "props": [
+        {
+          "prop": "tyre_stack",
+          "at": 2,
+          "side": -0.9,
+          "along": 0
+        },
+        {
+          "prop": "hay_bale",
+          "at": 3,
+          "side": 0.8,
+          "along": 0
+        },
+        {
+          "prop": "hay_bale",
+          "at": 3,
+          "side": 0.8,
+          "along": 5
+        },
+        {
+          "prop": "tyre_stack",
+          "at": 6,
+          "side": -0.85,
+          "along": 0
+        },
+        {
+          "prop": "crate",
+          "at": 8,
+          "side": 0.6,
+          "along": 0
+        }
       ]
     },
     {
@@ -553,6 +722,33 @@
           "launch": 5.5,
           "length": 9
         }
+      ],
+      "theme": "quarry",
+      "props": [
+        {
+          "prop": "oil_drum",
+          "at": 2,
+          "side": 0.6,
+          "along": 0
+        },
+        {
+          "prop": "crate",
+          "at": 5,
+          "side": -0.55,
+          "along": 0
+        },
+        {
+          "prop": "concrete_block",
+          "at": 8,
+          "side": 0.88,
+          "along": 0
+        },
+        {
+          "prop": "stage_sign",
+          "at": 1,
+          "side": 0.9,
+          "along": 0
+        }
       ]
     },
     {
@@ -612,6 +808,33 @@
           -70,
           60
         ]
+      ],
+      "theme": "coast",
+      "props": [
+        {
+          "prop": "tyre_stack",
+          "at": 3,
+          "side": -0.88,
+          "along": 0
+        },
+        {
+          "prop": "tyre_stack",
+          "at": 3,
+          "side": -0.88,
+          "along": 9
+        },
+        {
+          "prop": "tyre_stack",
+          "at": 7,
+          "side": 0.88,
+          "along": 0
+        },
+        {
+          "prop": "cone",
+          "at": 9,
+          "side": 0.0,
+          "along": 0
+        }
       ]
     },
     {
@@ -678,6 +901,27 @@
           "at": 4,
           "launch": 6.0,
           "length": 10
+        }
+      ],
+      "theme": "forest",
+      "props": [
+        {
+          "prop": "stage_sign",
+          "at": 2,
+          "side": 0.88,
+          "along": 0
+        },
+        {
+          "prop": "hay_bale",
+          "at": 6,
+          "side": -0.82,
+          "along": 0
+        },
+        {
+          "prop": "hay_bale",
+          "at": 6,
+          "side": -0.82,
+          "along": 6
         }
       ]
     },
@@ -768,6 +1012,27 @@
           "launch": 6.5,
           "length": 11
         }
+      ],
+      "theme": "mountain",
+      "props": [
+        {
+          "prop": "stage_sign",
+          "at": 1,
+          "side": 0.9,
+          "along": 0
+        },
+        {
+          "prop": "hay_bale",
+          "at": 6,
+          "side": 0.82,
+          "along": 0
+        },
+        {
+          "prop": "concrete_block",
+          "at": 12,
+          "side": -0.9,
+          "along": 0
+        }
       ]
     },
     {
@@ -847,6 +1112,15 @@
           620,
           1140
         ]
+      ],
+      "theme": "arctic",
+      "props": [
+        {
+          "prop": "stage_sign",
+          "at": 2,
+          "side": 0.9,
+          "along": 0
+        }
       ]
     }
   ]

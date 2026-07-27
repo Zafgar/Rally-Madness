@@ -32,6 +32,24 @@ var description: String = ""
 ## are real Light2D nodes, so this changes what a driver can actually see.
 var night: bool = false
 
+## Which props belong beside this track. Falls back to the surface name, so a
+## track that says nothing still gets scenery that suits it.
+var theme: String = ""
+
+## Hazards placed on the racing surface:
+##   [{ "prop": id, "at": waypoint index, "side": -1..1, "along": metres }]
+## `side` is across the road as a fraction of half-width, so -1 is the left
+## edge, 0 the centre line and 1 the right edge.
+var props: Array[Dictionary] = []
+
+
+## The theme to scatter scenery from. A track can name one; otherwise the
+## surface it is made of is a good enough answer.
+func scenery_theme() -> String:
+	if not theme.is_empty():
+		return theme
+	return TireModel.surface_name(default_surface).to_lower()
+
 
 static func load_all(path: String = TRACKS_PATH) -> Dictionary:
 	var out := {}
@@ -60,6 +78,14 @@ static func from_dict(d: Dictionary) -> TrackSpec:
 	t.checkpoint_spacing = float(d.get("checkpoint_spacing", 120.0))
 	t.description = String(d.get("description", ""))
 	t.night = bool(d.get("night", false))
+	t.theme = String(d.get("theme", ""))
+	for entry in d.get("props", []):
+		t.props.append({
+			"prop": String(entry.get("prop", "")),
+			"at": int(entry.get("at", 0)),
+			"side": float(entry.get("side", 0.0)),
+			"along": float(entry.get("along", 0.0)),
+		})
 	t.default_surface = TireModel.surface_from_string(String(d.get("surface", "gravel")))
 
 	for p in d.get("waypoints", []):

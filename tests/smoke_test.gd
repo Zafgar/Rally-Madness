@@ -110,6 +110,21 @@ func _test_data_integrity() -> void:
 		for ramp in track.ramps:
 			_check(int(ramp["at"]) < track.waypoints.size(),
 				"track '%s' ramp indexes a real waypoint" % id)
+		# Hazards are real bodies, so a bad reference here is a crash at load.
+		for entry in track.props:
+			var prop := TrackProp.by_id(String(entry["prop"]))
+			_check(prop != null,
+				"track '%s' places a real prop ('%s')" % [id, entry["prop"]])
+			_check(int(entry["at"]) < track.waypoints.size(),
+				"track '%s' places '%s' at a real waypoint" % [id, entry["prop"]])
+			if prop != null:
+				_check(prop.kind == TrackProp.Kind.HAZARD,
+					"track '%s' places a hazard, not scenery ('%s')" % [id, entry["prop"]])
+		# A theme with nothing to scatter leaves a stage looking abandoned.
+		var palette := TrackProp.for_theme(track.scenery_theme(), TrackProp.Kind.SCENERY)
+		_check(palette.size() >= 3,
+			"track '%s' theme '%s' has scenery to scatter (%d props)" % [
+				id, track.scenery_theme(), palette.size()])
 
 	for spec in CarDatabase.all():
 		for slot in spec.stock_parts:
@@ -1042,8 +1057,13 @@ func _test_progression() -> void:
 	# --- Starting a career -------------------------------------------------
 	# Five starter cars, and the choice has to be a real one: all free to
 	# repair, but they must not all drive the same.
-	var starters := CarDatabase.starter_cars()
+	var starters := CarDatabase.starter_choices()
 	_check(starters.size() >= 5, "there are at least five cars to start with")
+	_check(starters.size() <= 8,
+		"and few enough of them for the choice to mean something (%d)" % starters.size())
+	for spec in CarDatabase.starter_cars():
+		_check(spec.tier == GameConfig.STARTER_TIER,
+			"'%s' is in the free-to-repair fallback fleet" % spec.id)
 	var biases: Array[float] = []
 	for spec in starters:
 		var stats: VehicleStats = spec.to_base_stats()

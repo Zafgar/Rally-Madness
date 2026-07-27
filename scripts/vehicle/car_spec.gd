@@ -44,6 +44,12 @@ var reference_top_speed_kmh: float = 0.0
 ## sitting on the right suspension.
 var stock_parts: Dictionary = {}
 
+## Offered as a choice when starting a new career. Not every bottom-tier car is:
+## the starter tier is also the free-to-repair safety net, and a new player
+## choosing between sixteen near-identical shopping cars is choosing between
+## nothing. The flagged five drive genuinely differently.
+var starter_choice: bool = false
+
 ## Lazily resolved and then kept: working these out means resolving the whole
 ## parts catalogue against the chassis, and the showroom asks for them per frame.
 var _stock_index: float = -1.0
@@ -101,6 +107,7 @@ static func from_dict(d: Dictionary) -> CarSpec:
 		c.stock_parts[String(slot)] = String(d["stock_parts"][slot])
 
 	c.upgrade_ceiling = int(d.get("upgrade_ceiling", c.tier + 1))
+	c.starter_choice = bool(d.get("starter_choice", false))
 	c.reference_power_hp = float(d.get("power_hp", 0.0))
 	c.reference_top_speed_kmh = float(d.get("top_speed_kmh", 0.0))
 	return c

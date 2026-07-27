@@ -75,6 +75,12 @@ static func surface_mu(stats: VehicleStats, surface: Surface, lateral_axis: bool
 	return base * compound * axis_grip
 
 
+## The inverse, for anything that needs to name a surface back — track themes,
+## the HUD, and the stage summary all do.
+static func surface_name(s: Surface) -> String:
+	return ["tarmac", "dirt", "gravel", "grass", "snow", "ice", "mud"][clampi(int(s), 0, 6)]
+
+
 static func surface_from_string(name: String) -> Surface:
 	match name.to_lower():
 		"tarmac", "asphalt", "road": return Surface.TARMAC

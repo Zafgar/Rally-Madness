@@ -30,6 +30,10 @@ signal event_unlocked(slot: int, event_id: String)
 signal sponsor_offer(slot: int, sponsor_id: String)
 
 # --- Networking ---
+## A car hit a hazard on the racing surface. Carries the speed at impact so the
+## haptics and the HUD can react in proportion.
+signal prop_struck(car_id: int, prop_id: String, speed_ms: float)
+
 signal net_state_changed(state: int)
 signal net_peer_joined(peer_id: int, display_name: String)
 signal net_peer_left(peer_id: int)

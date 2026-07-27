@@ -99,8 +99,19 @@ func starter_cars() -> Array:
 	return by_tier(GameConfig.STARTER_TIER)
 
 
+## The cars offered when starting a new career: a short, deliberately varied
+## subset of the fallback fleet. Falls back to the whole tier if the data has
+## flagged none, so a new career is never left with nothing to choose from.
+func starter_choices() -> Array:
+	var out: Array = []
+	for spec in starter_cars():
+		if spec.starter_choice:
+			out.append(spec)
+	return out if not out.is_empty() else starter_cars()
+
+
 func default_starter() -> CarSpec:
-	var starters := starter_cars()
+	var starters := starter_choices()
 	if starters.is_empty():
 		push_error("CarDatabase: no starter-tier cars defined")
 		return null

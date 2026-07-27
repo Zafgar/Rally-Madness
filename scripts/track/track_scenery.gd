@@ -122,42 +122,56 @@ func _scatter_patches() -> void:
 
 
 ## Trees, rocks and posts outside the barriers.
+## Scatters props from the catalogue rather than from a hard-coded list, so a
+## new entry in props.json appears beside every track of that theme without any
+## track data changing.
 func _scatter_scenery() -> void:
 	_items.clear()
 	if samples.is_empty():
 		return
 	var ppm := GameConfig.PIXELS_PER_METRE
 	var step := maxi(int(SCENERY_SPACING * ppm / TrackBuilder.SAMPLE_STEP), 1)
+	var palette := TrackProp.for_theme(spec.scenery_theme(), TrackProp.Kind.SCENERY)
+	if palette.is_empty():
+		palette = TrackProp.for_theme("", TrackProp.Kind.SCENERY)
 
 	for i in range(0, samples.size(), step):
 		var s: Dictionary = samples[i]
-		var surface := spec.surface_at_waypoint(int(s["waypoint"]))
-		var style: Dictionary = SURROUND.get(surface, SURROUND[TireModel.Surface.GRAVEL])
 		for side in [-1.0, 1.0]:
 			# Two or three items per station, thinning out with distance.
 			for n in _rng.randi_range(1, 3):
-				var out_m := _rng.randf_range(SCENERY_NEAR, SCENERY_FAR)
+				var prop := TrackProp.pick(palette, _rng)
+				if prop == null:
+					continue
+				var out_m := _rng.randf_range(prop.near_m, prop.far_m)
 				var along := _rng.randf_range(-6.0, 6.0) * ppm
 				var pos: Vector2 = s["pos"] + s["dir"] * along \
 					+ s["normal"] * (half_width_px + out_m * ppm) * side
+				var scale := 1.0 + _rng.randf_range(
+					-prop.radius_variance, prop.radius_variance)
 				_items.append({
 					"pos": pos,
-					"kind": style["kind"],
-					"radius": _rng.randf_range(1.1, 2.9) * ppm,
-					"tone": _rng.randf_range(-0.12, 0.12),
+					"prop": prop,
+					"radius": prop.radius_m * scale * ppm,
+					"angle": _rng.randf_range(0.0, TAU),
+					"seed": _rng.randi(),
 				})
 
 	# Marker posts right at the edge, close enough together to read as a line
 	# at speed. These are what a driver actually uses to judge a corner.
+	var post := TrackProp.by_id("marker_post")
+	if post == null:
+		return
 	var post_step := maxi(int(9.0 * ppm / TrackBuilder.SAMPLE_STEP), 1)
 	for i in range(0, samples.size(), post_step):
 		var s: Dictionary = samples[i]
 		for side in [-1.0, 1.0]:
 			_items.append({
 				"pos": s["pos"] + s["normal"] * (half_width_px + 0.9 * ppm) * side,
-				"kind": "post",
-				"radius": 0.32 * ppm,
-				"tone": 0.0,
+				"prop": post,
+				"radius": post.radius_m * ppm,
+				"angle": 0.0,
+				"seed": i,
 			})
 
 
@@ -214,28 +228,5 @@ func _draw_speckles() -> void:
 
 func _draw_scenery() -> void:
 	for item in _items:
-		var pos: Vector2 = item["pos"]
-		var r: float = item["radius"]
-		var tone: float = item["tone"]
-		match item["kind"]:
-			"tree":
-				# A canopy with a darker rim reads as a tree from directly
-				# above, which is all a top-down view ever sees of one.
-				draw_circle(pos + Vector2(r * 0.18, r * 0.24), r, Color(0, 0, 0, 0.28))
-				draw_circle(pos, r, Color(0.13 + tone, 0.26 + tone, 0.11 + tone))
-				draw_circle(pos, r * 0.55, Color(0.17 + tone, 0.33 + tone, 0.14 + tone))
-			"snowtree":
-				draw_circle(pos + Vector2(r * 0.18, r * 0.24), r, Color(0, 0, 0, 0.20))
-				draw_circle(pos, r, Color(0.16, 0.27, 0.20))
-				draw_circle(pos, r * 0.52, Color(0.88, 0.92, 0.96))
-			"hedge":
-				# Overlapping blobs, because a rectangle of slightly different
-				# green reads as a missing texture rather than as a bush.
-				for k in 3:
-					var lump := pos + Vector2(r * (k - 1) * 0.9, r * (0.2 if k == 1 else 0.0))
-					draw_circle(lump, r * 0.72, Color(0.14 + tone, 0.25 + tone, 0.12 + tone))
-			"post":
-				draw_circle(pos, r, Color(0.92, 0.92, 0.88))
-				draw_circle(pos, r * 0.5, Color(0.82, 0.16, 0.12))
-			_:
-				draw_circle(pos, r, Color(0.42 + tone, 0.40 + tone, 0.37 + tone))
+		var prop: TrackProp = item["prop"]
+		prop.draw_at(self, item["pos"], item["angle"], item["radius"], item["seed"])

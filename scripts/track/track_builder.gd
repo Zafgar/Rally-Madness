@@ -54,6 +54,7 @@ func build() -> Node2D:
 	root.add_child(_build_walls())
 	root.add_child(_build_checkpoints())
 	root.add_child(_build_ramps())
+	root.add_child(_build_props())
 	_build_start_grid()
 	return root
 
@@ -324,6 +325,30 @@ func _build_checkpoints() -> Node2D:
 
 
 # --- Ramps ------------------------------------------------------------------
+
+## Hazards a track places on its own racing surface. Unlike scenery, these are
+## real bodies with real consequences, so they are placed deliberately in
+## tracks.json rather than scattered.
+func _build_props() -> Node2D:
+	var root := Node2D.new()
+	root.name = "Props"
+	root.z_index = -1
+	for entry in spec.props:
+		var prop := TrackProp.by_id(String(entry["prop"]))
+		if prop == null:
+			push_warning("Track '%s' places unknown prop '%s'" % [spec.id, entry["prop"]])
+			continue
+		var index := clampi(int(entry["at"]), 0, spec.waypoints.size() - 1)
+		var sample := _sample_at_waypoint(index)
+		var along: float = float(entry["along"]) * GameConfig.PIXELS_PER_METRE
+		var across: float = clampf(float(entry["side"]), -1.0, 1.0) * _half_width_px() * 0.82
+		var position: Vector2 = sample["pos"] + sample["dir"] * along \
+			+ sample["normal"] * across
+		var angle: float = sample["dir"].angle()
+		root.add_child(PropInstance.create(prop, position, angle, 1.0,
+			hash(spec.id) + index))
+	return root
+
 
 func _build_ramps() -> Node2D:
 	var holder := Node2D.new()
