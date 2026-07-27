@@ -29,11 +29,21 @@ extends RefCounted
 ##
 ## Solved once when the car is configured, and then it is a lookup.
 
-## How much of the tyres' grip the solve assumes is available for cornering.
-## Not 1.0: a real car is not on a skidpad, the surface varies within a corner
-## and the line is an approximation of itself. This is the margin that makes
-## the profile drivable rather than theoretical.
-const GRIP_USE := 0.92
+## How much of the tyres' peak grip a car actually holds in a sustained corner.
+##
+## Measured, not chosen. Peak mu is what a tyre makes at exactly the right slip
+## angle, held for an instant; a corner is several seconds long and averages
+## well under it. The grip probe put three cars with no aerodynamics — a
+## Trabant, a Golf and an Impreza — at 0.66 of peak mu each, on both tarmac and
+## gravel, which is a consistent enough number to build on.
+##
+## It was 0.92, and that single wrong constant is where the remaining wrecks
+## came from. The plan told every car it could corner half again as fast as it
+## could, so every apex was approached too quickly, and the cars that went off
+## went off on their own rather than into each other — which is exactly what the
+## race probe showed: five wrecked with only ten car-to-car contacts in the
+## whole race.
+const GRIP_USE := 0.58
 ## The same for braking, and far lower — which is not caution, it is
 ## calibration.
 ##
@@ -116,7 +126,7 @@ func _grip_ceiling() -> void:
 		# v = sqrt(mu * g * r). Downforce raises the effective mu with speed,
 		# but solving that properly needs the speed we are solving for, so it
 		# is applied once at the ceiling rather than iterated.
-		var lateral := mu * 9.81 * GRIP_USE * (1.0 + stats.downforce * 0.25)
+		var lateral := cornering_accel(stats, model.surface_at(i))
 		var v := sqrt(maxf(radius, 1.0) * lateral)
 		limits[i] = minf(v, top)
 		speeds[i] = limits[i]
@@ -161,6 +171,21 @@ func _solve() -> void:
 static func straight_line_decel(p_stats: VehicleStats,
 		surface: TireModel.Surface) -> float:
 	return TireModel.surface_mu(p_stats, surface, true) * 9.81 * BRAKE_USE
+
+
+## And what it will hold in a sustained corner, in m/s². Same reasoning, same
+## bench: peak mu is an instant, a corner is not.
+##
+## Downforce is deliberately absent. It was in here as a flat multiplier, and
+## the probe showed why that is wrong: downforce grows with the square of speed,
+## so a flat bonus credits a car with grip it only has flat out and none of the
+## grip it needs in the slow corner it is about to arrive at. The two cars that
+## carried it — a Delta S4 and a GT2 RS — were the two the plan overestimated
+## most. Leaving it out means the plan is conservative about a fast car in a
+## fast corner, which is the safe direction to be wrong in.
+static func cornering_accel(p_stats: VehicleStats,
+		surface: TireModel.Surface) -> float:
+	return TireModel.surface_mu(p_stats, surface, true) * 9.81 * GRIP_USE
 
 
 ## Deceleration available at a sample, in m/s². Limited by the tyres, and

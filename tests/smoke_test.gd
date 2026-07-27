@@ -807,6 +807,27 @@ func _test_the_recce() -> void:
 		"gravel tyres make the car quicker on gravel (%.1fs against %.1fs)" % [
 			built_lap, stock_lap])
 
+	# --- The calibration -----------------------------------------------------
+	# The plan is only worth having if the grip it assumes is grip the car has.
+	# Both of these numbers were wrong once and both failures looked identical
+	# from outside: the field crashed, and it crashed worse the faster it was.
+	# The grip probe measures them against real cars; this stops them drifting
+	# back up without anybody re-running it.
+	for id in ["trabant_601", "impreza_gc8", "porsche_gt2_rs"]:
+		var probe_car := CarDatabase.get_car(id)
+		var probe_stats := TuningCalculator.resolve(
+			probe_car, probe_car.default_loadout())
+		for surface in [TireModel.Surface.TARMAC, TireModel.Surface.GRAVEL]:
+			var peak := TireModel.surface_mu(probe_stats, surface, true) * 9.81
+			var corner := SpeedProfile.cornering_accel(probe_stats, surface)
+			var stop := SpeedProfile.straight_line_decel(probe_stats, surface)
+			_check(corner < peak * 0.70,
+				"%s plans to corner below peak grip on %s (%.1f of %.1f)" % [
+					probe_car.display_name(), TireModel.surface_name(surface),
+					corner, peak])
+			_check(stop < peak * 0.70,
+				"and to brake below it (%.1f of %.1f)" % [stop, peak])
+
 	# The braking point is the whole reason the profile exists. Somewhere before
 	# the tightest corner there has to be a point where the plan is already
 	# asking for less speed than the straight before it allows.
