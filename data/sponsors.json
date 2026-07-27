@@ -1,0 +1,63 @@
+{
+  "_comment": [
+    "Sponsorship contracts. These are the counterweight to entry fees: a",
+    "contract covers the cost of an expensive championship, but failing its",
+    "objective costs the penalty, so signing one is a commitment rather than",
+    "free money."
+  ],
+  "sponsors": [
+    {
+      "id": "nordkraft_fuels",
+      "name": "Nordkraft Fuels",
+      "description": "Regional fuel supplier. Modest money, forgiving terms.",
+      "min_level": 2,
+      "duration_races": 5,
+      "per_race": 1500,
+      "win_bonus": 3000,
+      "completion_bonus": 8000,
+      "failure_penalty": 3000,
+      "objective": "finish_top",
+      "objective_value": 4
+    },
+    {
+      "id": "torvald_suspension",
+      "name": "Torvald Suspension",
+      "description": "Wants podiums, pays for podiums.",
+      "min_level": 4,
+      "duration_races": 6,
+      "per_race": 3200,
+      "win_bonus": 8000,
+      "completion_bonus": 25000,
+      "failure_penalty": 12000,
+      "objective": "finish_top",
+      "objective_value": 3
+    },
+    {
+      "id": "helix_tyres",
+      "name": "Helix Tyres",
+      "description": "Three wins over the contract. Nothing else counts.",
+      "min_level": 6,
+      "min_rating": 1250,
+      "duration_races": 8,
+      "per_race": 4500,
+      "win_bonus": 12000,
+      "completion_bonus": 60000,
+      "failure_penalty": 20000,
+      "objective": "win_count",
+      "objective_value": 3
+    },
+    {
+      "id": "ironclad_garage",
+      "name": "Ironclad Garage",
+      "description": "Pays well, on one condition: bring the car back in one piece.",
+      "min_level": 6,
+      "duration_races": 6,
+      "per_race": 6000,
+      "win_bonus": 10000,
+      "completion_bonus": 45000,
+      "failure_penalty": 25000,
+      "objective": "no_wrecks",
+      "objective_value": 0
+    }
+  ]
+}

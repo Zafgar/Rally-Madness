@@ -1,0 +1,51 @@
+name: test
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      GODOT_VERSION: 4.4.1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: ~/godot
+          key: godot-${{ env.GODOT_VERSION }}-linux
+
+      - name: Install Godot
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot && cd ~/godot
+          curl -sSLo godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv Godot_v${GODOT_VERSION}-stable_linux.x86_64 godot
+          chmod +x godot
+
+      - name: Import project
+        # First run generates the .godot import cache. Script parse errors are
+        # reported here, before anything tries to run.
+        run: ~/godot/godot --headless --path . --import
+
+      - name: Fail on script errors
+        run: |
+          ~/godot/godot --headless --path . --import 2>&1 | tee import.log
+          if grep -qE "SCRIPT ERROR|Parse Error" import.log; then
+            echo "::error::Script errors during import"
+            exit 1
+          fi
+
+      - name: Smoke test
+        # --fixed-fps runs the loop with a constant timestep so a race that
+        # takes minutes of simulated time finishes quickly, without changing a
+        # single physics result.
+        run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/smoke_test.tscn

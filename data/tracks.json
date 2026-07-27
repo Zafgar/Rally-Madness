@@ -1,0 +1,123 @@
+{
+  "_comment": [
+    "Tracks are a centreline plus a width, in metres. The builder derives the",
+    "road surface, the barriers, the checkpoints, the start grid and the",
+    "surface patches from that line, so a new track is just a list of points.",
+    "'ramps' and 'surface_overrides' index into the waypoint list.",
+    "closed: true joins the last waypoint back to the first (a circuit);",
+    "false leaves it as a point-to-point stage."
+  ],
+  "tracks": [
+    {
+      "id": "gravel_loop",
+      "name": "Pine Ridge Loop",
+      "description": "The club loop. Wide, forgiving, and a good place to learn what a car does.",
+      "surface": "gravel",
+      "closed": true,
+      "width": 15.0,
+      "checkpoint_spacing": 110.0,
+      "waypoints": [
+        [0, 0], [200, -40], [380, -20], [480, 90], [460, 240],
+        [330, 330], [150, 350], [-40, 300], [-140, 180], [-110, 50]
+      ],
+      "ramps": [
+        { "at": 4, "launch": 5.5, "length": 9.0 }
+      ]
+    },
+    {
+      "id": "forest_sprint",
+      "name": "Blackwood Sprint",
+      "description": "Narrow, fast, and lined with trees. Three jumps, none of them optional.",
+      "surface": "dirt",
+      "closed": false,
+      "width": 13.0,
+      "checkpoint_spacing": 130.0,
+      "waypoints": [
+        [0, 0], [140, -30], [290, -70], [430, -60], [560, -120],
+        [700, -170], [850, -160], [980, -100], [1110, -120], [1240, -180],
+        [1370, -190], [1490, -140]
+      ],
+      "ramps": [
+        { "at": 3, "launch": 7.5, "length": 10.0 },
+        { "at": 6, "launch": 8.5, "length": 12.0 },
+        { "at": 9, "launch": 6.5, "length": 9.0 }
+      ],
+      "surface_overrides": [
+        { "from": 0, "to": 1, "surface": "tarmac" },
+        { "from": 7, "to": 8, "surface": "mud" }
+      ]
+    },
+    {
+      "id": "tarmac_circuit",
+      "name": "Harbour Circuit",
+      "description": "Sealed surface, walls close in. Grip is high until it very suddenly is not.",
+      "surface": "tarmac",
+      "closed": true,
+      "width": 16.0,
+      "checkpoint_spacing": 100.0,
+      "waypoints": [
+        [0, 0], [180, 10], [340, 60], [430, 170], [400, 280],
+        [270, 340], [140, 320], [20, 330], [-90, 260],
+        [-130, 140], [-70, 30]
+      ],
+      "ramps": []
+    },
+    {
+      "id": "mountain_stage",
+      "name": "Kaltavaara Stage",
+      "description": "Long, mixed-surface and relentless. Tarmac hairpins into loose gravel.",
+      "surface": "gravel",
+      "closed": true,
+      "width": 12.5,
+      "checkpoint_spacing": 140.0,
+      "waypoints": [
+        [0, 0], [160, -70], [330, -50], [470, -160], [640, -140],
+        [780, -240], [930, -190], [1040, -60], [1080, 100], [990, 240],
+        [830, 300], [660, 270], [520, 340], [360, 380], [200, 330],
+        [60, 380], [-90, 300], [-160, 150], [-110, 20]
+      ],
+      "ramps": [
+        { "at": 5, "launch": 9.0, "length": 12.0 },
+        { "at": 12, "launch": 7.0, "length": 10.0 },
+        { "at": 15, "launch": 8.0, "length": 11.0 }
+      ],
+      "surface_overrides": [
+        { "from": 7, "to": 10, "surface": "tarmac" },
+        { "from": 13, "to": 14, "surface": "mud" }
+      ]
+    },
+    {
+      "id": "snow_stage",
+      "name": "Frostfell Trial",
+      "description": "Packed snow with ice in the shade. Studded tires or an early bath.",
+      "surface": "snow",
+      "closed": false,
+      "width": 16.0,
+      "checkpoint_spacing": 130.0,
+      "waypoints": [
+        [0, 0], [150, -40], [300, -40], [440, -100], [590, -140],
+        [730, -130], [870, -70], [1010, -60], [1150, -110], [1280, -150]
+      ],
+      "ramps": [
+        { "at": 5, "launch": 6.0, "length": 10.0 }
+      ],
+      "surface_overrides": [
+        { "from": 3, "to": 4, "surface": "ice" },
+        { "from": 7, "to": 8, "surface": "ice" }
+      ]
+    },
+    {
+      "id": "derby_bowl",
+      "name": "Scrapyard Bowl",
+      "description": "An arena, not a course. No finish line, just the last car moving.",
+      "surface": "dirt",
+      "closed": true,
+      "width": 90.0,
+      "checkpoint_spacing": 200.0,
+      "waypoints": [
+        [0, 0], [90, -30], [150, 40], [120, 140], [20, 170], [-70, 110], [-80, 20]
+      ],
+      "ramps": []
+    }
+  ]
+}
