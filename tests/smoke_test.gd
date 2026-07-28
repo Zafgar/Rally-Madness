@@ -41,6 +41,7 @@ func _ready() -> void:
 	_test_performance_calibration()
 	_test_upgrade_ceiling()
 	_test_driver_profiles()
+	_test_every_script_parses()
 	_test_the_recce()
 	_test_rival_awareness()
 	_test_visuals()
@@ -717,6 +718,56 @@ func _test_driver_profiles() -> void:
 			works_pace, club_pace])
 	print("  %d archetypes; mean pace %.2f at club level, %.2f at works level" % [
 		pool.size(), club_pace, works_pace])
+
+
+## Every script in the project has to parse.
+##
+## This exists because of a bug that could not have been found any other way
+## here. A test harness referenced RaceScene.NIGHT_LIGHT, and RaceScene had no
+## class_name, so the identifier did not resolve. Nothing caught it: a headless
+## run only loads the scripts it actually uses, and nothing in this suite used
+## that harness. The editor loads everything, so the first person to open the
+## project got a parse error on a file that had been broken for a while.
+##
+## Loading a GDScript parses it without running any of it, so this is cheap and
+## it covers the tools and benches as well as the game.
+func _test_every_script_parses() -> void:
+	_section("every script parses")
+	var checked := 0
+	var broken: Array[String] = []
+	for folder in ["res://scripts", "res://tests", "res://scenes"]:
+		checked += _parse_folder(folder, broken)
+	for path in broken:
+		_check(false, "%s parses" % path)
+	_check(broken.is_empty(),
+		"all %d scripts in the project parse (%d broken)" % [checked, broken.size()])
+
+
+func _parse_folder(path: String, broken: Array[String]) -> int:
+	var dir := DirAccess.open(path)
+	if dir == null:
+		return 0
+	var count := 0
+	dir.list_dir_begin()
+	var name := dir.get_next()
+	while name != "":
+		var full := path.path_join(name)
+		if dir.current_is_dir():
+			if not name.begins_with("."):
+				count += _parse_folder(full, broken)
+		elif name.ends_with(".gd"):
+			count += 1
+			# load() makes the parser run over the file, but it does not return
+			# null when the parse fails — it hands back a GDScript that could
+			# not be compiled, and the first version of this test happily
+			# accepted them. can_instantiate() is the flag that actually tells
+			# the two apart, verified against a deliberately broken script.
+			var script := load(full)
+			if script == null or (script is GDScript and not script.can_instantiate()):
+				broken.append(full)
+		name = dir.get_next()
+	dir.list_dir_end()
+	return count
 
 
 ## The recce: reading a road, finding a line through it, and solving what a

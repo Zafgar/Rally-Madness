@@ -1,6 +1,13 @@
+class_name RaceScene
 extends Node2D
 ## Wires a race together: the director simulates it, the split screen renders
 ## it, and this node keeps the two in step.
+##
+## Named so that other scripts can reach the constants that define what a race
+## looks like — the night screenshot harness has to darken its scene by exactly
+## the amount a real night stage does, or it is testing a night nobody will ever
+## play. Without the name the reference parses in a headless run, where nothing
+## loads that file, and fails the moment the editor opens the project.
 
 const CAR_SCENE := preload("res://scenes/vehicle/rally_car.tscn")
 const MENU_SCENE_PATH := "res://scenes/boot.tscn"
