@@ -41,6 +41,10 @@ const OVERTAKE_OFFSET_M := 3.2
 ## Road needed beyond the gap itself to call a pass complete: both cars' length
 ## plus enough to pull back in front without touching.
 const PASS_CLEARANCE_M := 12.0
+## How close the next corner has to be before it decides which side to pass on.
+## Beyond this the corner and the move are separate events and the corner has
+## nothing useful to say about the move.
+const INSIDE_LINE_RANGE_M := 90.0
 ## Below this the car in front is not a rival to be raced, it is a stationary
 ## object to be driven round, and the pass zones do not apply.
 const STOPPED_RIVAL_MS := 3.0
@@ -389,7 +393,7 @@ func _update_overtake(delta: float) -> void:
 		return
 
 	_overtake_side = 0.0
-	if not awareness.wants_to_overtake():
+	if not awareness.wants_to_overtake(_plan_speed_here()):
 		return
 	if not _pass_can_be_finished():
 		return
@@ -397,7 +401,7 @@ func _update_overtake(delta: float) -> void:
 	# Somewhere to go: enough road on that side, and nobody in it.
 	var usable := track.spec.width * 0.5 - 2.5
 	var here := _lateral_error() + line_bias_m
-	for side in [-1.0, 1.0]:
+	for side in _sides_worth_trying(here):
 		if awareness.side_blocked(side):
 			continue
 		if absf(here + side * OVERTAKE_OFFSET_M) > usable:
@@ -405,6 +409,38 @@ func _update_overtake(delta: float) -> void:
 		_overtake_side = side
 		_overtake_hold = lerpf(1.2, 3.0, profile.aggression)
 		return
+
+
+## Which way to go round, best first.
+##
+## This used to be a fixed list — left, then right — so every driver in the game
+## tried the left first regardless of what the road was doing, and a move that
+## the corner ahead made impossible was attempted anyway. The recce knows which
+## way the next corner goes, and the inside of it is both the shorter way round
+## and the side the other car has to leave open on the way in. Failing a corner
+## worth caring about, the answer is simply whichever side has more road.
+func _sides_worth_trying(here: float) -> Array:
+	var prefer := 0.0
+	if model != null:
+		var s_m := _progress / GameConfig.PIXELS_PER_METRE
+		var corner := model.next_corner(s_m)
+		# Only when the corner is close enough that the move and the corner are
+		# the same event. A hairpin four hundred metres away says nothing about
+		# which side to use on this straight.
+		if corner != null and model.distance_to_next_corner(s_m) < INSIDE_LINE_RANGE_M:
+			prefer = signf(corner.direction)
+	if prefer == 0.0:
+		# No corner in play: take the side with more road left on it.
+		prefer = -1.0 if here > 0.0 else 1.0
+	return [prefer, -prefer]
+
+
+## What the plan says this car could be doing right here, in m/s. The number the
+## decision to overtake is measured against.
+func _plan_speed_here() -> float:
+	if plan == null:
+		return 0.0
+	return plan.speed_at(_progress / GameConfig.PIXELS_PER_METRE)
 
 
 ## Whether there is enough road left to get past before somebody has to brake.
@@ -437,7 +473,22 @@ func _pass_can_be_finished() -> bool:
 	# which for a small difference is a very long time, and is exactly why
 	# following a slightly slower car for half a lap is the correct answer
 	# rather than a failure of nerve.
-	var closing := maxf(awareness.closing_speed, 0.01)
+	#
+	# The difference that matters is the one the move would be made at, not the
+	# one showing on the clock now. A driver who has already slowed to match the
+	# car in front is closing at zero, and dividing by that says every pass takes
+	# forever — so the rule that is meant to stop optimistic moves ends up
+	# forbidding every move instead, exactly when a queue has formed.
+	#
+	# The speed to use is not the plan's either. Taking the full difference
+	# between the plan and the rival assumes the car is already doing plan speed
+	# the instant it pulls out, which greenlit moves that did not fit: it took
+	# contacts from two to nine in a probe and finishers from six to four. The
+	# car accelerates from where it is to where the plan allows, so the average
+	# over the move is the average of the two — which is both more honest and
+	# what actually happens.
+	var reachable := (car.speed_ms + _plan_speed_here()) * 0.5 - awareness.speed_ahead
+	var closing := maxf(maxf(awareness.closing_speed, reachable), 0.01)
 	var to_cover := awareness.gap_ahead + PASS_CLEARANCE_M
 	var seconds := to_cover / closing
 	var room_needed := seconds * maxf(car.speed_ms, 1.0)

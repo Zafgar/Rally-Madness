@@ -42,6 +42,12 @@ func _ready() -> void:
 	set_process(true)
 	_road = _RoadLayer.new()
 	_road.map = self
+	# Behind this node's own drawing, which is where the road belongs — the cars
+	# are the thing you look at on a minimap and they were being painted over by
+	# it. Child order is not enough: a parent draws all of its own commands
+	# before any child, so being first in the list still put the road on top.
+	# A negative z_index is what actually sorts it underneath.
+	_road.z_index = -1
 	add_child(_road)
 	move_child(_road, 0)
 

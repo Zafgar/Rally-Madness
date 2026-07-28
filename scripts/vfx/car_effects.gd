@@ -147,7 +147,10 @@ func _build_headlights(stats: VehicleStats) -> void:
 		light.position = _front_offset + Vector2(4.0, _half_width * 0.55 * side)
 		light.energy = 0.0
 		light.color = Color(1.0, 0.95, 0.82)
-		light.texture_scale = 3.4 + stats.wheelbase_m * 0.25
+		# The beam now runs from the middle of its texture rather than from near
+		# one edge, so it covers half the texture instead of nearly all of it —
+		# the scale goes up to match, and the light reaches as far as before.
+		light.texture_scale = (3.4 + stats.wheelbase_m * 0.25) * 1.76
 		light.blend_mode = Light2D.BLEND_MODE_ADD
 		light.shadow_enabled = false
 		add_child(light)
@@ -170,11 +173,23 @@ func _make_dot_texture() -> Texture2D:
 
 
 ## A soft forward cone, generated so no texture asset is needed.
+##
+## The apex sits at the centre of the image, and only the forward half of it is
+## ever lit. That wastes half the pixels and it is worth it: a Light2D draws its
+## texture centred on the light, with no notion of where in the texture the beam
+## is supposed to start. The first version put the apex twelve percent in from
+## the left edge, so the whole cone was drawn shifted backwards by nearly forty
+## percent of its own length — which at this scale is several car lengths. The
+## headlights lit the road *behind* the car and left a bright pool under the
+## boot, which is exactly what it looked like.
+##
+## Putting the apex on the centre makes the light's own origin the apex, so
+## there is no offset to get wrong.
 func _make_light_texture() -> Texture2D:
-	const SIZE := 128
+	const SIZE := 192
 	var image := Image.create(SIZE, SIZE, false, Image.FORMAT_RGBA8)
-	var centre := Vector2(SIZE * 0.12, SIZE * 0.5)
-	var reach := float(SIZE) * 0.88
+	var centre := Vector2(SIZE, SIZE) * 0.5
+	var reach := float(SIZE) * 0.5
 	for y in SIZE:
 		for x in SIZE:
 			var offset := Vector2(x, y) - centre

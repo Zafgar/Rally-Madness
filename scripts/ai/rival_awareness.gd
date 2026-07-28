@@ -50,6 +50,23 @@ const CRAWLING_MS := 2.0
 ## How close you have to be to a stopped car before going around it is a plan
 ## rather than an intention.
 const OBSTACLE_PASS_RANGE_M := 45.0
+## How much slower than this driver's own plan the car ahead has to be before it
+## is worth going around whatever the closing speed says, as a fraction.
+##
+## Closing speed cannot answer this question, and that is the whole difficulty.
+## A follower slows to match the car in front, and the moment it has, the two
+## are travelling at the same speed and the closing speed is zero — so a rule
+## that asks "am I catching them?" answers no, permanently, *because* the driver
+## did the sensible thing. The queue is self-stabilising: everyone behind a slow
+## car has an excellent reason not to pass it, which is that they have already
+## slowed down to its speed.
+##
+## What the driver should be asking is "should I be behind this car at all",
+## and the speed profile already knows the answer: it says what this car, with
+## these parts, could be doing at this point on this road.
+const CLEARLY_SLOWER := 0.22
+## Below this the pass has to justify itself on closing speed alone, as before.
+const WORTH_A_LOOK := 0.08
 
 # --- Refreshed picture of the field ---
 ## Nearest rival directly ahead, or null.
@@ -194,7 +211,12 @@ func side_blocked(side: float) -> bool:
 ## nerve to use it. A cautious driver has the first two often enough and simply
 ## never takes them, which is what makes a slow driver slow in traffic rather
 ## than only in corners.
-func wants_to_overtake() -> bool:
+##
+## `own_plan_ms` is what this driver's speed profile says they could be doing
+## here. Pass it and the judgement is made on pace; leave it out and it falls
+## back to closing speed, which is only ever right for a car that is genuinely
+## getting away.
+func wants_to_overtake(own_plan_ms: float = 0.0) -> bool:
 	if car_ahead == null:
 		return false
 	# A car that is not moving is an obstacle, not a rival. Once you have
@@ -206,9 +228,22 @@ func wants_to_overtake() -> bool:
 		# Near enough that the move is now. Committing to a line around
 		# something forty metres up the road is not a decision yet.
 		return gap_ahead < OBSTACLE_PASS_RANGE_M and _profile.aggression > 0.2
-	if closing_speed <= 0.5:
-		return false
 	if gap_ahead > desired_gap() * 2.0:
+		return false
+
+	# The same reasoning as the parked car, one step short of stopped: how far
+	# below this driver's own pace the car in front is running.
+	var deficit := 0.0
+	if own_plan_ms > 1.0:
+		deficit = (own_plan_ms - speed_ahead) / own_plan_ms
+	if deficit >= CLEARLY_SLOWER:
+		# Sitting behind somebody doing three quarters of your pace is not
+		# racing, and it is not something a driver needs much nerve to fix —
+		# but it still takes some. Dropping the bar to nothing turns every
+		# timid driver into one who will have a go at anything, which shows up
+		# as contacts rather than as passes.
+		return _profile.aggression > 0.28
+	if closing_speed <= 0.5 and deficit < WORTH_A_LOOK:
 		return false
 	# Nerve, and enough presence of mind to place the car.
 	return _profile.aggression > 0.35 and _profile.line_quality > 0.45
