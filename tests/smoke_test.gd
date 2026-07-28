@@ -52,6 +52,7 @@ func _ready() -> void:
 	_test_driver_profiles()
 	_test_every_script_parses()
 	_test_the_listener_rides_in_the_car()
+	_test_screens_can_be_reached_with_a_pad()
 	_test_the_recce()
 	_test_rival_awareness()
 	_test_visuals()
@@ -728,6 +729,52 @@ func _test_driver_profiles() -> void:
 			works_pace, club_pace])
 	print("  %d archetypes; mean pace %.2f at club level, %.2f at works level" % [
 		pool.size(), club_pace, works_pace])
+
+
+## Every front-end screen has something a pad can move from.
+##
+## Godot moves focus between controls when a d-pad direction is pressed, and it
+## moves it *from* whatever holds focus now. With nothing focused, nothing
+## happens — which is why the whole front end was mouse-only despite every
+## screen having been given focus styling. There is no way to check "a pad can
+## navigate this" headless, but there is a way to check the thing whose absence
+## made it impossible.
+func _test_screens_can_be_reached_with_a_pad() -> void:
+	_section("navigating without a mouse")
+
+	var profile := PlayerProfile.create_new("focus_test", "Focus",
+		CarDatabase.default_starter(), 0)
+	profile.money = 60000
+
+	var screens := {
+		"career hub": func():
+			var s := CareerHub.new()
+			s.profile = profile
+			return s,
+		"calendar": func():
+			var s := CareerScreen.new()
+			s.profile = profile
+			return s,
+		"garage": func():
+			var s := GarageScreen.new()
+			s.profile = profile
+			return s,
+		"showroom": func():
+			var s := ShowroomScreen.new()
+			s.profile = profile
+			return s,
+		"tuning shop": func():
+			var s := TuningScreen.new()
+			s.profile = profile
+			s.car = profile.active_car()
+			return s,
+	}
+	for name in screens:
+		var screen: Control = screens[name].call()
+		add_child(screen)
+		var target := UiTheme.first_focusable(screen)
+		_check(target != null, "the %s has something a pad can start on" % name)
+		screen.queue_free()
 
 
 ## The world is heard from the car, not from the camera.

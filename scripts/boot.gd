@@ -186,6 +186,10 @@ func _refresh() -> void:
 	_refresh_actions()
 	_refresh_net()
 	_refresh_next_step()
+	# The action buttons are rebuilt by _refresh_actions, so whatever had focus
+	# has just been freed. Put it back or the pad goes dead after every change.
+	if get_viewport() != null and get_viewport().gui_get_focus_owner() == null:
+		_focus_menu()
 
 
 ## The single most useful thing on the screen: what to do now, in words.
@@ -281,6 +285,13 @@ func _seat_card(seat) -> Control:
 	return card
 
 
+func _focus_menu() -> void:
+	# The boot screen is the first thing a player sees, and until now a pad
+	# could not move on it at all: nothing held focus, so a d-pad direction had
+	# nowhere to move from.
+	UiTheme.focus_first(self)
+
+
 func _refresh_actions() -> void:
 	for child in _action_column.get_children():
 		child.queue_free()
@@ -370,6 +381,7 @@ func _open_career_hub() -> void:
 
 
 func _close_career_hub() -> void:
+	_focus_menu()
 	var layer := get_node_or_null("CareerHubLayer")
 	if layer != null:
 		layer.queue_free()
@@ -406,6 +418,7 @@ func _open_profile_setup(slot: int) -> void:
 
 
 func _close_profile_setup() -> void:
+	_focus_menu()
 	if _profile_screen == null:
 		return
 	var layer := get_node_or_null("ProfileSetupLayer")

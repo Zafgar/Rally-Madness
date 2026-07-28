@@ -208,6 +208,47 @@ static func expander() -> Control:
 	return c
 
 
+## Puts the keyboard and pad focus on the first thing in `root` that can take
+## it, once the tree has settled.
+##
+## Every screen in the game was built with focus styling — a highlighted border,
+## a brighter label, the lot — and nothing ever called grab_focus. With no
+## focused control there is nothing for a d-pad direction to move *from*, so
+## pressing up or down on a pad did nothing at all and the entire front end was
+## mouse-only. The styles were there the whole time; this is the one line that
+## was missing.
+##
+## Deferred because a screen is usually focused in the same frame it is added,
+## and a control cannot take focus before it is in the tree.
+static func focus_first(root: Control) -> void:
+	if root == null:
+		return
+	Callable(UiTheme, "_grab_first").call_deferred(root)
+
+
+static func _grab_first(root: Control) -> void:
+	if root == null or not is_instance_valid(root) or not root.is_inside_tree():
+		return
+	var target := first_focusable(root)
+	if target != null:
+		target.grab_focus()
+
+
+## The first focusable control in a subtree, depth first, which is reading
+## order for every screen here.
+static func first_focusable(node: Node) -> Control:
+	for child in node.get_children():
+		if child is Control:
+			var control := child as Control
+			if control.visible and not control.is_queued_for_deletion() \
+					and control.focus_mode == Control.FOCUS_ALL:
+				return control
+		var deeper := first_focusable(child)
+		if deeper != null:
+			return deeper
+	return null
+
+
 ## Width to keep clear for a vertical scrollbar.
 const SCROLLBAR_WIDTH := 16
 

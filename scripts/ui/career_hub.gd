@@ -174,6 +174,8 @@ func _push(screen: Control) -> void:
 	_open = screen
 	_home.visible = false
 	_stack.add_child(screen)
+	# So a pad has somewhere to move from the moment the screen appears.
+	UiTheme.focus_first(screen)
 
 
 func _close_open() -> void:
@@ -182,6 +184,7 @@ func _close_open() -> void:
 		_open = null
 	_home.visible = true
 	refresh()
+	UiTheme.focus_first(_home)
 
 
 func _open_career() -> void:
