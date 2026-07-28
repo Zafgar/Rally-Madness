@@ -186,6 +186,31 @@ func refresh() -> void:
 	_rebuild_details()
 
 
+## Picks a car without tearing the list down and building it again.
+##
+## Every row used to call refresh(), which frees and recreates the whole list —
+## including the very button whose pressed signal was still running. With a
+## mouse that mostly survived; with a pad it was fatal, because focus lives on a
+## control and that control had just been deleted. Pressing X on a car killed
+## the only thing a d-pad direction could move from, so the showroom could not
+## be browsed with a controller at all.
+##
+## Changing the selection only has to do two things: mark the rows and redraw
+## the panel on the right.
+func _choose(spec: CarSpec, listing, row: Button) -> void:
+	_selected = spec
+	_listing = listing
+	for child in _list.get_children():
+		if child is Button and child != row:
+			(child as Button).button_pressed = false
+	if row != null:
+		row.button_pressed = true
+		# Toggle buttons are not radio buttons: without this, clicking the
+		# already-selected row would untoggle it and leave nothing marked.
+		row.grab_focus()
+	_rebuild_details()
+
+
 # --- The list ---------------------------------------------------------------
 
 func _best_owned_potential() -> float:
@@ -268,7 +293,8 @@ func _back_to_marques() -> Control:
 	b.text = "< All manufacturers"
 	b.pressed.connect(func():
 		_marque = ""
-		refresh())
+		refresh()
+		UiTheme.focus_first(_list))
 	return b
 
 
@@ -299,7 +325,8 @@ func _rebuild_marque_list(shown: Array[CarSpec]) -> void:
 		row.pressed.connect(func():
 			_marque = String(name)
 			_selected = null
-			refresh())
+			refresh()
+			UiTheme.focus_first(_list))
 		_list.add_child(row)
 
 		var inner := HBoxContainer.new()
@@ -357,10 +384,7 @@ func _used_row(listing: UsedCarMarket.Listing) -> Control:
 	var car: OwnedCar = listing.car
 	var row := UiTheme.list_row(84)
 	row.button_pressed = listing == _listing
-	row.pressed.connect(func():
-		_listing = listing
-		_selected = listing.spec
-		refresh())
+	row.pressed.connect(func(): _choose(listing.spec, listing, row))
 
 	var inner := HBoxContainer.new()
 	inner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -409,9 +433,7 @@ func _car_row(spec: CarSpec) -> Control:
 
 	var button := UiTheme.list_row(72)
 	button.button_pressed = spec == _selected
-	button.pressed.connect(func():
-		_selected = spec
-		refresh())
+	button.pressed.connect(func(): _choose(spec, null, button))
 
 	var row := HBoxContainer.new()
 	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

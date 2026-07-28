@@ -150,9 +150,17 @@ func _car_row(car: OwnedCar) -> Control:
 	var race_class := RaceClass.best_fit(car)
 	var button := UiTheme.list_row(78)
 	button.button_pressed = car.uid == _selected_uid
+	# Selecting a car must not rebuild the list it lives in: doing that frees
+	# the very button whose signal is still running, and with it the focus a pad
+	# needs to move from. Marking the rows and redrawing the detail panel is all
+	# a selection actually changes.
 	button.pressed.connect(func():
 		_selected_uid = car.uid
-		refresh())
+		for sibling in _list.get_children():
+			if sibling is Button:
+				(sibling as Button).button_pressed = sibling == button
+		button.grab_focus()
+		_rebuild_details())
 
 	var body := HBoxContainer.new()
 	body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

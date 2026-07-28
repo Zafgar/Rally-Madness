@@ -745,6 +745,8 @@ func _test_screens_can_be_reached_with_a_pad() -> void:
 	var profile := PlayerProfile.create_new("focus_test", "Focus",
 		CarDatabase.default_starter(), 0)
 	profile.money = 60000
+	# A second car, so the garage has a list rather than a single row.
+	profile.add_car(CarDatabase.get_car("golf_gti_mk2"))
 
 	var screens := {
 		"career hub": func():
@@ -775,6 +777,24 @@ func _test_screens_can_be_reached_with_a_pad() -> void:
 		var target := UiTheme.first_focusable(screen)
 		_check(target != null, "the %s has something a pad can start on" % name)
 		screen.queue_free()
+
+	# There is deliberately no assertion here that pressing a row leaves focus
+	# intact, though that is the bug this section exists because of: every list
+	# row called refresh(), which frees and rebuilds the list including the
+	# button whose signal is still running, so a pad lost focus the moment you
+	# selected a car. queue_free() does not take effect until the end of the
+	# frame, so a synchronous check sees a node that is still perfectly valid
+	# and passes either way. A test that cannot fail is worse than no test —
+	# it reads as coverage. The fix is in showroom_screen._choose and
+	# garage_screen: selection marks the rows and redraws the detail panel,
+	# and only the rows that genuinely change what the list contains rebuild it.
+
+
+func _collect_rows(node: Node, into: Array[Button]) -> void:
+	for child in node.get_children():
+		if child is Button and (child as Button).toggle_mode:
+			into.append(child as Button)
+		_collect_rows(child, into)
 
 
 ## The world is heard from the car, not from the camera.
