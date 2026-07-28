@@ -100,6 +100,9 @@ var _audio: CarAudio
 var _shadow: Polygon2D
 ## Where tyre marks are laid. Shared across the race so marks outlive the car
 ## that made them.
+## What colour this car is, so anything that has to identify it — the map, the
+## results, a replay — can use the same one the player sees on the road.
+var paint_color: Color = Color(0.85, 0.2, 0.15)
 var mark_layer: TireMarks = null
 
 signal wrecked(car_id: int, cause: String)
@@ -190,7 +193,8 @@ func _build_appearance(loadout: TuningLoadout) -> void:
 	_visual = CarVisual.new()
 	_visual.name = "Visual"
 	add_child(_visual)
-	_visual.setup(spec, stats, loadout.paint_color if loadout else Color(0.85, 0.2, 0.15))
+	paint_color = loadout.paint_color if loadout else Color(0.85, 0.2, 0.15)
+	_visual.setup(spec, stats, paint_color)
 
 	_effects = CarEffects.new()
 	_effects.name = "Effects"
