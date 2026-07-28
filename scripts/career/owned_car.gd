@@ -29,6 +29,15 @@ const HIGH_MILEAGE_KM := 250000.0
 var uid: String = ""
 var spec_id: String = ""
 var loadout: TuningLoadout
+## Every part ever bought for this car, whether or not it is fitted right now.
+##
+## Without this the shop charged full price every time a part was fitted, so
+## taking the gravel tyres off to try the tarmac ones and then putting the
+## gravel tyres back cost two sets of gravel tyres. Worse, it made experimenting
+## something you had to be rich to do — the one thing a tuning shop should
+## encourage. A part bought for a car stays with that car; swapping between two
+## you own costs nothing, because you own both.
+var owned_parts: Array[String] = []
 var damage: Dictionary = {"body": 1.0, "engine": 1.0, "suspension": 1.0, "tires": 1.0}
 var nickname: String = ""
 var races_entered: int = 0
@@ -61,6 +70,9 @@ static func create(spec: CarSpec, p_uid: String) -> OwnedCar:
 	# cheap end of the market has genuinely tired engines in it.
 	c.odometer_km = spec.showroom_km()
 	c.engine_km = c.odometer_km
+	# Whatever it came with is paid for, so taking it off and putting it back is
+	# free from the first day.
+	c.remember_fitted()
 	return c
 
 
@@ -202,6 +214,32 @@ func mileage_value_multiplier() -> float:
 	return lerpf(1.0, 0.45, worn)
 
 
+## Whether this car already has one of these on the shelf.
+func owns_part(part_id: String) -> bool:
+	return part_id.is_empty() or owned_parts.has(part_id)
+
+
+## What fitting this part would actually cost, which is nothing if it is already
+## on the shelf.
+func price_to_fit(part: PartSpec) -> int:
+	if part == null:
+		return 0
+	return 0 if owns_part(part.id) else part.price
+
+
+func buy_part(part_id: String) -> void:
+	if not part_id.is_empty() and not owned_parts.has(part_id):
+		owned_parts.append(part_id)
+
+
+## Adds whatever is currently bolted on to the shelf.
+func remember_fitted() -> void:
+	if loadout == null:
+		return
+	for slot in loadout.parts:
+		buy_part(String(loadout.parts[slot]))
+
+
 func to_dict() -> Dictionary:
 	return {
 		"uid": uid,
@@ -217,6 +255,7 @@ func to_dict() -> Dictionary:
 		"races_entered": races_entered,
 		"wins": wins,
 		"write_off": write_off,
+		"owned_parts": owned_parts,
 	}
 
 
@@ -240,4 +279,11 @@ static func from_dict(d: Dictionary) -> OwnedCar:
 	c.races_entered = int(d.get("races_entered", 0))
 	c.wins = int(d.get("wins", 0))
 	c.write_off = bool(d.get("write_off", false))
+	for id in d.get("owned_parts", []):
+		c.owned_parts.append(String(id))
+	# A save written before the shelf existed still owns whatever is bolted to
+	# the car, and the player has certainly paid for it. Charging them again to
+	# put back a part they are currently running would be the same bug wearing
+	# a different hat.
+	c.remember_fitted()
 	return c

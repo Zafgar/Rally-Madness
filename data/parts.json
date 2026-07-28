@@ -1,1787 +1,2085 @@
 {
-  "_comment": [
-    "Rally Madness tuning parts.",
-    "A bare number under 'mods' is a multiplier; use {\"add\": n} for an",
-    "absolute offset and {\"add\": n, \"mul\": m} for both.",
-    "Every part is meant to cost something as well as give something - a big",
-    "turbo brings lag, sticky tires wear out, a stripped interior gives up",
-    "crash protection. Parts with only upside are a balance bug, not a reward.",
-    "min_car_tier gates a part to chassis that can take it; drivetrain_filter",
-    "restricts parts that only make sense on one layout."
-  ],
-  "parts": [
-    {
-      "id": "engine_stock",
-      "name": "Stock Engine",
-      "slot": "engine",
-      "tier": 0,
-      "price": 0,
-      "description": "As it left the factory.",
-      "mods": {}
-    },
-    {
-      "id": "engine_stage1",
-      "name": "Stage 1 Rebuild",
-      "slot": "engine",
-      "tier": 1,
-      "price": 1000,
-      "description": "Fresh bearings, ported head, mild cam.",
-      "mods": {
-        "engine_torque_nm": 1.08,
-        "redline_rpm": 1.05,
-        "durability_engine": 0.96
-      }
-    },
-    {
-      "id": "engine_stage2",
-      "name": "Stage 2 Forged",
-      "slot": "engine",
-      "tier": 2,
-      "price": 3500,
-      "description": "Forged internals. Holds boost that would grenade a stock block.",
-      "mods": {
-        "engine_torque_nm": 1.16,
-        "redline_rpm": 1.12,
-        "durability_engine": 1.25,
-        "mass_kg": {
-          "add": 12
-        },
-        "reliability": 0.93
-      }
-    },
-    {
-      "id": "engine_stage3",
-      "name": "Stage 3 Race Build",
-      "slot": "engine",
-      "tier": 3,
-      "price": 11500,
-      "description": "Dry sump, race cams, no compromise. Peaky and fragile at idle.",
-      "mods": {
-        "engine_torque_nm": 1.28,
-        "redline_rpm": 1.22,
-        "torque_curve_bias": {
-          "add": 0.25
-        },
-        "idle_rpm": {
-          "add": 350
-        },
-        "durability_engine": 1.1,
-        "reliability": 0.82,
-        "oil_wear_rate": 1.25
-      }
-    },
-    {
-      "id": "engine_stroker",
-      "name": "Stroker Kit",
-      "slot": "engine",
-      "tier": 3,
-      "price": 9700,
-      "description": "More displacement. Huge low-end shove, revs no higher.",
-      "mods": {
-        "engine_torque_nm": 1.24,
-        "torque_curve_bias": {
-          "add": -0.35
-        },
-        "redline_rpm": 0.92,
-        "mass_kg": {
-          "add": 18
-        },
-        "reliability": 0.9,
-        "oil_wear_rate": 1.15
-      }
-    },
-    {
-      "id": "intake_stock",
-      "name": "Stock Airbox",
-      "slot": "intake",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "intake_cone",
-      "name": "Cone Filter",
-      "slot": "intake",
-      "tier": 1,
-      "price": 200,
-      "mods": {
-        "engine_torque_nm": 1.02,
-        "turbo_lag": 0.94
-      }
-    },
-    {
-      "id": "intake_ram",
-      "name": "Cold Air Ram",
-      "slot": "intake",
-      "tier": 2,
-      "price": 1100,
-      "mods": {
-        "engine_torque_nm": 1.04,
-        "turbo_lag": 0.88,
-        "torque_curve_bias": {
-          "add": 0.08
-        }
-      }
-    },
-    {
-      "id": "intake_itb",
-      "name": "Individual Throttle Bodies",
-      "slot": "intake",
-      "tier": 3,
-      "price": 4600,
-      "description": "Instant response, terrible manners below 3000 rpm.",
-      "mods": {
-        "engine_torque_nm": 1.07,
-        "torque_curve_bias": {
-          "add": 0.22
-        },
-        "turbo_lag": 0.7
-      }
-    },
-    {
-      "id": "exhaust_stock",
-      "name": "Stock Exhaust",
-      "slot": "exhaust",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "exhaust_sport",
-      "name": "Sports Cat-Back",
-      "slot": "exhaust",
-      "tier": 1,
-      "price": 350,
-      "mods": {
-        "engine_torque_nm": 1.03,
-        "mass_kg": {
-          "add": -8
-        }
-      }
-    },
-    {
-      "id": "exhaust_decat",
-      "name": "Decat Race System",
-      "slot": "exhaust",
-      "tier": 2,
-      "price": 1500,
-      "mods": {
-        "engine_torque_nm": 1.05,
-        "turbo_lag": 0.9,
-        "mass_kg": {
-          "add": -18
-        }
-      }
-    },
-    {
-      "id": "exhaust_antilag",
-      "name": "Anti-Lag System",
-      "slot": "exhaust",
-      "tier": 3,
-      "price": 7500,
-      "drivetrain_filter": [],
-      "description": "Keeps the turbo lit off throttle. Cooks the engine doing it.",
-      "mods": {
-        "turbo_lag": 0.3,
-        "engine_torque_nm": 1.03,
-        "durability_engine": 0.72,
-        "turbo_wear_rate": 1.7,
-        "reliability": 0.85
-      }
-    },
-    {
-      "id": "turbo_none",
-      "name": "No Forced Induction",
-      "slot": "turbo",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "turbo_small",
-      "name": "Small Journal Turbo",
-      "slot": "turbo",
-      "tier": 1,
-      "price": 1900,
-      "description": "Spools instantly, runs out of breath up top.",
-      "mods": {
-        "engine_torque_nm": 1.12,
-        "turbo_boost": {
-          "add": 0.15
-        },
-        "turbo_lag": {
-          "add": 0.2
-        },
-        "torque_curve_bias": {
-          "add": -0.15
-        },
-        "turbo_wear_rate": 1.1
-      }
-    },
-    {
-      "id": "turbo_ball_bearing",
-      "name": "Ball-Bearing Turbo",
-      "slot": "turbo",
-      "tier": 2,
-      "price": 5700,
-      "mods": {
-        "engine_torque_nm": 1.22,
-        "turbo_boost": {
-          "add": 0.3
-        },
-        "turbo_lag": {
-          "add": 0.35
-        },
-        "turbo_wear_rate": 0.72,
-        "reliability": 1.08
-      }
-    },
-    {
-      "id": "turbo_big",
-      "name": "Big Single Turbo",
-      "slot": "turbo",
-      "tier": 3,
-      "price": 13000,
-      "description": "Enormous top end. Nothing happens until it wakes up.",
-      "mods": {
-        "engine_torque_nm": 1.38,
-        "turbo_boost": {
-          "add": 0.5
-        },
-        "turbo_lag": {
-          "add": 0.9
-        },
-        "torque_curve_bias": {
-          "add": 0.3
-        },
-        "durability_engine": 0.88,
-        "turbo_wear_rate": 1.4,
-        "reliability": 0.9
-      }
-    },
-    {
-      "id": "turbo_twincharge",
-      "name": "Twincharger",
-      "slot": "turbo",
-      "tier": 4,
-      "price": 66000,
-      "description": "Supercharger fills in below the turbo. Expensive, and there is no lag.",
-      "mods": {
-        "engine_torque_nm": 1.32,
-        "turbo_boost": {
-          "add": 0.35
-        },
-        "turbo_lag": {
-          "add": 0.1
-        },
-        "mass_kg": {
-          "add": 30
-        },
-        "durability_engine": 0.9,
-        "turbo_wear_rate": 1.55,
-        "reliability": 0.86
-      }
-    },
-    {
-      "id": "ecu_stock",
-      "name": "Stock ECU",
-      "slot": "ecu",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "ecu_remap",
-      "name": "Remap",
-      "slot": "ecu",
-      "tier": 1,
-      "price": 475,
-      "mods": {
-        "engine_torque_nm": 1.05,
-        "durability_engine": 0.97
-      }
-    },
-    {
-      "id": "ecu_standalone",
-      "name": "Standalone ECU",
-      "slot": "ecu",
-      "tier": 2,
-      "price": 2600,
-      "mods": {
-        "engine_torque_nm": 1.08,
-        "turbo_lag": 0.92,
-        "redline_rpm": 1.04,
-        "reliability": 1.06
-      }
-    },
-    {
-      "id": "ecu_motorsport",
-      "name": "Motorsport ECU + Launch",
-      "slot": "ecu",
-      "tier": 3,
-      "price": 8400,
-      "mods": {
-        "engine_torque_nm": 1.1,
-        "turbo_lag": 0.85,
-        "shift_time": 0.88,
-        "clutch_grab": 1.25,
-        "reliability": 1.12
-      }
-    },
-    {
-      "id": "cooling_stock",
-      "name": "Stock Cooling",
-      "slot": "cooling",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "cooling_alloy",
-      "name": "Alloy Radiator",
-      "slot": "cooling",
-      "tier": 1,
-      "price": 425,
-      "mods": {
-        "durability_engine": 1.08,
-        "nitro_heat": 0.92,
-        "cooling_capacity": 1.15
-      }
-    },
-    {
-      "id": "cooling_race",
-      "name": "Race Cooling Pack",
-      "slot": "cooling",
-      "tier": 2,
-      "price": 2100,
-      "description": "Oil cooler, big intercooler, ducting. Nitro runs stay cool much longer.",
-      "mods": {
-        "durability_engine": 1.2,
-        "nitro_heat": 0.65,
-        "drag_area": 1.04,
-        "cooling_capacity": 1.38,
-        "oil_wear_rate": 0.86
-      }
-    },
-    {
-      "id": "gearbox_stock",
-      "name": "Stock Gearbox",
-      "slot": "gearbox",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "gearbox_short",
-      "name": "Short-Shift Kit",
-      "slot": "gearbox",
-      "tier": 1,
-      "price": 525,
-      "mods": {
-        "shift_time": 0.82
-      }
-    },
-    {
-      "id": "gearbox_dogbox",
-      "name": "Straight-Cut Dog Box",
-      "slot": "gearbox",
-      "tier": 2,
-      "price": 5300,
-      "description": "Flat-shift without the clutch. Brutal on the driveline.",
-      "mods": {
-        "shift_time": 0.45,
-        "clutch_grab": 1.6,
-        "gear_spread": 1.08
-      }
-    },
-    {
-      "id": "gearbox_sequential",
-      "name": "Sequential Race Box",
-      "slot": "gearbox",
-      "tier": 3,
-      "price": 15000,
-      "mods": {
-        "shift_time": 0.28,
-        "clutch_grab": 2,
-        "mass_kg": {
-          "add": -14
-        },
-        "reliability": 0.95
-      }
-    },
-    {
-      "id": "clutch_stock",
-      "name": "Stock Clutch",
-      "slot": "clutch",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "clutch_uprated",
-      "name": "Uprated Organic",
-      "slot": "clutch",
-      "tier": 1,
-      "price": 400,
-      "mods": {
-        "clutch_grab": 1.25,
-        "reliability": 1.03
-      }
-    },
-    {
-      "id": "clutch_twin_plate",
-      "name": "Twin-Plate Race",
-      "slot": "clutch",
-      "tier": 3,
-      "price": 4200,
-      "mods": {
-        "clutch_grab": 1.9,
-        "shift_time": 0.9,
-        "mass_kg": {
-          "add": -6
-        },
-        "reliability": 0.97
-      }
-    },
-    {
-      "id": "diff_open",
-      "name": "Open Differential",
-      "slot": "differential",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "diff_lsd",
-      "name": "Limited Slip Differential",
-      "slot": "differential",
-      "tier": 1,
-      "price": 1400,
-      "mods": {
-        "diff_lock_rear": {
-          "add": 0.25
-        },
-        "diff_lock_front": {
-          "add": 0.15
-        },
-        "grip_long": 1.05
-      }
-    },
-    {
-      "id": "diff_plate_lsd",
-      "name": "Plate LSD",
-      "slot": "differential",
-      "tier": 2,
-      "price": 3700,
-      "mods": {
-        "diff_lock_rear": {
-          "add": 0.4
-        },
-        "diff_lock_front": {
-          "add": 0.25
-        },
-        "grip_long": 1.09,
-        "drift_release": 0.92
-      }
-    },
-    {
-      "id": "diff_spool",
-      "name": "Welded Spool",
-      "slot": "differential",
-      "tier": 2,
-      "price": 650,
-      "description": "Cheap, locked solid. Fantastic sideways, awful anywhere tight.",
-      "mods": {
-        "diff_lock_rear": {
-          "add": 0.7
-        },
-        "grip_long": 1.1,
-        "max_steer_deg": 0.88,
-        "tire_wear_rate": 1.35
-      }
-    },
-    {
-      "id": "diff_active",
-      "name": "Active Centre Diff",
-      "slot": "differential",
-      "tier": 4,
-      "price": 48500,
-      "drivetrain_filter": [
-        "AWD"
-      ],
-      "mods": {
-        "diff_lock_rear": {
-          "add": 0.45
-        },
-        "diff_lock_front": {
-          "add": 0.45
-        },
-        "grip_long": 1.12,
-        "grip_balance_front": {
-          "add": 0.03
-        }
-      }
-    },
-    {
-      "id": "susp_stock",
-      "name": "Stock Suspension",
-      "slot": "suspension",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "susp_lowering",
-      "name": "Lowering Kit",
-      "slot": "suspension",
-      "tier": 1,
-      "price": 450,
-      "description": "Quicker on tarmac, out of travel on anything rough.",
-      "mods": {
-        "cg_height_m": 0.9,
-        "grip_lat": 1.05,
-        "suspension_travel": 0.72,
-        "tarmac_grip": 1.06,
-        "dirt_grip": 0.94
-      }
-    },
-    {
-      "id": "susp_rally_raised",
-      "name": "Rally Raised Kit",
-      "slot": "suspension",
-      "tier": 2,
-      "price": 3100,
-      "description": "Long travel, high ride. Soaks up landings that would end a track car.",
-      "mods": {
-        "cg_height_m": 1.1,
-        "suspension_travel": 1.65,
-        "dirt_grip": 1.1,
-        "tarmac_grip": 0.94,
-        "durability_suspension": 1.3
-      }
-    },
-    {
-      "id": "susp_coilover",
-      "name": "Adjustable Coilovers",
-      "slot": "suspension",
-      "tier": 2,
-      "price": 4000,
-      "mods": {
-        "grip_lat": 1.09,
-        "grip_long": 1.05,
-        "cg_height_m": 0.95,
-        "steering_rate": 1.15
-      }
-    },
-    {
-      "id": "susp_wrc",
-      "name": "WRC-Spec Dampers",
-      "slot": "suspension",
-      "tier": 4,
-      "price": 53000,
-      "mods": {
-        "grip_lat": 1.16,
-        "grip_long": 1.12,
-        "suspension_travel": 1.45,
-        "dirt_grip": 1.12,
-        "durability_suspension": 1.5,
-        "steering_rate": 1.25
-      }
-    },
-    {
-      "id": "springs_stock",
-      "name": "Stock Springs",
-      "slot": "springs",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "springs_soft",
-      "name": "Soft Rally Springs",
-      "slot": "springs",
-      "tier": 1,
-      "price": 300,
-      "mods": {
-        "dirt_grip": 1.07,
-        "slip_forgiveness": 1.12,
-        "tarmac_grip": 0.96
-      }
-    },
-    {
-      "id": "springs_stiff",
-      "name": "Stiff Track Springs",
-      "slot": "springs",
-      "tier": 1,
-      "price": 300,
-      "mods": {
-        "tarmac_grip": 1.08,
-        "slip_forgiveness": 0.9,
-        "dirt_grip": 0.94,
-        "durability_suspension": 0.92
-      }
-    },
-    {
-      "id": "dampers_stock",
-      "name": "Stock Dampers",
-      "slot": "dampers",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "dampers_gas",
-      "name": "Gas Dampers",
-      "slot": "dampers",
-      "tier": 1,
-      "price": 575,
-      "mods": {
-        "grip_lat": 1.04,
-        "slip_forgiveness": 1.06
-      }
-    },
-    {
-      "id": "dampers_remote",
-      "name": "Remote Reservoir Dampers",
-      "slot": "dampers",
-      "tier": 3,
-      "price": 5900,
-      "mods": {
-        "grip_lat": 1.09,
-        "slip_forgiveness": 1.1,
-        "durability_suspension": 1.25,
-        "suspension_travel": 1.15
-      }
-    },
-    {
-      "id": "arb_stock",
-      "name": "Stock Anti-Roll Bars",
-      "slot": "antiroll",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "arb_front_stiff",
-      "name": "Stiff Front Bar",
-      "slot": "antiroll",
-      "tier": 1,
-      "price": 275,
-      "description": "Plants the rear, blunts turn-in. The classic oversteer cure.",
-      "mods": {
-        "grip_balance_front": {
-          "add": -0.06
-        }
-      }
-    },
-    {
-      "id": "arb_rear_stiff",
-      "name": "Stiff Rear Bar",
-      "slot": "antiroll",
-      "tier": 1,
-      "price": 275,
-      "description": "Frees the tail. Rotates on throttle, punishes clumsy hands.",
-      "mods": {
-        "grip_balance_front": {
-          "add": 0.06
-        },
-        "drift_release": 1.08
-      }
-    },
-    {
-      "id": "arb_adjustable",
-      "name": "Adjustable Bar Set",
-      "slot": "antiroll",
-      "tier": 2,
-      "price": 1900,
-      "mods": {
-        "grip_lat": 1.05,
-        "steering_rate": 1.08
-      }
-    },
-    {
-      "id": "brakes_stock",
-      "name": "Stock Brakes",
-      "slot": "brakes",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "brakes_pads",
-      "name": "Fast Road Pads",
-      "slot": "brakes",
-      "tier": 1,
-      "price": 150,
-      "mods": {
-        "brake_force": 1.1,
-        "brake_wear_rate": 1.18
-      }
-    },
-    {
-      "id": "brakes_bigger",
-      "name": "Four-Pot Big Brake Kit",
-      "slot": "brakes",
-      "tier": 2,
-      "price": 2400,
-      "mods": {
-        "brake_force": 1.28,
-        "mass_kg": {
-          "add": 9
-        },
-        "brake_wear_rate": 0.76
-      }
-    },
-    {
-      "id": "brakes_carbon",
-      "name": "Carbon-Ceramic",
-      "slot": "brakes",
-      "tier": 4,
-      "price": 40500,
-      "description": "Enormous stopping power once hot. Wooden while cold.",
-      "mods": {
-        "brake_force": 1.48,
-        "mass_kg": {
-          "add": -14
-        },
-        "brake_wear_rate": 0.44
-      }
-    },
-    {
-      "id": "brakes_hydro",
-      "name": "Hydraulic Handbrake",
-      "slot": "brakes",
-      "tier": 2,
-      "price": 925,
-      "mods": {
-        "handbrake_lock": 1.15,
-        "brake_force": 1.05,
-        "brake_wear_rate": 1.1
-      }
-    },
-    {
-      "id": "elec_none",
-      "name": "No Driver Aids",
-      "slot": "electronics",
-      "tier": 0,
-      "price": 0,
-      "description": "Whatever the car left the factory with. Usually nothing.",
-      "mods": {}
-    },
-    {
-      "id": "elec_abs_retrofit",
-      "name": "ABS Retrofit",
-      "slot": "electronics",
-      "tier": 1,
-      "price": 2200,
-      "description": "Stops the wheels locking, so the car still steers under heavy braking. Costs a little weight and the last of the threshold-braking margin.",
-      "mods": {
-        "abs_strength": {
-          "add": 0.7
-        },
-        "mass_kg": {
-          "add": 14
-        }
-      }
-    },
-    {
-      "id": "elec_abs_race",
-      "name": "Motorsport ABS",
-      "slot": "electronics",
-      "tier": 3,
-      "price": 6800,
-      "description": "Multi-map racing ABS. Lets you brake far later than you have any right to.",
-      "mods": {
-        "abs_strength": {
-          "add": 0.92
-        },
-        "brake_force": 1.06,
-        "mass_kg": {
-          "add": 9
-        }
-      }
-    },
-    {
-      "id": "elec_traction",
-      "name": "Traction Control Module",
-      "slot": "electronics",
-      "tier": 3,
-      "price": 5300,
-      "description": "Trims torque when the driven wheels light up. Tidier out of hairpins, slower to rotate on throttle.",
-      "mods": {
-        "traction_control": {
-          "add": 0.6
-        },
-        "mass_kg": {
-          "add": 8
-        }
-      }
-    },
-    {
-      "id": "elec_full_suite",
-      "name": "Full Electronics Suite",
-      "slot": "electronics",
-      "tier": 4,
-      "price": 37500,
-      "description": "ABS and traction control together. Safe, fast, and it will never let you hang the tail out.",
-      "mods": {
-        "abs_strength": {
-          "add": 0.9
-        },
-        "traction_control": {
-          "add": 0.75
-        },
-        "brake_force": 1.04,
-        "mass_kg": {
-          "add": 20
-        },
-        "drift_release": 0.92
-      }
-    },
-    {
-      "id": "elec_defeat",
-      "name": "Aids Delete",
-      "slot": "electronics",
-      "tier": 1,
-      "price": 525,
-      "description": "Rips the lot out. Lighter, sharper, and entirely your problem if you lock a wheel.",
-      "mods": {
-        "abs_strength": 0,
-        "traction_control": 0,
-        "mass_kg": {
-          "add": -18
-        },
-        "drift_release": 1.06
-      }
-    },
-    {
-      "id": "tires_stock",
-      "name": "Road Tires",
-      "slot": "tires",
-      "tier": 0,
-      "price": 0,
-      "description": "Fine everywhere, excellent nowhere.",
-      "mods": {}
-    },
-    {
-      "id": "tires_sport",
-      "name": "Sport Road Tires",
-      "slot": "tires",
-      "tier": 1,
-      "price": 475,
-      "mods": {
-        "grip_lat": 1.08,
-        "grip_long": 1.06,
-        "tarmac_grip": 1.06,
-        "tire_wear_rate": 1.1
-      }
-    },
-    {
-      "id": "tires_semislick",
-      "name": "Semi-Slicks",
-      "slot": "tires",
-      "tier": 2,
-      "price": 1600,
-      "description": "Devastating on tarmac. Useless the moment it gets loose.",
-      "mods": {
-        "grip_lat": 1.2,
-        "grip_long": 1.16,
-        "tarmac_grip": 1.18,
-        "dirt_grip": 0.72,
-        "snow_grip": 0.55,
-        "tire_wear_rate": 1.55
-      }
-    },
-    {
-      "id": "tires_gravel",
-      "name": "Gravel Rally Tires",
-      "slot": "tires",
-      "tier": 2,
-      "price": 1500,
-      "description": "Chunky blocks that dig in. The default choice for a forest stage.",
-      "mods": {
-        "grip_lat": 1.06,
-        "grip_long": 1.08,
-        "dirt_grip": 1.26,
-        "tarmac_grip": 0.9,
-        "slip_forgiveness": 1.15,
-        "tire_wear_rate": 1.2
-      }
-    },
-    {
-      "id": "tires_mud",
-      "name": "Mud Terrain",
-      "slot": "tires",
-      "tier": 2,
-      "price": 1400,
-      "mods": {
-        "dirt_grip": 1.32,
-        "tarmac_grip": 0.8,
-        "grip_lat": 1.02,
-        "slip_forgiveness": 1.25,
-        "tire_wear_rate": 1.15,
-        "rolling_resistance": 1.15
-      }
-    },
-    {
-      "id": "tires_studded",
-      "name": "Studded Snow Tires",
-      "slot": "tires",
-      "tier": 2,
-      "price": 1800,
-      "mods": {
-        "snow_grip": 1.85,
-        "dirt_grip": 1.05,
-        "tarmac_grip": 0.78,
-        "slip_forgiveness": 1.2,
-        "tire_wear_rate": 1.4
-      }
-    },
-    {
-      "id": "tires_slick",
-      "name": "Racing Slicks",
-      "slot": "tires",
-      "tier": 3,
-      "price": 4800,
-      "description": "Peak tarmac grip and a very short cliff at the limit.",
-      "mods": {
-        "grip_lat": 1.32,
-        "grip_long": 1.28,
-        "tarmac_grip": 1.28,
-        "dirt_grip": 0.55,
-        "snow_grip": 0.3,
-        "slip_forgiveness": 0.78,
-        "drift_release": 1.3,
-        "tire_wear_rate": 1.95
-      }
-    },
-    {
-      "id": "tires_wrc_gravel",
-      "name": "WRC Gravel Compound",
-      "slot": "tires",
-      "tier": 4,
-      "price": 25500,
-      "min_car_tier": 3,
-      "mods": {
-        "grip_lat": 1.18,
-        "grip_long": 1.2,
-        "dirt_grip": 1.38,
-        "tarmac_grip": 0.94,
-        "slip_forgiveness": 1.2,
-        "tire_wear_rate": 1.6
-      }
-    },
-    {
-      "id": "wheels_stock",
-      "name": "Stock Wheels",
-      "slot": "wheels",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "wheels_alloy",
-      "name": "Lightweight Alloys",
-      "slot": "wheels",
-      "tier": 1,
-      "price": 700,
-      "mods": {
-        "mass_kg": {
-          "add": -16
-        },
-        "steering_rate": 1.06
-      }
-    },
-    {
-      "id": "wheels_forged",
-      "name": "Forged Motorsport Wheels",
-      "slot": "wheels",
-      "tier": 3,
-      "price": 5300,
-      "mods": {
-        "mass_kg": {
-          "add": -28
-        },
-        "steering_rate": 1.12,
-        "grip_lat": 1.04,
-        "durability_suspension": 1.1
-      }
-    },
-    {
-      "id": "chassis_stock",
-      "name": "Stock Shell",
-      "slot": "chassis",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "chassis_strut_brace",
-      "name": "Strut Brace",
-      "slot": "chassis",
-      "tier": 1,
-      "price": 325,
-      "mods": {
-        "grip_lat": 1.04,
-        "steering_rate": 1.06,
-        "mass_kg": {
-          "add": 5
-        }
-      }
-    },
-    {
-      "id": "chassis_seam_welded",
-      "name": "Seam-Welded Shell",
-      "slot": "chassis",
-      "tier": 3,
-      "price": 7000,
-      "mods": {
-        "grip_lat": 1.08,
-        "steering_rate": 1.1,
-        "durability_body": 1.25,
-        "crash_resistance": 1.15
-      }
-    },
-    {
-      "id": "weight_stock",
-      "name": "Full Interior",
-      "slot": "weight",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "weight_strip_light",
-      "name": "Interior Strip",
-      "slot": "weight",
-      "tier": 1,
-      "price": 275,
-      "mods": {
-        "mass_kg": 0.94,
-        "durability_body": 0.95
-      }
-    },
-    {
-      "id": "weight_strip_full",
-      "name": "Full Gut + Perspex",
-      "slot": "weight",
-      "tier": 2,
-      "price": 2000,
-      "description": "Every kilo out. Nothing left to absorb an impact either.",
-      "mods": {
-        "mass_kg": 0.86,
-        "durability_body": 0.82,
-        "crash_resistance": 0.85
-      }
-    },
-    {
-      "id": "weight_carbon",
-      "name": "Carbon Body Panels",
-      "slot": "weight",
-      "tier": 4,
-      "price": 43000,
-      "mods": {
-        "mass_kg": 0.88,
-        "drag_area": 0.96,
-        "durability_body": 0.9
-      }
-    },
-    {
-      "id": "aero_none",
-      "name": "No Aero",
-      "slot": "aero",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "aero_lip",
-      "name": "Front Lip + Boot Spoiler",
-      "slot": "aero",
-      "tier": 1,
-      "price": 625,
-      "mods": {
-        "downforce": {
-          "add": 12
-        },
-        "drag_area": 1.03
-      }
-    },
-    {
-      "id": "aero_gt_wing",
-      "name": "GT Wing + Splitter",
-      "slot": "aero",
-      "tier": 3,
-      "price": 5700,
-      "mods": {
-        "downforce": {
-          "add": 45
-        },
-        "drag_area": 1.12,
-        "grip_balance_front": {
-          "add": -0.03
-        }
-      }
-    },
-    {
-      "id": "aero_wrc_kit",
-      "name": "WRC Aero Package",
-      "slot": "aero",
-      "tier": 4,
-      "price": 50500,
-      "min_car_tier": 3,
-      "mods": {
-        "downforce": {
-          "add": 80
-        },
-        "drag_area": 1.15,
-        "grip_lat": 1.05
-      }
-    },
-    {
-      "id": "armor_none",
-      "name": "No Protection",
-      "slot": "armor",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "armor_sump_guard",
-      "name": "Sump Guard",
-      "slot": "armor",
-      "tier": 1,
-      "price": 250,
-      "mods": {
-        "durability_engine": 1.15,
-        "mass_kg": {
-          "add": 12
-        }
-      }
-    },
-    {
-      "id": "armor_cage",
-      "name": "Bolt-In Roll Cage",
-      "slot": "armor",
-      "tier": 2,
-      "price": 1700,
-      "mods": {
-        "crash_resistance": 1.35,
-        "durability_body": 1.2,
-        "mass_kg": {
-          "add": 42
-        },
-        "grip_lat": 1.03
-      }
-    },
-    {
-      "id": "armor_fia_cage",
-      "name": "FIA Welded Cage + Skid Plates",
-      "slot": "armor",
-      "tier": 3,
-      "price": 6400,
-      "description": "Survives things that would end anyone else's stage.",
-      "mods": {
-        "crash_resistance": 1.7,
-        "durability_body": 1.4,
-        "durability_engine": 1.2,
-        "durability_suspension": 1.15,
-        "mass_kg": {
-          "add": 58
-        },
-        "grip_lat": 1.05
-      }
-    },
-    {
-      "id": "nitro_none",
-      "name": "No Nitrous",
-      "slot": "nitro",
-      "tier": 0,
-      "price": 0,
-      "mods": {}
-    },
-    {
-      "id": "nitro_small",
-      "name": "Small Shot Bottle",
-      "slot": "nitro",
-      "tier": 1,
-      "price": 750,
-      "description": "One short burst. Cheap, and enough to settle a drag out of a hairpin.",
-      "mods": {
-        "nitro_capacity": {
-          "add": 45
-        },
-        "nitro_power": 0.85,
-        "mass_kg": {
-          "add": 8
-        }
-      }
-    },
-    {
-      "id": "nitro_standard",
-      "name": "Standard Bottle",
-      "slot": "nitro",
-      "tier": 2,
-      "price": 2400,
-      "mods": {
-        "nitro_capacity": {
-          "add": 100
-        },
-        "mass_kg": {
-          "add": 16
-        }
-      }
-    },
-    {
-      "id": "nitro_endurance",
-      "name": "Endurance Bottle",
-      "slot": "nitro",
-      "tier": 3,
-      "price": 5900,
-      "description": "Big tank, gentle push, and it refills itself if you keep it sideways.",
-      "mods": {
-        "nitro_capacity": {
-          "add": 180
-        },
-        "nitro_power": 0.75,
-        "nitro_regen": {
-          "add": 3.5
-        },
-        "mass_kg": {
-          "add": 30
-        }
-      }
-    },
-    {
-      "id": "nitro_madness",
-      "name": "Madness Injection",
-      "slot": "nitro",
-      "tier": 4,
-      "price": 47000,
-      "description": "Absurd power for a very short time, and it will melt the engine.",
-      "mods": {
-        "nitro_capacity": {
-          "add": 90
-        },
-        "nitro_power": 2.1,
-        "nitro_heat": 2.4,
-        "durability_engine": 0.8,
-        "mass_kg": {
-          "add": 22
-        }
-      }
-    },
-    {
-      "id": "nitro_regen_kit",
-      "name": "Stunt Recovery System",
-      "slot": "nitro",
-      "tier": 3,
-      "price": 7300,
-      "description": "Refills from clean jumps and long drifts. Rewards showing off.",
-      "mods": {
-        "nitro_capacity": {
-          "add": 120
-        },
-        "nitro_power": 0.95,
-        "nitro_regen": {
-          "add": 6
-        },
-        "mass_kg": {
-          "add": 24
-        }
-      }
-    },
-    {
-      "id": "internals_stock",
-      "name": "Standard Bottom End",
-      "slot": "internals",
-      "tier": 0,
-      "price": 0,
-      "description": "What the factory built. Fine until you ask it for more than the factory did.",
-      "mods": {}
-    },
-    {
-      "id": "internals_gaskets",
-      "name": "Uprated Gaskets and Belt",
-      "slot": "internals",
-      "tier": 1,
-      "price": 850,
-      "description": "A head gasket that survives boost and a cambelt that will not pick a bad moment. The cheapest insurance there is.",
-      "mods": {
-        "reliability": 1.28,
-        "oil_wear_rate": 0.94
-      }
-    },
-    {
-      "id": "internals_oil_cooler",
-      "name": "Oil Cooler and Baffled Sump",
-      "slot": "internals",
-      "tier": 2,
-      "price": 2600,
-      "description": "Keeps oil cool and keeps it over the pickup through a long left-hander. Oil lasts far longer.",
-      "mods": {
-        "oil_wear_rate": 0.6,
-        "cooling_capacity": 1.12,
-        "reliability": 1.25,
-        "mass_kg": {
-          "add": 14
-        },
-        "drag_area": 1.02
-      }
-    },
-    {
-      "id": "internals_forged",
-      "name": "Forged Rotating Assembly",
-      "slot": "internals",
-      "tier": 3,
-      "price": 9800,
-      "description": "Forged pistons and rods. No extra power on its own — it is what lets everything else stay bolted on.",
-      "mods": {
-        "reliability": 2.1,
-        "durability_engine": 1.3,
-        "redline_rpm": 1.05,
-        "mass_kg": {
-          "add": 8
-        }
-      }
-    },
-    {
-      "id": "internals_dry_sump",
-      "name": "Dry Sump System",
-      "slot": "internals",
-      "tier": 4,
-      "price": 28000,
-      "description": "Oil in a tank, scavenged out of the block. Nothing surges, nothing starves, and the engine sits lower for it.",
-      "mods": {
-        "oil_wear_rate": 0.34,
-        "reliability": 2.8,
-        "cg_height_m": {
-          "add": -0.02
-        },
-        "mass_kg": {
-          "add": 18
-        }
-      }
-    },
-    {
-      "id": "fuel_stock",
-      "name": "Standard Tank",
-      "slot": "fuel",
-      "tier": 0,
-      "price": 0,
-      "description": "The tank the car came with.",
-      "mods": {}
-    },
-    {
-      "id": "fuel_cell_light",
-      "name": "FIA Fuel Cell",
-      "slot": "fuel",
-      "tier": 1,
-      "price": 1100,
-      "description": "A smaller bladder in a crash-proof case. Less range, less weight, and it will not open up in a hedge.",
-      "mods": {
-        "fuel_capacity_bonus_l": {
-          "add": -9
-        },
-        "mass_kg": {
-          "add": -13
-        },
-        "crash_resistance": 1.07
-      }
-    },
-    {
-      "id": "fuel_long_range",
-      "name": "Long-Range Tank",
-      "slot": "fuel",
-      "tier": 2,
-      "price": 2400,
-      "description": "For stages long enough that running dry is a real way to lose. You carry the weight of it all day.",
-      "mods": {
-        "fuel_capacity_bonus_l": {
-          "add": 30
-        },
-        "mass_kg": {
-          "add": 17
-        }
-      }
-    },
-    {
-      "id": "fuel_swirl_pot",
-      "name": "Swirl Pot and Race Pump",
-      "slot": "fuel",
-      "tier": 3,
-      "price": 5600,
-      "description": "Fuel gets to the engine whatever the car is doing. Also meters it better than the standard system ever did.",
-      "mods": {
-        "fuel_burn_rate": 0.9,
-        "reliability": 1.2,
-        "engine_torque_nm": 1.03,
-        "mass_kg": {
-          "add": 7
-        }
-      }
-    },
-    {
-      "id": "cooling_ducted",
-      "name": "Ducted Race Radiator",
-      "slot": "cooling",
-      "tier": 3,
-      "price": 6200,
-      "description": "A radiator the size of the nose, fed by ducting cut into the bodywork. Costs you air, buys you boost.",
-      "mods": {
-        "cooling_capacity": 1.55,
-        "durability_engine": 1.25,
-        "drag_area": 1.06,
-        "nitro_heat": 0.72
-      }
-    },
-    {
-      "id": "cooling_wrc",
-      "name": "WRC Cooling Package",
-      "slot": "cooling",
-      "tier": 4,
-      "price": 24000,
-      "description": "Water, oil, intercooler and gearbox, each with its own core. Nothing on this car ever gets hot.",
-      "mods": {
-        "cooling_capacity": 2.0,
-        "nitro_heat": 0.45,
-        "durability_engine": 1.35,
-        "oil_wear_rate": 0.8,
-        "drag_area": 1.03,
-        "mass_kg": {
-          "add": 11
-        }
-      }
-    },
-    {
-      "id": "intake_carbon_airbox",
-      "name": "Carbon Airbox",
-      "slot": "intake",
-      "tier": 4,
-      "price": 16500,
-      "description": "Sealed, ram-fed and lighter than the bracket it replaces. The last few per cent nobody else has.",
-      "mods": {
-        "engine_torque_nm": 1.09,
-        "turbo_lag": 0.9,
-        "mass_kg": {
-          "add": -5
-        }
-      }
-    },
-    {
-      "id": "exhaust_race_system",
-      "name": "Titanium Race System",
-      "slot": "exhaust",
-      "tier": 4,
-      "price": 22000,
-      "description": "Equal-length, titanium, and audible from the next valley. Twenty kilos lighter than the pipe it replaces.",
-      "mods": {
-        "engine_torque_nm": 1.14,
-        "redline_rpm": 1.04,
-        "mass_kg": {
-          "add": -22
-        }
-      }
-    },
-    {
-      "id": "ecu_wrc",
-      "name": "WRC Engine Management",
-      "slot": "ecu",
-      "tier": 4,
-      "price": 26500,
-      "description": "Maps for every surface, launch control, and a gearshift cut measured in milliseconds.",
-      "mods": {
-        "engine_torque_nm": 1.1,
-        "turbo_lag": 0.78,
-        "shift_time": 0.85,
-        "reliability": 1.18
-      }
-    },
-    {
-      "id": "gearbox_paddle",
-      "name": "Paddle-Shift Sequential",
-      "slot": "gearbox",
-      "tier": 4,
-      "price": 44000,
-      "description": "Full-throttle shifts, both hands on the wheel. The gap between this and a dogbox is the gap between eras.",
-      "mods": {
-        "shift_time": 0.35,
-        "gear_spread": 0.95,
-        "mass_kg": {
-          "add": 12
-        },
-        "reliability": 0.96
-      }
-    },
-    {
-      "id": "clutch_sintered",
-      "name": "Sintered Paddle Clutch",
-      "slot": "clutch",
-      "tier": 2,
-      "price": 1500,
-      "description": "Grabs like a light switch. Brutal in traffic, perfect off the line.",
-      "mods": {
-        "clutch_grab": 1.22,
-        "shift_time": 0.88,
-        "reliability": 0.97
-      }
-    },
-    {
-      "id": "diff_helical",
-      "name": "Helical Torque-Biasing Diff",
-      "slot": "differential",
-      "tier": 3,
-      "price": 9200,
-      "description": "Sends drive to the wheel that has grip, smoothly, without the snap of a plated unit.",
-      "mods": {
-        "diff_lock_rear": {
-          "add": 0.2
-        },
-        "diff_lock_front": {
-          "add": 0.12
-        },
-        "grip_long": 1.05,
-        "slip_forgiveness": 1.06
-      }
-    },
-    {
-      "id": "susp_3way",
-      "name": "Three-Way Motorsport Struts",
-      "slot": "suspension",
-      "tier": 3,
-      "price": 12000,
-      "description": "Bump, rebound and high-speed bump, each on its own adjuster. The car does what you tell it to.",
-      "mods": {
-        "grip_lat": 1.12,
-        "grip_long": 1.1,
-        "slip_forgiveness": 1.12,
-        "suspension_travel": 1.15
-      }
-    },
-    {
-      "id": "springs_rally",
-      "name": "Rally Spring Set",
-      "slot": "springs",
-      "tier": 2,
-      "price": 1350,
-      "description": "Long, progressive and built for landings rather than lap times.",
-      "mods": {
-        "suspension_travel": 1.28,
-        "dirt_grip": 1.06,
-        "tarmac_grip": 0.97,
-        "durability_suspension": 1.15
-      }
-    },
-    {
-      "id": "springs_adjustable",
-      "name": "Adjustable Platform Springs",
-      "slot": "springs",
-      "tier": 3,
-      "price": 4300,
-      "description": "Rate and ride height set independently, so the car can be right for the stage rather than a compromise.",
-      "mods": {
-        "suspension_travel": 1.12,
-        "grip_lat": 1.06,
-        "grip_long": 1.04
-      }
-    },
-    {
-      "id": "dampers_2way",
-      "name": "Two-Way Adjustable Dampers",
-      "slot": "dampers",
-      "tier": 2,
-      "price": 2200,
-      "description": "Separate bump and rebound. The first damper that lets you fix a problem instead of trading it.",
-      "mods": {
-        "slip_forgiveness": 1.08,
-        "grip_lat": 1.05,
-        "suspension_travel": 1.08
-      }
-    },
-    {
-      "id": "dampers_wrc",
-      "name": "WRC Damper Set",
-      "slot": "dampers",
-      "tier": 4,
-      "price": 31000,
-      "description": "External reservoirs, rebuilt between stages. Absorbs things the chassis should not survive.",
-      "mods": {
-        "grip_lat": 1.12,
-        "grip_long": 1.1,
-        "slip_forgiveness": 1.16,
-        "suspension_travel": 1.22,
-        "durability_suspension": 1.2
-      }
-    },
-    {
-      "id": "arb_hollow",
-      "name": "Hollow Motorsport Bars",
-      "slot": "antiroll",
-      "tier": 3,
-      "price": 3800,
-      "description": "Same stiffness, a third of the weight, blade-adjustable at both ends.",
-      "mods": {
-        "grip_lat": 1.06,
-        "mass_kg": {
-          "add": -9
-        },
-        "grip_balance_front": {
-          "add": 0.02
-        }
-      }
-    },
-    {
-      "id": "brakes_4pot",
-      "name": "Four-Pot Race Calipers",
-      "slot": "brakes",
-      "tier": 3,
-      "price": 7400,
-      "description": "Monobloc calipers on floating discs. Enormous stopping power and pads that last the distance.",
-      "mods": {
-        "brake_force": 1.28,
-        "brake_wear_rate": 0.68,
-        "mass_kg": {
-          "add": 6
-        }
-      }
-    },
-    {
-      "id": "elec_launch",
-      "name": "Launch and Anti-Lag Control",
-      "slot": "electronics",
-      "tier": 2,
-      "price": 3400,
-      "description": "Holds the revs and keeps the turbo lit off the line. Loud, illegal on the road, worth a second a start.",
-      "mods": {
-        "traction_control": {
-          "add": 0.25
-        },
-        "turbo_lag": 0.85,
-        "turbo_wear_rate": 1.25
-      }
-    },
-    {
-      "id": "tires_winter",
-      "name": "Winter Tyres",
-      "slot": "tires",
-      "tier": 1,
-      "price": 700,
-      "description": "Soft compound, deep sipes. The cheap answer to a stage that is white rather than brown.",
-      "mods": {
-        "snow_grip": 1.35,
-        "dirt_grip": 1.05,
-        "tarmac_grip": 0.9,
-        "tire_wear_rate": 1.15
-      }
-    },
-    {
-      "id": "tires_rally_tarmac",
-      "name": "Tarmac Rally Slicks",
-      "slot": "tires",
-      "tier": 3,
-      "price": 5200,
-      "description": "What a rally car wears on the sealed stages. Astonishing on tarmac, hopeless the moment it turns to gravel.",
-      "mods": {
-        "tarmac_grip": 1.32,
-        "grip_lat": 1.26,
-        "grip_long": 1.22,
-        "dirt_grip": 0.68,
-        "snow_grip": 0.4,
-        "tire_wear_rate": 1.55,
-        "slip_forgiveness": 0.88
-      }
-    },
-    {
-      "id": "wheels_rally",
-      "name": "Gravel Rally Wheels",
-      "slot": "wheels",
-      "tier": 2,
-      "price": 2200,
-      "description": "Narrow, tall and strong enough to survive a rock. Ugly, and exactly right.",
-      "mods": {
-        "mass_kg": {
-          "add": -14
-        },
-        "dirt_grip": 1.05,
-        "durability_suspension": 1.12
-      }
-    },
-    {
-      "id": "wheels_magnesium",
-      "name": "Magnesium Race Wheels",
-      "slot": "wheels",
-      "tier": 4,
-      "price": 19500,
-      "description": "The lightest thing you can bolt a tyre to. Every gram saved here is worth three anywhere else — and they do not forgive kerbs.",
-      "mods": {
-        "mass_kg": {
-          "add": -26
-        },
-        "wheel_inertia": 0.78,
-        "grip_lat": 1.04,
-        "durability_suspension": 0.9
-      }
-    },
-    {
-      "id": "chassis_subframe",
-      "name": "Reinforced Subframes",
-      "slot": "chassis",
-      "tier": 2,
-      "price": 2300,
-      "description": "Where the suspension bolts to the car, made strong enough to stop flexing under it.",
-      "mods": {
-        "durability_suspension": 1.28,
-        "grip_lat": 1.04,
-        "mass_kg": {
-          "add": 18
-        }
-      }
-    },
-    {
-      "id": "weight_kevlar",
-      "name": "Kevlar Body Panels",
-      "slot": "weight",
-      "tier": 3,
-      "price": 12500,
-      "description": "Doors, bonnet and wings in composite. A tenth of the car's mass, gone.",
-      "mods": {
-        "mass_kg": 0.9,
-        "crash_resistance": 0.94
-      }
-    },
-    {
-      "id": "aero_splitter",
-      "name": "Splitter and Canards",
-      "slot": "aero",
-      "tier": 2,
-      "price": 2100,
-      "description": "Front-end grip you can feel above a hundred, and a nose that will not survive a kerb.",
-      "mods": {
-        "downforce": {
-          "add": 0.1
-        },
-        "drag_area": 1.04,
-        "grip_balance_front": {
-          "add": 0.03
-        }
-      }
-    },
-    {
-      "id": "armor_wrc_shell",
-      "name": "FIA Homologated Safety Cell",
-      "slot": "armor",
-      "tier": 4,
-      "price": 34000,
-      "description": "A welded cage tied into the shell at twenty points. It stiffens the car as much as it protects the driver.",
-      "mods": {
-        "crash_resistance": 1.9,
-        "durability_body": 1.55,
-        "mass_kg": {
-          "add": 58
-        },
-        "grip_lat": 1.06,
-        "grip_long": 1.04
-      }
+ "_comment": [
+  "Rally Madness tuning parts.",
+  "A bare number under 'mods' is a multiplier; use {\"add\": n} for an",
+  "absolute offset and {\"add\": n, \"mul\": m} for both.",
+  "Every part is meant to cost something as well as give something - a big",
+  "turbo brings lag, sticky tires wear out, a stripped interior gives up",
+  "crash protection. Parts with only upside are a balance bug, not a reward.",
+  "min_car_tier gates a part to chassis that can take it; drivetrain_filter",
+  "restricts parts that only make sense on one layout."
+ ],
+ "parts": [
+  {
+   "id": "engine_stock",
+   "name": "Stock Engine",
+   "slot": "engine",
+   "tier": 0,
+   "price": 0,
+   "description": "As it left the factory.",
+   "mods": {}
+  },
+  {
+   "id": "engine_stage1",
+   "name": "Stage 1 Rebuild",
+   "slot": "engine",
+   "tier": 1,
+   "price": 1000,
+   "description": "Fresh bearings, ported head, mild cam.",
+   "mods": {
+    "engine_torque_nm": 1.08,
+    "redline_rpm": 1.05,
+    "durability_engine": 0.96
+   }
+  },
+  {
+   "id": "engine_stage2",
+   "name": "Stage 2 Forged",
+   "slot": "engine",
+   "tier": 2,
+   "price": 3500,
+   "description": "Forged internals. Holds boost that would grenade a stock block.",
+   "mods": {
+    "engine_torque_nm": 1.16,
+    "redline_rpm": 1.12,
+    "durability_engine": 1.25,
+    "mass_kg": {
+     "add": 12
+    },
+    "reliability": 0.93
+   }
+  },
+  {
+   "id": "engine_stage3",
+   "name": "Stage 3 Race Build",
+   "slot": "engine",
+   "tier": 3,
+   "price": 11500,
+   "description": "Dry sump, race cams, no compromise. Peaky and fragile at idle.",
+   "mods": {
+    "engine_torque_nm": 1.28,
+    "redline_rpm": 1.22,
+    "torque_curve_bias": {
+     "add": 0.25
+    },
+    "idle_rpm": {
+     "add": 350
+    },
+    "durability_engine": 1.1,
+    "reliability": 0.82,
+    "oil_wear_rate": 1.25
+   }
+  },
+  {
+   "id": "engine_stroker",
+   "name": "Stroker Kit",
+   "slot": "engine",
+   "tier": 3,
+   "price": 9700,
+   "description": "More displacement. Huge low-end shove, revs no higher.",
+   "mods": {
+    "engine_torque_nm": 1.24,
+    "torque_curve_bias": {
+     "add": -0.35
+    },
+    "redline_rpm": 0.92,
+    "mass_kg": {
+     "add": 18
+    },
+    "reliability": 0.9,
+    "oil_wear_rate": 1.15
+   }
+  },
+  {
+   "id": "intake_stock",
+   "name": "Stock Airbox",
+   "slot": "intake",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "intake_cone",
+   "name": "Cone Filter",
+   "slot": "intake",
+   "tier": 1,
+   "price": 200,
+   "mods": {
+    "engine_torque_nm": 1.02,
+    "turbo_lag": 0.94
+   }
+  },
+  {
+   "id": "intake_ram",
+   "name": "Cold Air Ram",
+   "slot": "intake",
+   "tier": 2,
+   "price": 1100,
+   "mods": {
+    "engine_torque_nm": 1.04,
+    "turbo_lag": 0.88,
+    "torque_curve_bias": {
+     "add": 0.08
     }
-  ]
+   }
+  },
+  {
+   "id": "intake_itb",
+   "name": "Individual Throttle Bodies",
+   "slot": "intake",
+   "tier": 3,
+   "price": 4600,
+   "description": "Instant response, terrible manners below 3000 rpm.",
+   "mods": {
+    "engine_torque_nm": 1.07,
+    "torque_curve_bias": {
+     "add": 0.22
+    },
+    "turbo_lag": 0.7
+   }
+  },
+  {
+   "id": "exhaust_stock",
+   "name": "Stock Exhaust",
+   "slot": "exhaust",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "exhaust_sport",
+   "name": "Sports Cat-Back",
+   "slot": "exhaust",
+   "tier": 1,
+   "price": 350,
+   "mods": {
+    "engine_torque_nm": 1.03,
+    "mass_kg": {
+     "add": -8
+    }
+   }
+  },
+  {
+   "id": "exhaust_decat",
+   "name": "Decat Race System",
+   "slot": "exhaust",
+   "tier": 2,
+   "price": 1500,
+   "mods": {
+    "engine_torque_nm": 1.05,
+    "turbo_lag": 0.9,
+    "mass_kg": {
+     "add": -18
+    }
+   }
+  },
+  {
+   "id": "exhaust_antilag",
+   "name": "Anti-Lag System",
+   "slot": "exhaust",
+   "tier": 3,
+   "price": 7500,
+   "drivetrain_filter": [],
+   "description": "Keeps the turbo lit off throttle. Cooks the engine doing it.",
+   "mods": {
+    "turbo_lag": 0.3,
+    "engine_torque_nm": 1.03,
+    "durability_engine": 0.72,
+    "turbo_wear_rate": 1.7,
+    "reliability": 0.85
+   }
+  },
+  {
+   "id": "turbo_none",
+   "name": "No Forced Induction",
+   "slot": "turbo",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "turbo_small",
+   "name": "Small Journal Turbo",
+   "slot": "turbo",
+   "tier": 1,
+   "price": 1900,
+   "description": "Spools instantly, runs out of breath up top.",
+   "mods": {
+    "engine_torque_nm": 1.12,
+    "turbo_boost": {
+     "add": 0.15
+    },
+    "turbo_lag": {
+     "add": 0.2
+    },
+    "torque_curve_bias": {
+     "add": -0.15
+    },
+    "turbo_wear_rate": 1.1
+   }
+  },
+  {
+   "id": "turbo_ball_bearing",
+   "name": "Ball-Bearing Turbo",
+   "slot": "turbo",
+   "tier": 2,
+   "price": 5700,
+   "mods": {
+    "engine_torque_nm": 1.22,
+    "turbo_boost": {
+     "add": 0.3
+    },
+    "turbo_lag": {
+     "add": 0.35
+    },
+    "turbo_wear_rate": 0.72,
+    "reliability": 1.08
+   }
+  },
+  {
+   "id": "turbo_big",
+   "name": "Big Single Turbo",
+   "slot": "turbo",
+   "tier": 3,
+   "price": 13000,
+   "description": "Enormous top end. Nothing happens until it wakes up.",
+   "mods": {
+    "engine_torque_nm": 1.38,
+    "turbo_boost": {
+     "add": 0.5
+    },
+    "turbo_lag": {
+     "add": 0.9
+    },
+    "torque_curve_bias": {
+     "add": 0.3
+    },
+    "durability_engine": 0.88,
+    "turbo_wear_rate": 1.4,
+    "reliability": 0.9
+   }
+  },
+  {
+   "id": "turbo_twincharge",
+   "name": "Twincharger",
+   "slot": "turbo",
+   "tier": 4,
+   "price": 66000,
+   "description": "Supercharger fills in below the turbo. Expensive, and there is no lag.",
+   "mods": {
+    "engine_torque_nm": 1.32,
+    "turbo_boost": {
+     "add": 0.35
+    },
+    "turbo_lag": {
+     "add": 0.1
+    },
+    "mass_kg": {
+     "add": 30
+    },
+    "durability_engine": 0.9,
+    "turbo_wear_rate": 1.55,
+    "reliability": 0.86
+   }
+  },
+  {
+   "id": "ecu_stock",
+   "name": "Stock ECU",
+   "slot": "ecu",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "ecu_remap",
+   "name": "Remap",
+   "slot": "ecu",
+   "tier": 1,
+   "price": 475,
+   "mods": {
+    "engine_torque_nm": 1.05,
+    "durability_engine": 0.97
+   }
+  },
+  {
+   "id": "ecu_standalone",
+   "name": "Standalone ECU",
+   "slot": "ecu",
+   "tier": 2,
+   "price": 2600,
+   "mods": {
+    "engine_torque_nm": 1.08,
+    "turbo_lag": 0.92,
+    "redline_rpm": 1.04,
+    "reliability": 1.06
+   }
+  },
+  {
+   "id": "ecu_motorsport",
+   "name": "Motorsport ECU + Launch",
+   "slot": "ecu",
+   "tier": 3,
+   "price": 8400,
+   "mods": {
+    "engine_torque_nm": 1.1,
+    "turbo_lag": 0.85,
+    "shift_time": 0.88,
+    "clutch_grab": 1.25,
+    "reliability": 1.12
+   }
+  },
+  {
+   "id": "cooling_stock",
+   "name": "Stock Cooling",
+   "slot": "cooling",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "cooling_alloy",
+   "name": "Alloy Radiator",
+   "slot": "cooling",
+   "tier": 1,
+   "price": 425,
+   "mods": {
+    "durability_engine": 1.08,
+    "nitro_heat": 0.92,
+    "cooling_capacity": 1.15
+   }
+  },
+  {
+   "id": "cooling_race",
+   "name": "Race Cooling Pack",
+   "slot": "cooling",
+   "tier": 2,
+   "price": 2100,
+   "description": "Oil cooler, big intercooler, ducting. Nitro runs stay cool much longer.",
+   "mods": {
+    "durability_engine": 1.2,
+    "nitro_heat": 0.65,
+    "drag_area": 1.04,
+    "cooling_capacity": 1.38,
+    "oil_wear_rate": 0.86
+   }
+  },
+  {
+   "id": "gearbox_stock",
+   "name": "Stock Gearbox",
+   "slot": "gearbox",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "gearbox_short",
+   "name": "Short-Shift Kit",
+   "slot": "gearbox",
+   "tier": 1,
+   "price": 525,
+   "mods": {
+    "shift_time": 0.82
+   }
+  },
+  {
+   "id": "gearbox_dogbox",
+   "name": "Straight-Cut Dog Box",
+   "slot": "gearbox",
+   "tier": 2,
+   "price": 5300,
+   "description": "Flat-shift without the clutch. Brutal on the driveline.",
+   "mods": {
+    "shift_time": 0.45,
+    "clutch_grab": 1.6,
+    "gear_spread": 1.08
+   }
+  },
+  {
+   "id": "gearbox_sequential",
+   "name": "Sequential Race Box",
+   "slot": "gearbox",
+   "tier": 3,
+   "price": 15000,
+   "mods": {
+    "shift_time": 0.28,
+    "clutch_grab": 2,
+    "mass_kg": {
+     "add": -14
+    },
+    "reliability": 0.95
+   }
+  },
+  {
+   "id": "clutch_stock",
+   "name": "Stock Clutch",
+   "slot": "clutch",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "clutch_uprated",
+   "name": "Uprated Organic",
+   "slot": "clutch",
+   "tier": 1,
+   "price": 400,
+   "mods": {
+    "clutch_grab": 1.25,
+    "reliability": 1.03
+   }
+  },
+  {
+   "id": "clutch_twin_plate",
+   "name": "Twin-Plate Race",
+   "slot": "clutch",
+   "tier": 3,
+   "price": 4200,
+   "mods": {
+    "clutch_grab": 1.9,
+    "shift_time": 0.9,
+    "mass_kg": {
+     "add": -6
+    },
+    "reliability": 0.97
+   }
+  },
+  {
+   "id": "diff_open",
+   "name": "Open Differential",
+   "slot": "differential",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "diff_lsd",
+   "name": "Limited Slip Differential",
+   "slot": "differential",
+   "tier": 1,
+   "price": 1400,
+   "mods": {
+    "diff_lock_rear": {
+     "add": 0.25
+    },
+    "diff_lock_front": {
+     "add": 0.15
+    },
+    "grip_long": 1.05
+   }
+  },
+  {
+   "id": "diff_plate_lsd",
+   "name": "Plate LSD",
+   "slot": "differential",
+   "tier": 2,
+   "price": 3700,
+   "mods": {
+    "diff_lock_rear": {
+     "add": 0.4
+    },
+    "diff_lock_front": {
+     "add": 0.25
+    },
+    "grip_long": 1.09,
+    "drift_release": 0.92
+   }
+  },
+  {
+   "id": "diff_spool",
+   "name": "Welded Spool",
+   "slot": "differential",
+   "tier": 2,
+   "price": 650,
+   "description": "Cheap, locked solid. Fantastic sideways, awful anywhere tight.",
+   "mods": {
+    "diff_lock_rear": {
+     "add": 0.7
+    },
+    "grip_long": 1.1,
+    "max_steer_deg": 0.88,
+    "tire_wear_rate": 1.35
+   }
+  },
+  {
+   "id": "diff_active",
+   "name": "Active Centre Diff",
+   "slot": "differential",
+   "tier": 4,
+   "price": 48500,
+   "drivetrain_filter": [
+    "AWD"
+   ],
+   "mods": {
+    "diff_lock_rear": {
+     "add": 0.45
+    },
+    "diff_lock_front": {
+     "add": 0.45
+    },
+    "grip_long": 1.12,
+    "grip_balance_front": {
+     "add": 0.03
+    }
+   }
+  },
+  {
+   "id": "susp_stock",
+   "name": "Stock Suspension",
+   "slot": "suspension",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "susp_lowering",
+   "name": "Lowering Kit",
+   "slot": "suspension",
+   "tier": 1,
+   "price": 450,
+   "description": "Quicker on tarmac, out of travel on anything rough.",
+   "mods": {
+    "cg_height_m": 0.9,
+    "grip_lat": 1.05,
+    "suspension_travel": 0.72,
+    "tarmac_grip": 1.06,
+    "dirt_grip": 0.94
+   }
+  },
+  {
+   "id": "susp_rally_raised",
+   "name": "Rally Raised Kit",
+   "slot": "suspension",
+   "tier": 2,
+   "price": 3100,
+   "description": "Long travel, high ride. Soaks up landings that would end a track car.",
+   "mods": {
+    "cg_height_m": 1.1,
+    "suspension_travel": 1.65,
+    "dirt_grip": 1.1,
+    "tarmac_grip": 0.94,
+    "durability_suspension": 1.3
+   }
+  },
+  {
+   "id": "susp_coilover",
+   "name": "Adjustable Coilovers",
+   "slot": "suspension",
+   "tier": 2,
+   "price": 4000,
+   "mods": {
+    "grip_lat": 1.09,
+    "grip_long": 1.05,
+    "cg_height_m": 0.95,
+    "steering_rate": 1.15
+   }
+  },
+  {
+   "id": "susp_wrc",
+   "name": "WRC-Spec Dampers",
+   "slot": "suspension",
+   "tier": 4,
+   "price": 53000,
+   "mods": {
+    "grip_lat": 1.16,
+    "grip_long": 1.12,
+    "suspension_travel": 1.45,
+    "dirt_grip": 1.12,
+    "durability_suspension": 1.5,
+    "steering_rate": 1.25
+   }
+  },
+  {
+   "id": "springs_stock",
+   "name": "Stock Springs",
+   "slot": "springs",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "springs_soft",
+   "name": "Soft Rally Springs",
+   "slot": "springs",
+   "tier": 1,
+   "price": 300,
+   "mods": {
+    "dirt_grip": 1.07,
+    "slip_forgiveness": 1.12,
+    "tarmac_grip": 0.96
+   }
+  },
+  {
+   "id": "springs_stiff",
+   "name": "Stiff Track Springs",
+   "slot": "springs",
+   "tier": 1,
+   "price": 300,
+   "mods": {
+    "tarmac_grip": 1.08,
+    "slip_forgiveness": 0.9,
+    "dirt_grip": 0.94,
+    "durability_suspension": 0.92
+   }
+  },
+  {
+   "id": "dampers_stock",
+   "name": "Stock Dampers",
+   "slot": "dampers",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "dampers_gas",
+   "name": "Gas Dampers",
+   "slot": "dampers",
+   "tier": 1,
+   "price": 575,
+   "mods": {
+    "grip_lat": 1.04,
+    "slip_forgiveness": 1.06
+   }
+  },
+  {
+   "id": "dampers_remote",
+   "name": "Remote Reservoir Dampers",
+   "slot": "dampers",
+   "tier": 3,
+   "price": 5900,
+   "mods": {
+    "grip_lat": 1.09,
+    "slip_forgiveness": 1.1,
+    "durability_suspension": 1.25,
+    "suspension_travel": 1.15
+   }
+  },
+  {
+   "id": "arb_stock",
+   "name": "Stock Anti-Roll Bars",
+   "slot": "antiroll",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "arb_front_stiff",
+   "name": "Stiff Front Bar",
+   "slot": "antiroll",
+   "tier": 1,
+   "price": 275,
+   "description": "Plants the rear, blunts turn-in. The classic oversteer cure.",
+   "mods": {
+    "grip_balance_front": {
+     "add": -0.06
+    }
+   }
+  },
+  {
+   "id": "arb_rear_stiff",
+   "name": "Stiff Rear Bar",
+   "slot": "antiroll",
+   "tier": 1,
+   "price": 275,
+   "description": "Frees the tail. Rotates on throttle, punishes clumsy hands.",
+   "mods": {
+    "grip_balance_front": {
+     "add": 0.06
+    },
+    "drift_release": 1.08
+   }
+  },
+  {
+   "id": "arb_adjustable",
+   "name": "Adjustable Bar Set",
+   "slot": "antiroll",
+   "tier": 2,
+   "price": 1900,
+   "mods": {
+    "grip_lat": 1.05,
+    "steering_rate": 1.08
+   }
+  },
+  {
+   "id": "brakes_stock",
+   "name": "Stock Brakes",
+   "slot": "brakes",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "brakes_pads",
+   "name": "Fast Road Pads",
+   "slot": "brakes",
+   "tier": 1,
+   "price": 150,
+   "mods": {
+    "brake_force": 1.1,
+    "brake_wear_rate": 1.18
+   }
+  },
+  {
+   "id": "brakes_bigger",
+   "name": "Four-Pot Big Brake Kit",
+   "slot": "brakes",
+   "tier": 2,
+   "price": 2400,
+   "mods": {
+    "brake_force": 1.28,
+    "mass_kg": {
+     "add": 9
+    },
+    "brake_wear_rate": 0.76
+   }
+  },
+  {
+   "id": "brakes_carbon",
+   "name": "Carbon-Ceramic",
+   "slot": "brakes",
+   "tier": 4,
+   "price": 40500,
+   "description": "Enormous stopping power once hot. Wooden while cold.",
+   "mods": {
+    "brake_force": 1.48,
+    "mass_kg": {
+     "add": -14
+    },
+    "brake_wear_rate": 0.44
+   }
+  },
+  {
+   "id": "brakes_hydro",
+   "name": "Hydraulic Handbrake",
+   "slot": "brakes",
+   "tier": 2,
+   "price": 925,
+   "mods": {
+    "handbrake_lock": 1.15,
+    "brake_force": 1.05,
+    "brake_wear_rate": 1.1
+   }
+  },
+  {
+   "id": "elec_none",
+   "name": "No Driver Aids",
+   "slot": "electronics",
+   "tier": 0,
+   "price": 0,
+   "description": "Whatever the car left the factory with. Usually nothing.",
+   "mods": {}
+  },
+  {
+   "id": "elec_abs_retrofit",
+   "name": "ABS Retrofit",
+   "slot": "electronics",
+   "tier": 1,
+   "price": 2200,
+   "description": "Stops the wheels locking, so the car still steers under heavy braking. Costs a little weight and the last of the threshold-braking margin.",
+   "mods": {
+    "abs_strength": {
+     "add": 0.7
+    },
+    "mass_kg": {
+     "add": 14
+    }
+   }
+  },
+  {
+   "id": "elec_abs_race",
+   "name": "Motorsport ABS",
+   "slot": "electronics",
+   "tier": 3,
+   "price": 6800,
+   "description": "Multi-map racing ABS. Lets you brake far later than you have any right to.",
+   "mods": {
+    "abs_strength": {
+     "add": 0.92
+    },
+    "brake_force": 1.06,
+    "mass_kg": {
+     "add": 9
+    }
+   }
+  },
+  {
+   "id": "elec_traction",
+   "name": "Traction Control Module",
+   "slot": "electronics",
+   "tier": 3,
+   "price": 5300,
+   "description": "Trims torque when the driven wheels light up. Tidier out of hairpins, slower to rotate on throttle.",
+   "mods": {
+    "traction_control": {
+     "add": 0.6
+    },
+    "mass_kg": {
+     "add": 8
+    }
+   }
+  },
+  {
+   "id": "elec_full_suite",
+   "name": "Full Electronics Suite",
+   "slot": "electronics",
+   "tier": 4,
+   "price": 37500,
+   "description": "ABS and traction control together. Safe, fast, and it will never let you hang the tail out.",
+   "mods": {
+    "abs_strength": {
+     "add": 0.9
+    },
+    "traction_control": {
+     "add": 0.75
+    },
+    "brake_force": 1.04,
+    "mass_kg": {
+     "add": 20
+    },
+    "drift_release": 0.92
+   }
+  },
+  {
+   "id": "elec_defeat",
+   "name": "Aids Delete",
+   "slot": "electronics",
+   "tier": 1,
+   "price": 525,
+   "description": "Rips the lot out. Lighter, sharper, and entirely your problem if you lock a wheel.",
+   "mods": {
+    "abs_strength": 0,
+    "traction_control": 0,
+    "mass_kg": {
+     "add": -18
+    },
+    "drift_release": 1.06
+   }
+  },
+  {
+   "id": "tires_stock",
+   "name": "Road Tires",
+   "slot": "tires",
+   "tier": 0,
+   "price": 0,
+   "description": "Fine everywhere, excellent nowhere.",
+   "mods": {}
+  },
+  {
+   "id": "tires_sport",
+   "name": "Sport Road Tires",
+   "slot": "tires",
+   "tier": 1,
+   "price": 475,
+   "mods": {
+    "grip_lat": 1.08,
+    "grip_long": 1.06,
+    "tarmac_grip": 1.06,
+    "tire_wear_rate": 1.1
+   }
+  },
+  {
+   "id": "tires_semislick",
+   "name": "Semi-Slicks",
+   "slot": "tires",
+   "tier": 2,
+   "price": 1600,
+   "description": "Devastating on tarmac. Useless the moment it gets loose.",
+   "mods": {
+    "grip_lat": 1.2,
+    "grip_long": 1.16,
+    "tarmac_grip": 1.18,
+    "dirt_grip": 0.72,
+    "snow_grip": 0.55,
+    "tire_wear_rate": 1.55
+   }
+  },
+  {
+   "id": "tires_gravel",
+   "name": "Gravel Rally Tires",
+   "slot": "tires",
+   "tier": 2,
+   "price": 1500,
+   "description": "Chunky blocks that dig in. The default choice for a forest stage.",
+   "mods": {
+    "grip_lat": 1.06,
+    "grip_long": 1.08,
+    "dirt_grip": 1.26,
+    "tarmac_grip": 0.9,
+    "slip_forgiveness": 1.15,
+    "tire_wear_rate": 1.2
+   }
+  },
+  {
+   "id": "tires_mud",
+   "name": "Mud Terrain",
+   "slot": "tires",
+   "tier": 2,
+   "price": 1400,
+   "mods": {
+    "dirt_grip": 1.32,
+    "tarmac_grip": 0.8,
+    "grip_lat": 1.02,
+    "slip_forgiveness": 1.25,
+    "tire_wear_rate": 1.15,
+    "rolling_resistance": 1.15
+   }
+  },
+  {
+   "id": "tires_studded",
+   "name": "Studded Snow Tires",
+   "slot": "tires",
+   "tier": 2,
+   "price": 1800,
+   "mods": {
+    "snow_grip": 1.85,
+    "dirt_grip": 1.05,
+    "tarmac_grip": 0.78,
+    "slip_forgiveness": 1.2,
+    "tire_wear_rate": 1.4
+   }
+  },
+  {
+   "id": "tires_slick",
+   "name": "Racing Slicks",
+   "slot": "tires",
+   "tier": 3,
+   "price": 4800,
+   "description": "Peak tarmac grip and a very short cliff at the limit.",
+   "mods": {
+    "grip_lat": 1.32,
+    "grip_long": 1.28,
+    "tarmac_grip": 1.28,
+    "dirt_grip": 0.55,
+    "snow_grip": 0.3,
+    "slip_forgiveness": 0.78,
+    "drift_release": 1.3,
+    "tire_wear_rate": 1.95
+   }
+  },
+  {
+   "id": "tires_wrc_gravel",
+   "name": "WRC Gravel Compound",
+   "slot": "tires",
+   "tier": 4,
+   "price": 25500,
+   "min_car_tier": 3,
+   "mods": {
+    "grip_lat": 1.18,
+    "grip_long": 1.2,
+    "dirt_grip": 1.38,
+    "tarmac_grip": 0.94,
+    "slip_forgiveness": 1.2,
+    "tire_wear_rate": 1.6
+   }
+  },
+  {
+   "id": "wheels_stock",
+   "name": "Stock Wheels",
+   "slot": "wheels",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "wheels_alloy",
+   "name": "Lightweight Alloys",
+   "slot": "wheels",
+   "tier": 1,
+   "price": 700,
+   "mods": {
+    "mass_kg": {
+     "add": -16
+    },
+    "steering_rate": 1.06
+   }
+  },
+  {
+   "id": "wheels_forged",
+   "name": "Forged Motorsport Wheels",
+   "slot": "wheels",
+   "tier": 3,
+   "price": 5300,
+   "mods": {
+    "mass_kg": {
+     "add": -28
+    },
+    "steering_rate": 1.12,
+    "grip_lat": 1.04,
+    "durability_suspension": 1.1
+   }
+  },
+  {
+   "id": "chassis_stock",
+   "name": "Stock Shell",
+   "slot": "chassis",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "chassis_strut_brace",
+   "name": "Strut Brace",
+   "slot": "chassis",
+   "tier": 1,
+   "price": 325,
+   "mods": {
+    "grip_lat": 1.04,
+    "steering_rate": 1.06,
+    "mass_kg": {
+     "add": 5
+    }
+   }
+  },
+  {
+   "id": "chassis_seam_welded",
+   "name": "Seam-Welded Shell",
+   "slot": "chassis",
+   "tier": 3,
+   "price": 7000,
+   "mods": {
+    "grip_lat": 1.08,
+    "steering_rate": 1.1,
+    "durability_body": 1.25,
+    "crash_resistance": 1.15
+   }
+  },
+  {
+   "id": "weight_stock",
+   "name": "Full Interior",
+   "slot": "weight",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "weight_strip_light",
+   "name": "Interior Strip",
+   "slot": "weight",
+   "tier": 1,
+   "price": 275,
+   "mods": {
+    "mass_kg": 0.94,
+    "durability_body": 0.95
+   }
+  },
+  {
+   "id": "weight_strip_full",
+   "name": "Full Gut + Perspex",
+   "slot": "weight",
+   "tier": 2,
+   "price": 2000,
+   "description": "Every kilo out. Nothing left to absorb an impact either.",
+   "mods": {
+    "mass_kg": 0.86,
+    "durability_body": 0.82,
+    "crash_resistance": 0.85
+   }
+  },
+  {
+   "id": "weight_carbon",
+   "name": "Carbon Body Panels",
+   "slot": "weight",
+   "tier": 4,
+   "price": 43000,
+   "mods": {
+    "mass_kg": 0.88,
+    "drag_area": 0.96,
+    "durability_body": 0.9
+   }
+  },
+  {
+   "id": "aero_none",
+   "name": "No Aero",
+   "slot": "aero",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "aero_lip",
+   "name": "Front Lip + Boot Spoiler",
+   "slot": "aero",
+   "tier": 1,
+   "price": 625,
+   "mods": {
+    "downforce": {
+     "add": 12
+    },
+    "drag_area": 1.03
+   }
+  },
+  {
+   "id": "aero_gt_wing",
+   "name": "GT Wing + Splitter",
+   "slot": "aero",
+   "tier": 3,
+   "price": 5700,
+   "mods": {
+    "downforce": {
+     "add": 45
+    },
+    "drag_area": 1.12,
+    "grip_balance_front": {
+     "add": -0.03
+    }
+   }
+  },
+  {
+   "id": "aero_wrc_kit",
+   "name": "WRC Aero Package",
+   "slot": "aero",
+   "tier": 4,
+   "price": 50500,
+   "min_car_tier": 3,
+   "mods": {
+    "downforce": {
+     "add": 80
+    },
+    "drag_area": 1.15,
+    "grip_lat": 1.05
+   }
+  },
+  {
+   "id": "armor_none",
+   "name": "No Protection",
+   "slot": "armor",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "armor_sump_guard",
+   "name": "Sump Guard",
+   "slot": "armor",
+   "tier": 1,
+   "price": 250,
+   "mods": {
+    "durability_engine": 1.15,
+    "mass_kg": {
+     "add": 12
+    }
+   }
+  },
+  {
+   "id": "armor_cage",
+   "name": "Bolt-In Roll Cage",
+   "slot": "armor",
+   "tier": 2,
+   "price": 1700,
+   "mods": {
+    "crash_resistance": 1.35,
+    "durability_body": 1.2,
+    "mass_kg": {
+     "add": 42
+    },
+    "grip_lat": 1.03
+   }
+  },
+  {
+   "id": "armor_fia_cage",
+   "name": "FIA Welded Cage + Skid Plates",
+   "slot": "armor",
+   "tier": 3,
+   "price": 6400,
+   "description": "Survives things that would end anyone else's stage.",
+   "mods": {
+    "crash_resistance": 1.7,
+    "durability_body": 1.4,
+    "durability_engine": 1.2,
+    "durability_suspension": 1.15,
+    "mass_kg": {
+     "add": 58
+    },
+    "grip_lat": 1.05
+   }
+  },
+  {
+   "id": "nitro_none",
+   "name": "No Nitrous",
+   "slot": "nitro",
+   "tier": 0,
+   "price": 0,
+   "mods": {}
+  },
+  {
+   "id": "nitro_small",
+   "name": "Small Shot Bottle",
+   "slot": "nitro",
+   "tier": 1,
+   "price": 750,
+   "description": "One short burst. Cheap, and enough to settle a drag out of a hairpin.",
+   "mods": {
+    "nitro_capacity": {
+     "add": 45
+    },
+    "nitro_power": 0.85,
+    "mass_kg": {
+     "add": 8
+    }
+   }
+  },
+  {
+   "id": "nitro_standard",
+   "name": "Standard Bottle",
+   "slot": "nitro",
+   "tier": 2,
+   "price": 2400,
+   "mods": {
+    "nitro_capacity": {
+     "add": 100
+    },
+    "mass_kg": {
+     "add": 16
+    }
+   }
+  },
+  {
+   "id": "nitro_endurance",
+   "name": "Endurance Bottle",
+   "slot": "nitro",
+   "tier": 3,
+   "price": 5900,
+   "description": "Big tank, gentle push, and it refills itself if you keep it sideways.",
+   "mods": {
+    "nitro_capacity": {
+     "add": 180
+    },
+    "nitro_power": 0.75,
+    "nitro_regen": {
+     "add": 3.5
+    },
+    "mass_kg": {
+     "add": 30
+    }
+   }
+  },
+  {
+   "id": "nitro_madness",
+   "name": "Madness Injection",
+   "slot": "nitro",
+   "tier": 4,
+   "price": 47000,
+   "description": "Absurd power for a very short time, and it will melt the engine.",
+   "mods": {
+    "nitro_capacity": {
+     "add": 90
+    },
+    "nitro_power": 2.1,
+    "nitro_heat": 2.4,
+    "durability_engine": 0.8,
+    "mass_kg": {
+     "add": 22
+    }
+   }
+  },
+  {
+   "id": "nitro_regen_kit",
+   "name": "Stunt Recovery System",
+   "slot": "nitro",
+   "tier": 3,
+   "price": 7300,
+   "description": "Refills from clean jumps and long drifts. Rewards showing off.",
+   "mods": {
+    "nitro_capacity": {
+     "add": 120
+    },
+    "nitro_power": 0.95,
+    "nitro_regen": {
+     "add": 6
+    },
+    "mass_kg": {
+     "add": 24
+    }
+   }
+  },
+  {
+   "id": "internals_stock",
+   "name": "Standard Bottom End",
+   "slot": "internals",
+   "tier": 0,
+   "price": 0,
+   "description": "What the factory built. Fine until you ask it for more than the factory did.",
+   "mods": {}
+  },
+  {
+   "id": "internals_gaskets",
+   "name": "Uprated Gaskets and Belt",
+   "slot": "internals",
+   "tier": 1,
+   "price": 850,
+   "description": "A head gasket that survives boost and a cambelt that will not pick a bad moment. The cheapest insurance there is.",
+   "mods": {
+    "reliability": 1.28,
+    "oil_wear_rate": 0.94
+   }
+  },
+  {
+   "id": "internals_oil_cooler",
+   "name": "Oil Cooler and Baffled Sump",
+   "slot": "internals",
+   "tier": 2,
+   "price": 2600,
+   "description": "Keeps oil cool and keeps it over the pickup through a long left-hander. Oil lasts far longer.",
+   "mods": {
+    "oil_wear_rate": 0.6,
+    "cooling_capacity": 1.12,
+    "reliability": 1.25,
+    "mass_kg": {
+     "add": 14
+    },
+    "drag_area": 1.02
+   }
+  },
+  {
+   "id": "internals_forged",
+   "name": "Forged Rotating Assembly",
+   "slot": "internals",
+   "tier": 3,
+   "price": 9800,
+   "description": "Forged pistons and rods. No extra power on its own \u2014 it is what lets everything else stay bolted on.",
+   "mods": {
+    "reliability": 2.1,
+    "durability_engine": 1.3,
+    "redline_rpm": 1.05,
+    "mass_kg": {
+     "add": 8
+    }
+   }
+  },
+  {
+   "id": "internals_dry_sump",
+   "name": "Dry Sump System",
+   "slot": "internals",
+   "tier": 4,
+   "price": 28000,
+   "description": "Oil in a tank, scavenged out of the block. Nothing surges, nothing starves, and the engine sits lower for it.",
+   "mods": {
+    "oil_wear_rate": 0.34,
+    "reliability": 2.8,
+    "cg_height_m": {
+     "add": -0.02
+    },
+    "mass_kg": {
+     "add": 18
+    }
+   }
+  },
+  {
+   "id": "fuel_stock",
+   "name": "Standard Tank",
+   "slot": "fuel",
+   "tier": 0,
+   "price": 0,
+   "description": "The tank the car came with.",
+   "mods": {}
+  },
+  {
+   "id": "fuel_cell_light",
+   "name": "FIA Fuel Cell",
+   "slot": "fuel",
+   "tier": 1,
+   "price": 1100,
+   "description": "A smaller bladder in a crash-proof case. Less range, less weight, and it will not open up in a hedge.",
+   "mods": {
+    "fuel_capacity_bonus_l": {
+     "add": -9
+    },
+    "mass_kg": {
+     "add": -13
+    },
+    "crash_resistance": 1.07
+   }
+  },
+  {
+   "id": "fuel_long_range",
+   "name": "Long-Range Tank",
+   "slot": "fuel",
+   "tier": 2,
+   "price": 2400,
+   "description": "For stages long enough that running dry is a real way to lose. You carry the weight of it all day.",
+   "mods": {
+    "fuel_capacity_bonus_l": {
+     "add": 30
+    },
+    "mass_kg": {
+     "add": 17
+    }
+   }
+  },
+  {
+   "id": "fuel_swirl_pot",
+   "name": "Swirl Pot and Race Pump",
+   "slot": "fuel",
+   "tier": 3,
+   "price": 5600,
+   "description": "Fuel gets to the engine whatever the car is doing. Also meters it better than the standard system ever did.",
+   "mods": {
+    "fuel_burn_rate": 0.9,
+    "reliability": 1.2,
+    "engine_torque_nm": 1.03,
+    "mass_kg": {
+     "add": 7
+    }
+   }
+  },
+  {
+   "id": "cooling_ducted",
+   "name": "Ducted Race Radiator",
+   "slot": "cooling",
+   "tier": 3,
+   "price": 6200,
+   "description": "A radiator the size of the nose, fed by ducting cut into the bodywork. Costs you air, buys you boost.",
+   "mods": {
+    "cooling_capacity": 1.55,
+    "durability_engine": 1.25,
+    "drag_area": 1.06,
+    "nitro_heat": 0.72
+   }
+  },
+  {
+   "id": "cooling_wrc",
+   "name": "WRC Cooling Package",
+   "slot": "cooling",
+   "tier": 4,
+   "price": 24000,
+   "description": "Water, oil, intercooler and gearbox, each with its own core. Nothing on this car ever gets hot.",
+   "mods": {
+    "cooling_capacity": 2.0,
+    "nitro_heat": 0.45,
+    "durability_engine": 1.35,
+    "oil_wear_rate": 0.8,
+    "drag_area": 1.03,
+    "mass_kg": {
+     "add": 11
+    }
+   }
+  },
+  {
+   "id": "intake_carbon_airbox",
+   "name": "Carbon Airbox",
+   "slot": "intake",
+   "tier": 4,
+   "price": 16500,
+   "description": "Sealed, ram-fed and lighter than the bracket it replaces. The last few per cent nobody else has.",
+   "mods": {
+    "engine_torque_nm": 1.09,
+    "turbo_lag": 0.9,
+    "mass_kg": {
+     "add": -5
+    }
+   }
+  },
+  {
+   "id": "exhaust_race_system",
+   "name": "Titanium Race System",
+   "slot": "exhaust",
+   "tier": 4,
+   "price": 22000,
+   "description": "Equal-length, titanium, and audible from the next valley. Twenty kilos lighter than the pipe it replaces.",
+   "mods": {
+    "engine_torque_nm": 1.14,
+    "redline_rpm": 1.04,
+    "mass_kg": {
+     "add": -22
+    }
+   }
+  },
+  {
+   "id": "ecu_wrc",
+   "name": "WRC Engine Management",
+   "slot": "ecu",
+   "tier": 4,
+   "price": 26500,
+   "description": "Maps for every surface, launch control, and a gearshift cut measured in milliseconds.",
+   "mods": {
+    "engine_torque_nm": 1.1,
+    "turbo_lag": 0.78,
+    "shift_time": 0.85,
+    "reliability": 1.18
+   }
+  },
+  {
+   "id": "gearbox_paddle",
+   "name": "Paddle-Shift Sequential",
+   "slot": "gearbox",
+   "tier": 4,
+   "price": 44000,
+   "description": "Full-throttle shifts, both hands on the wheel. The gap between this and a dogbox is the gap between eras.",
+   "mods": {
+    "shift_time": 0.35,
+    "gear_spread": 0.95,
+    "mass_kg": {
+     "add": 12
+    },
+    "reliability": 0.96
+   }
+  },
+  {
+   "id": "clutch_sintered",
+   "name": "Sintered Paddle Clutch",
+   "slot": "clutch",
+   "tier": 2,
+   "price": 1500,
+   "description": "Grabs like a light switch. Brutal in traffic, perfect off the line.",
+   "mods": {
+    "clutch_grab": 1.22,
+    "shift_time": 0.88,
+    "reliability": 0.97
+   }
+  },
+  {
+   "id": "diff_helical",
+   "name": "Helical Torque-Biasing Diff",
+   "slot": "differential",
+   "tier": 3,
+   "price": 9200,
+   "description": "Sends drive to the wheel that has grip, smoothly, without the snap of a plated unit.",
+   "mods": {
+    "diff_lock_rear": {
+     "add": 0.2
+    },
+    "diff_lock_front": {
+     "add": 0.12
+    },
+    "grip_long": 1.05,
+    "slip_forgiveness": 1.06
+   }
+  },
+  {
+   "id": "susp_3way",
+   "name": "Three-Way Motorsport Struts",
+   "slot": "suspension",
+   "tier": 3,
+   "price": 12000,
+   "description": "Bump, rebound and high-speed bump, each on its own adjuster. The car does what you tell it to.",
+   "mods": {
+    "grip_lat": 1.12,
+    "grip_long": 1.1,
+    "slip_forgiveness": 1.12,
+    "suspension_travel": 1.15
+   }
+  },
+  {
+   "id": "springs_rally",
+   "name": "Rally Spring Set",
+   "slot": "springs",
+   "tier": 2,
+   "price": 1350,
+   "description": "Long, progressive and built for landings rather than lap times.",
+   "mods": {
+    "suspension_travel": 1.28,
+    "dirt_grip": 1.06,
+    "tarmac_grip": 0.97,
+    "durability_suspension": 1.15
+   }
+  },
+  {
+   "id": "springs_adjustable",
+   "name": "Adjustable Platform Springs",
+   "slot": "springs",
+   "tier": 3,
+   "price": 4300,
+   "description": "Rate and ride height set independently, so the car can be right for the stage rather than a compromise.",
+   "mods": {
+    "suspension_travel": 1.12,
+    "grip_lat": 1.06,
+    "grip_long": 1.04
+   }
+  },
+  {
+   "id": "dampers_2way",
+   "name": "Two-Way Adjustable Dampers",
+   "slot": "dampers",
+   "tier": 2,
+   "price": 2200,
+   "description": "Separate bump and rebound. The first damper that lets you fix a problem instead of trading it.",
+   "mods": {
+    "slip_forgiveness": 1.08,
+    "grip_lat": 1.05,
+    "suspension_travel": 1.08
+   }
+  },
+  {
+   "id": "dampers_wrc",
+   "name": "WRC Damper Set",
+   "slot": "dampers",
+   "tier": 4,
+   "price": 31000,
+   "description": "External reservoirs, rebuilt between stages. Absorbs things the chassis should not survive.",
+   "mods": {
+    "grip_lat": 1.12,
+    "grip_long": 1.1,
+    "slip_forgiveness": 1.16,
+    "suspension_travel": 1.22,
+    "durability_suspension": 1.2
+   }
+  },
+  {
+   "id": "arb_hollow",
+   "name": "Hollow Motorsport Bars",
+   "slot": "antiroll",
+   "tier": 3,
+   "price": 3800,
+   "description": "Same stiffness, a third of the weight, blade-adjustable at both ends.",
+   "mods": {
+    "grip_lat": 1.06,
+    "mass_kg": {
+     "add": -9
+    },
+    "grip_balance_front": {
+     "add": 0.02
+    }
+   }
+  },
+  {
+   "id": "brakes_4pot",
+   "name": "Four-Pot Race Calipers",
+   "slot": "brakes",
+   "tier": 3,
+   "price": 7400,
+   "description": "Monobloc calipers on floating discs. Enormous stopping power and pads that last the distance.",
+   "mods": {
+    "brake_force": 1.28,
+    "brake_wear_rate": 0.68,
+    "mass_kg": {
+     "add": 6
+    }
+   }
+  },
+  {
+   "id": "elec_launch",
+   "name": "Launch and Anti-Lag Control",
+   "slot": "electronics",
+   "tier": 2,
+   "price": 3400,
+   "description": "Holds the revs and keeps the turbo lit off the line. Loud, illegal on the road, worth a second a start.",
+   "mods": {
+    "traction_control": {
+     "add": 0.25
+    },
+    "turbo_lag": 0.85,
+    "turbo_wear_rate": 1.25
+   }
+  },
+  {
+   "id": "tires_winter",
+   "name": "Winter Tyres",
+   "slot": "tires",
+   "tier": 1,
+   "price": 700,
+   "description": "Soft compound, deep sipes. The cheap answer to a stage that is white rather than brown.",
+   "mods": {
+    "snow_grip": 1.35,
+    "dirt_grip": 1.05,
+    "tarmac_grip": 0.9,
+    "tire_wear_rate": 1.15
+   }
+  },
+  {
+   "id": "tires_rally_tarmac",
+   "name": "Tarmac Rally Slicks",
+   "slot": "tires",
+   "tier": 3,
+   "price": 5200,
+   "description": "What a rally car wears on the sealed stages. Astonishing on tarmac, hopeless the moment it turns to gravel.",
+   "mods": {
+    "tarmac_grip": 1.32,
+    "grip_lat": 1.26,
+    "grip_long": 1.22,
+    "dirt_grip": 0.68,
+    "snow_grip": 0.4,
+    "tire_wear_rate": 1.55,
+    "slip_forgiveness": 0.88
+   }
+  },
+  {
+   "id": "wheels_rally",
+   "name": "Gravel Rally Wheels",
+   "slot": "wheels",
+   "tier": 2,
+   "price": 2200,
+   "description": "Narrow, tall and strong enough to survive a rock. Ugly, and exactly right.",
+   "mods": {
+    "mass_kg": {
+     "add": -14
+    },
+    "dirt_grip": 1.05,
+    "durability_suspension": 1.12
+   }
+  },
+  {
+   "id": "wheels_magnesium",
+   "name": "Magnesium Race Wheels",
+   "slot": "wheels",
+   "tier": 4,
+   "price": 19500,
+   "description": "The lightest thing you can bolt a tyre to. Every gram saved here is worth three anywhere else \u2014 and they do not forgive kerbs.",
+   "mods": {
+    "mass_kg": {
+     "add": -26
+    },
+    "wheel_inertia": 0.78,
+    "grip_lat": 1.04,
+    "durability_suspension": 0.9
+   }
+  },
+  {
+   "id": "chassis_subframe",
+   "name": "Reinforced Subframes",
+   "slot": "chassis",
+   "tier": 2,
+   "price": 2300,
+   "description": "Where the suspension bolts to the car, made strong enough to stop flexing under it.",
+   "mods": {
+    "durability_suspension": 1.28,
+    "grip_lat": 1.04,
+    "mass_kg": {
+     "add": 18
+    }
+   }
+  },
+  {
+   "id": "weight_kevlar",
+   "name": "Kevlar Body Panels",
+   "slot": "weight",
+   "tier": 3,
+   "price": 12500,
+   "description": "Doors, bonnet and wings in composite. A tenth of the car's mass, gone.",
+   "mods": {
+    "mass_kg": 0.9,
+    "crash_resistance": 0.94
+   }
+  },
+  {
+   "id": "aero_splitter",
+   "name": "Splitter and Canards",
+   "slot": "aero",
+   "tier": 2,
+   "price": 2100,
+   "description": "Front-end grip you can feel above a hundred, and a nose that will not survive a kerb.",
+   "mods": {
+    "downforce": {
+     "add": 0.1
+    },
+    "drag_area": 1.04,
+    "grip_balance_front": {
+     "add": 0.03
+    }
+   }
+  },
+  {
+   "id": "armor_wrc_shell",
+   "name": "FIA Homologated Safety Cell",
+   "slot": "armor",
+   "tier": 4,
+   "price": 34000,
+   "description": "A welded cage tied into the shell at twenty points. It stiffens the car as much as it protects the driver.",
+   "mods": {
+    "crash_resistance": 1.9,
+    "durability_body": 1.55,
+    "mass_kg": {
+     "add": 58
+    },
+    "grip_lat": 1.06,
+    "grip_long": 1.04
+   }
+  },
+  {
+   "id": "tires_club_gravel",
+   "name": "Club Gravel Tyres",
+   "slot": "tires",
+   "tier": 1,
+   "price": 1150,
+   "description": "A proper knobbly gravel tyre in the small sizes an old shopping car wears. Costs more than the wheels it goes on and is worth every credit on a loose stage.",
+   "mods": {
+    "dirt_grip": 1.18,
+    "tarmac_grip": 0.93,
+    "grip_long": 1.05,
+    "slip_forgiveness": 1.12,
+    "tire_wear_rate": 1.18
+   }
+  },
+  {
+   "id": "tires_club_tarmac",
+   "name": "Club Tarmac Tyres",
+   "slot": "tires",
+   "tier": 1,
+   "price": 1250,
+   "description": "Soft road-legal competition rubber. Enormously more grip than the car was designed for, and it will find every worn bush in the suspension.",
+   "mods": {
+    "tarmac_grip": 1.16,
+    "grip_lat": 1.14,
+    "grip_long": 1.1,
+    "dirt_grip": 0.86,
+    "tire_wear_rate": 1.35
+   }
+  },
+  {
+   "id": "tires_allround",
+   "name": "All-Terrain Tyres",
+   "slot": "tires",
+   "tier": 1,
+   "price": 820,
+   "description": "Good on everything and best at nothing, which on a stage that changes surface three times is the quickest tyre there is.",
+   "mods": {
+    "dirt_grip": 1.1,
+    "snow_grip": 1.12,
+    "tarmac_grip": 0.97,
+    "slip_forgiveness": 1.1,
+    "tire_wear_rate": 1.05
+   }
+  },
+  {
+   "id": "elec_bias_valve",
+   "name": "Brake Proportioning Valve",
+   "slot": "electronics",
+   "tier": 1,
+   "price": 680,
+   "description": "Bleeds off some of the front line pressure. The pedal gets longer and softer, so there is travel between 'braking' and 'locked' \u2014 which is where trail-braking into a corner lives.",
+   "mods": {
+    "brake_force": 0.86,
+    "brake_bias_front": {
+     "add": -0.04
+    },
+    "slip_forgiveness": 1.06
+   }
+  },
+  {
+   "id": "elec_tc_budget",
+   "name": "Aftermarket Traction Control",
+   "slot": "electronics",
+   "tier": 2,
+   "price": 1750,
+   "description": "A box spliced into the injector loom that cuts fuel when a wheel spins up. Crude next to a works system, and it will still save you out of a wet hairpin.",
+   "mods": {
+    "traction_control": {
+     "add": 0.35
+    },
+    "mass_kg": {
+     "add": 6
+    }
+   }
+  },
+  {
+   "id": "elec_stability",
+   "name": "Stability Program",
+   "slot": "electronics",
+   "tier": 2,
+   "price": 2900,
+   "description": "Brakes an individual wheel when the car starts to rotate faster than you asked it to. Catches the moment a lift off the throttle mid-corner would have sent you round.",
+   "mods": {
+    "drift_release": 0.88,
+    "slip_forgiveness": 1.14,
+    "traction_control": {
+     "add": 0.2
+    },
+    "mass_kg": {
+     "add": 11
+    }
+   }
+  },
+  {
+   "id": "brakes_club_kit",
+   "name": "Club Brake Kit",
+   "slot": "brakes",
+   "tier": 1,
+   "price": 1450,
+   "description": "Vented discs, braided lines and pads meant for a car twice this quick. Absurd money for a shopping car and it will still be stopping when everything else has faded.",
+   "mods": {
+    "brake_force": 1.14,
+    "brake_wear_rate": 0.72,
+    "mass_kg": {
+     "add": 5
+    }
+   }
+  },
+  {
+   "id": "susp_club_coilover",
+   "name": "Club Coilovers",
+   "slot": "suspension",
+   "tier": 1,
+   "price": 1900,
+   "description": "A proper adjustable strut in a size that fits a Seventies hatchback. More money than the car is worth, and it turns in like something thirty years newer.",
+   "mods": {
+    "grip_lat": 1.09,
+    "cg_height_m": 0.94,
+    "suspension_travel": 1.06,
+    "steering_rate": 1.07
+   }
+  },
+  {
+   "id": "diff_club_lsd",
+   "name": "Club Limited Slip",
+   "slot": "differential",
+   "tier": 1,
+   "price": 2400,
+   "description": "A plated diff built for a class that does not exist any more, and which happens to bolt into half the cheap cars ever made. Traction out of a hairpin transformed.",
+   "mods": {
+    "diff_lock_front": {
+     "add": 0.22
+    },
+    "diff_lock_rear": {
+     "add": 0.28
+    },
+    "grip_long": 1.05,
+    "mass_kg": {
+     "add": 7
+    }
+   }
+  },
+  {
+   "id": "wheels_club_light",
+   "name": "Lightweight Club Wheels",
+   "slot": "wheels",
+   "tier": 1,
+   "price": 1150,
+   "description": "Cast magnesium in a small diameter. Two kilos a corner off the unsprung mass, which the car notices far more than two kilos anywhere else.",
+   "mods": {
+    "mass_kg": {
+     "add": -14
+    },
+    "wheel_inertia": 0.86,
+    "steering_rate": 1.06
+   }
+  },
+  {
+   "id": "springs_progressive",
+   "name": "Progressive Springs",
+   "slot": "springs",
+   "tier": 2,
+   "price": 1150,
+   "description": "Soft at first and stiffening as they compress. Comfortable over a crest and still supported through a long corner.",
+   "mods": {
+    "grip_lat": 1.05,
+    "suspension_travel": 1.1,
+    "slip_forgiveness": 1.06
+   }
+  },
+  {
+   "id": "dampers_rebuildable",
+   "name": "Rebuildable Dampers",
+   "slot": "dampers",
+   "tier": 2,
+   "price": 1650,
+   "description": "Serviceable rather than sealed, so they are still doing their job at the end of a season instead of the end of a stage.",
+   "mods": {
+    "grip_lat": 1.06,
+    "slip_forgiveness": 1.08,
+    "reliability": 1.05
+   }
+  },
+  {
+   "id": "intake_short_ram",
+   "name": "Short Ram Intake",
+   "slot": "intake",
+   "tier": 1,
+   "price": 310,
+   "description": "Shorter pipe, bigger filter, and a noise out of all proportion to the power.",
+   "mods": {
+    "engine_torque_nm": 1.03,
+    "turbo_lag": 0.97
+   }
+  },
+  {
+   "id": "exhaust_manifold",
+   "name": "Tubular Manifold",
+   "slot": "exhaust",
+   "tier": 1,
+   "price": 640,
+   "description": "Equal-length primaries in place of the cast lump the factory used. Free revs where the standard one choked.",
+   "mods": {
+    "engine_torque_nm": 1.05,
+    "torque_curve_bias": {
+     "add": 0.05
+    },
+    "mass_kg": {
+     "add": -4
+    }
+   }
+  },
+  {
+   "id": "cooling_oil_spray",
+   "name": "Piston Oil Squirters",
+   "slot": "cooling",
+   "tier": 2,
+   "price": 1350,
+   "description": "Jets aimed at the underside of each piston crown. Keeps an engine alive on a long stage in a way a bigger radiator cannot.",
+   "mods": {
+    "cooling_capacity": 1.12,
+    "reliability": 1.08,
+    "oil_wear_rate": 0.88
+   }
+  },
+  {
+   "id": "clutch_cushioned",
+   "name": "Cushioned Paddle Clutch",
+   "slot": "clutch",
+   "tier": 2,
+   "price": 1100,
+   "description": "Holds like a race clutch and still takes up smoothly, which matters more than it sounds when a hill start is part of the stage.",
+   "mods": {
+    "clutch_grab": 1.12,
+    "shift_time": 0.92,
+    "reliability": 1.03
+   }
+  },
+  {
+   "id": "armor_skid_plates",
+   "name": "Full Skid Plates",
+   "slot": "armor",
+   "tier": 1,
+   "price": 780,
+   "description": "Alloy under the sump, the tank and the diff. Does nothing for lap time and is the difference between finishing a rough stage and walking home.",
+   "mods": {
+    "durability_body": 1.1,
+    "reliability": 1.06,
+    "mass_kg": {
+     "add": 16
+    }
+   }
+  },
+  {
+   "id": "weight_glass_out",
+   "name": "Perspex Windows",
+   "slot": "weight",
+   "tier": 1,
+   "price": 520,
+   "description": "Plastic in place of every pane except the screen. Cheap, legal in most club classes, and eighteen kilos gone from high up in the car.",
+   "mods": {
+    "mass_kg": {
+     "add": -18
+    },
+    "cg_height_m": 0.97,
+    "crash_resistance": 0.96
+   }
+  },
+  {
+   "id": "chassis_rear_brace",
+   "name": "Rear Strut Brace",
+   "slot": "chassis",
+   "tier": 1,
+   "price": 290,
+   "description": "Ties the rear turrets together. The back axle stops arguing with itself over a bumpy corner.",
+   "mods": {
+    "grip_balance_front": {
+     "add": -0.02
+    },
+    "grip_lat": 1.03,
+    "durability_suspension": 1.04
+   }
+  },
+  {
+   "id": "fuel_surge_tank",
+   "name": "Surge Tank",
+   "slot": "fuel",
+   "tier": 1,
+   "price": 620,
+   "description": "A small reservoir that keeps the pump fed when the main tank sloshes away from the pickup. Cures the stumble in the last long left-hander of a stage.",
+   "mods": {
+    "reliability": 1.06,
+    "mass_kg": {
+     "add": 4
+    }
+   }
+  }
+ ]
 }

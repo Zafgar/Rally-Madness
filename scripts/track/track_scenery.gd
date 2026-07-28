@@ -44,6 +44,42 @@ const SURROUND := {
 	TireModel.Surface.MUD: {"ground": Color(0.21, 0.26, 0.15), "kind": "tree"},
 }
 
+## And what the *place* looks like, which is not the same question.
+##
+## The surface says what the road is made of. It says nothing about where the
+## road is, and until now that was the only thing deciding the colour of the
+## world — so a quarry floor, a sand dune and a forest track were all the same
+## shade of grass green because all three are gravel. From above, where the
+## ground is most of the screen, that made every stage look like the last one.
+##
+## Keyed by the scenery theme, which a track already declares to pick its props,
+## so the trees beside the road and the ground under them finally agree.
+const SURROUND_BY_THEME := {
+	"quarry": Color(0.31, 0.29, 0.26),    # crushed stone and rock dust
+	"coast": Color(0.55, 0.50, 0.36),     # sand and marram grass
+	"arctic": Color(0.80, 0.84, 0.89),    # snow to the horizon
+	"snow": Color(0.80, 0.84, 0.89),
+	"mountain": Color(0.29, 0.38, 0.24),  # thin pasture over rock
+	"forest": Color(0.16, 0.24, 0.13),    # deep shade under the canopy
+	"village": Color(0.24, 0.33, 0.19),   # mown verges and gardens
+	"tarmac": Color(0.26, 0.33, 0.21),    # airfield grass, kept short
+	"derby": Color(0.26, 0.23, 0.19),     # scraped dirt and scrap
+	"gravel": Color(0.19, 0.28, 0.15),
+}
+
+
+## The colour of the ground beside this road. The place first, the surface as a
+## fallback for a track that names no theme.
+static func ground_colour(spec: TrackSpec) -> Color:
+	if spec == null:
+		return SURROUND[TireModel.Surface.GRAVEL]["ground"]
+	var themed = SURROUND_BY_THEME.get(spec.scenery_theme())
+	if themed != null:
+		return themed
+	var entry: Dictionary = SURROUND.get(spec.default_surface,
+		SURROUND[TireModel.Surface.GRAVEL])
+	return entry["ground"]
+
 var spec: TrackSpec
 ## [{ pos, dir, normal, offset, waypoint }] from the builder.
 var samples: Array[Dictionary] = []
@@ -219,8 +255,7 @@ func _draw() -> void:
 
 
 func _draw_patches() -> void:
-	var base: Color = SURROUND.get(spec.default_surface,
-		SURROUND[TireModel.Surface.GRAVEL])["ground"]
+	var base: Color = ground_colour(spec)
 	for patch in _patches:
 		var shade: float = patch["shade"]
 		draw_circle(patch["pos"], patch["radius"], Color(

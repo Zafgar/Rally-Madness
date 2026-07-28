@@ -1812,6 +1812,42 @@ func _test_damage_and_economy() -> void:
 func _test_used_market() -> void:
 	_section("the used forecourt")
 
+	# A part bought for a car stays bought.
+	#
+	# The shop charged full price every time anything was fitted, so taking the
+	# gravel tyres off to try the tarmac ones and then putting the gravel tyres
+	# back cost two sets of gravel tyres — and the first set simply vanished.
+	# That makes experimenting something only a rich player can do, which is the
+	# opposite of what a tuning shop is for.
+	var shelf_car := OwnedCar.create(CarDatabase.default_starter(), "shelf_test")
+	var a := PartDatabase.get_part("tires_gravel")
+	var b := PartDatabase.get_part("tires_sport")
+	if a != null and b != null:
+		var first := shelf_car.price_to_fit(a)
+		_check(first == a.price,
+			"a part the car has never had costs its price (%d)" % first)
+		shelf_car.buy_part(a.id)
+		shelf_car.loadout.set_part("tires", a.id)
+		_check(shelf_car.price_to_fit(a) == 0, "and nothing to fit again once bought")
+		# Swap to something else; the first set goes on the shelf, not in a skip.
+		shelf_car.buy_part(b.id)
+		shelf_car.remember_fitted()
+		shelf_car.loadout.set_part("tires", b.id)
+		_check(shelf_car.price_to_fit(a) == 0,
+			"the set that came off is still owned and free to refit")
+		# And it survives a save and a load, which is where "it did not save"
+		# would actually have come from if the shelf had existed and not been
+		# written out.
+		var reloaded := OwnedCar.from_dict(shelf_car.to_dict())
+		_check(reloaded.price_to_fit(a) == 0 and reloaded.price_to_fit(b) == 0,
+			"and both are still owned after a save and a load")
+		# A save from before the shelf existed owns whatever is bolted on.
+		var legacy := shelf_car.to_dict()
+		legacy.erase("owned_parts")
+		var old_save := OwnedCar.from_dict(legacy)
+		_check(old_save.price_to_fit(b) == 0,
+			"an old save is not charged again for the parts already on the car")
+
 	var profile := PlayerProfile.create_new("used_test", "Buyer",
 		CarDatabase.default_starter(), 0)
 	profile.money = 40000

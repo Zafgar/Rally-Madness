@@ -42,10 +42,12 @@
    "ai_opponents": 5,
    "ai_skill": 0.28,
    "unlocks": [
+    "airfield_sprint",
     "banger_night",
     "birch_sweepers",
     "club_night",
     "clubman_finale",
+    "dune_dash",
     "farmyard_dash",
     "forest_dash",
     "gravel_grind",
@@ -78,10 +80,12 @@
    "ai_opponents": 5,
    "ai_skill": 0.3,
    "unlocks": [
+    "airfield_sprint",
     "banger_night",
     "birch_sweepers",
     "club_night",
     "clubman_finale",
+    "dune_dash",
     "farmyard_dash",
     "forest_dash",
     "gravel_grind",
@@ -123,6 +127,7 @@
     "quarry_clubman",
     "quarry_switchbacks",
     "scrapyard_derby",
+    "timber_yard_run",
     "village_clubman"
    ]
   },
@@ -158,6 +163,7 @@
     "quarry_clubman",
     "quarry_switchbacks",
     "scrapyard_derby",
+    "timber_yard_run",
     "village_clubman"
    ],
    "sponsor_offers": [
@@ -196,6 +202,7 @@
     "quarry_clubman",
     "quarry_switchbacks",
     "scrapyard_derby",
+    "timber_yard_run",
     "village_clubman"
    ]
   },
@@ -226,8 +233,10 @@
     "frozen_lake_trial",
     "kartano_clubman",
     "lakeside_national",
+    "meadow_trial",
     "mountain_open",
     "national_finale",
+    "pit_floor_scrap",
     "regional_rally",
     "winter_trial"
    ],
@@ -262,8 +271,10 @@
     "frozen_lake_trial",
     "kartano_clubman",
     "lakeside_national",
+    "meadow_trial",
     "mountain_open",
     "national_finale",
+    "pit_floor_scrap",
     "regional_rally",
     "winter_trial"
    ]
@@ -295,8 +306,10 @@
     "frozen_lake_trial",
     "kartano_clubman",
     "lakeside_national",
+    "meadow_trial",
     "mountain_open",
     "national_finale",
+    "pit_floor_scrap",
     "regional_rally",
     "winter_trial"
    ]
@@ -428,6 +441,7 @@
     "awd_invitational",
     "coastal_international",
     "fjord_run",
+    "ice_field_night",
     "international_finale",
     "lakeside_international",
     "norsholm_national",
@@ -464,6 +478,7 @@
     "awd_invitational",
     "coastal_international",
     "fjord_run",
+    "ice_field_night",
     "international_finale",
     "lakeside_international",
     "norsholm_national",
@@ -497,6 +512,7 @@
     "awd_invitational",
     "coastal_international",
     "fjord_run",
+    "ice_field_night",
     "international_finale",
     "lakeside_international",
     "norsholm_national",
@@ -1157,6 +1173,150 @@
    "xp": 620,
    "ai_opponents": 7,
    "ai_skill": 0.58,
+   "unlocks": []
+  },
+  {
+   "id": "airfield_sprint",
+   "name": "Kanervikko Airfield Sprint",
+   "series": "Pine Ridge Club Series",
+   "track": "airfield_loop",
+   "class": "club_novice",
+   "format": "circuit",
+   "laps": 3,
+   "min_level": 1,
+   "description": "Cones on an old runway and a marshal with a whistle. Nothing to hit, so there is no excuse for being slow except that you are.",
+   "entry_fee": 0,
+   "payouts": [
+    4200,
+    2400,
+    1500,
+    900,
+    500,
+    220
+   ],
+   "xp": 190,
+   "ai_opponents": 5,
+   "ai_skill": 0.27,
+   "unlocks": []
+  },
+  {
+   "id": "dune_dash",
+   "name": "Hiekkaranta Dune Dash",
+   "series": "Pine Ridge Club Series",
+   "track": "dune_run",
+   "class": "club_novice",
+   "format": "sprint",
+   "laps": 3,
+   "min_level": 2,
+   "description": "Sand over gravel, and it moves. The line you took last lap is not there any more.",
+   "entry_fee": 250,
+   "payouts": [
+    5200,
+    3000,
+    1900,
+    1150,
+    620,
+    280
+   ],
+   "xp": 230,
+   "ai_opponents": 5,
+   "ai_skill": 0.31,
+   "unlocks": []
+  },
+  {
+   "id": "timber_yard_run",
+   "name": "Saha Timber Yard Run",
+   "series": "Regional Championship",
+   "track": "timber_yard",
+   "class": "clubman",
+   "format": "circuit",
+   "laps": 4,
+   "min_level": 3,
+   "description": "Round the log stacks at the sawmill. Tight, blind, and the whole yard turns out to watch.",
+   "entry_fee": 350,
+   "payouts": [
+    7200,
+    4200,
+    2600,
+    1600,
+    880,
+    380
+   ],
+   "xp": 300,
+   "ai_opponents": 5,
+   "ai_skill": 0.38,
+   "unlocks": []
+  },
+  {
+   "id": "pit_floor_scrap",
+   "name": "Granite Pit Floor Scrap",
+   "series": "Regional Championship",
+   "track": "pit_bottom",
+   "class": "clubman",
+   "format": "circuit",
+   "laps": 4,
+   "min_level": 4,
+   "description": "Loose stone on hard rock, walls on three sides and an echo that makes six cars sound like twenty.",
+   "entry_fee": 450,
+   "payouts": [
+    8200,
+    4800,
+    3000,
+    1850,
+    1000,
+    430
+   ],
+   "xp": 330,
+   "ai_opponents": 6,
+   "ai_skill": 0.42,
+   "unlocks": []
+  },
+  {
+   "id": "meadow_trial",
+   "name": "Hjelmstad Meadow Trial",
+   "series": "Regional Championship",
+   "track": "alp_meadow",
+   "class": "clubman",
+   "format": "sprint",
+   "laps": 3,
+   "min_level": 5,
+   "description": "Mown grass at fifteen hundred metres, with the whole valley underneath you and nothing between the course and the edge of it.",
+   "entry_fee": 600,
+   "payouts": [
+    9200,
+    5300,
+    3300,
+    2050,
+    1120,
+    480
+   ],
+   "xp": 355,
+   "ai_opponents": 6,
+   "ai_skill": 0.45,
+   "unlocks": []
+  },
+  {
+   "id": "ice_field_night",
+   "name": "Routapelto Ice Night",
+   "series": "National Rally Series",
+   "track": "frost_field",
+   "class": "national",
+   "format": "circuit",
+   "laps": 4,
+   "min_level": 7,
+   "description": "A frozen field under work lights. Studs or nothing, and the run-off is another two hundred metres of the same ice you just fell off.",
+   "entry_fee": 900,
+   "payouts": [
+    14000,
+    8100,
+    5000,
+    3100,
+    1700,
+    720
+   ],
+   "xp": 480,
+   "ai_opponents": 7,
+   "ai_skill": 0.52,
    "unlocks": []
   }
  ]

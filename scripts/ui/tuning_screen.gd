@@ -203,7 +203,12 @@ func _rebuild_parts() -> void:
 
 func _part_card(part: PartSpec, blocked: String, fitted: bool, baseline: float) -> Control:
 	var spec := car.spec()
-	var affordable := part.price <= profile.money
+	# What it costs *this* car to fit, which is nothing for a part already on
+	# its shelf. Swapping between two sets of tyres you own is free, because you
+	# own both.
+	var price_now := car.price_to_fit(part)
+	var owned := car.owns_part(part.id)
+	var affordable := price_now <= profile.money
 
 	var card := UiTheme.card(_tier_colour(part.tier) if blocked.is_empty() else UiTheme.LINE)
 	var row := HBoxContainer.new()
@@ -252,17 +257,21 @@ func _part_card(part: PartSpec, blocked: String, fitted: bool, baseline: float) 
 	right.add_theme_constant_override("separation", UiTheme.GAP_TIGHT)
 	row.add_child(right)
 
-	var price := UiTheme.label(
-		UiTheme.money(part.price) if part.price > 0 else "Standard",
-		UiTheme.SIZE_LABEL,
-		UiTheme.TEXT if affordable else UiTheme.NEGATIVE)
+	var label := "Standard"
+	if owned and not fitted:
+		label = "In the van"
+	elif price_now > 0:
+		label = UiTheme.money(price_now)
+	var price := UiTheme.label(label, UiTheme.SIZE_LABEL,
+		UiTheme.POSITIVE if (owned and not fitted) \
+			else (UiTheme.TEXT if affordable else UiTheme.NEGATIVE))
 	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	right.add_child(price)
 
 	if fitted:
 		right.add_child(UiTheme.label("Fitted", UiTheme.SIZE_SMALL, UiTheme.TEXT_FAINT))
 	elif blocked.is_empty():
-		var buy := UiTheme.primary_button("Fit") if affordable else Button.new()
+		var buy := UiTheme.primary_button("Fit" if owned else "Buy and fit")
 		if not affordable:
 			buy.text = "Too dear"
 			UiTheme.set_disabled(buy, true)
@@ -272,8 +281,14 @@ func _part_card(part: PartSpec, blocked: String, fitted: bool, baseline: float) 
 
 
 func _on_fit(part: PartSpec) -> void:
-	if not profile.spend(part.price):
+	# Money only changes hands for a part this car has never had.
+	var price := car.price_to_fit(part)
+	if price > 0 and not profile.spend(price):
 		return
+	car.buy_part(part.id)
+	# And whatever comes off stays on the shelf, so putting it back later is
+	# free — which is the whole point of a shelf.
+	car.remember_fitted()
 	car.loadout.set_part(_slot, part.id)
 	refresh()
 

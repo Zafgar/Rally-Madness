@@ -222,9 +222,7 @@ func _build_ground() -> Node2D:
 		bounds.end,
 		Vector2(bounds.position.x, bounds.end.y),
 	])
-	var surround: Dictionary = TrackScenery.SURROUND.get(
-		spec.default_surface, TrackScenery.SURROUND[TireModel.Surface.GRAVEL])
-	ground.color = surround["ground"]
+	ground.color = TrackScenery.ground_colour(spec)
 	ground.z_index = -20
 	return ground
 
