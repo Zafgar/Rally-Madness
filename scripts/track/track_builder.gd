@@ -17,6 +17,10 @@ const WALL_MARGIN := 1.2
 ## that each strip decomposes into convex pieces instantly, large enough that a
 ## long stage does not end up with thousands of nodes.
 const SURFACE_CHUNK_SAMPLES := 24
+## How close to the centre of curvature the inside edge of the road may come, as
+## a fraction of the local radius. Short of 1 so the edge never quite reaches
+## the centre, which is where a polygon inverts.
+const OFFSET_SAFETY := 0.92
 
 const ROAD_COLOR_TARMAC := Color(0.18, 0.18, 0.20)
 const ROAD_COLOR_DIRT := Color(0.35, 0.26, 0.17)
@@ -125,6 +129,47 @@ func _nearest_waypoint_index(offset: float) -> int:
 
 func _half_width_px() -> float:
 	return spec.width * 0.5 * GameConfig.PIXELS_PER_METRE
+
+
+## How far the edge of the road sits from the centreline at one sample, on one
+## side, in pixels.
+##
+## Usually just the half-width. It matters on the inside of a tight bend, where
+## offsetting further than the local radius folds the edge over the centre of
+## curvature and produces a polygon that crosses itself. Godot cannot decompose
+## one of those into convex pieces, so it printed "Convex decomposing failed!"
+## and quietly produced no collision shape at all — a hole in the surface zone,
+## in a ninety-metre-wide derby arena whose tightest radius is twenty-seven.
+## Clamping short of the centre keeps the polygon simple and the arena covered.
+func _offset_at(index: int, side: float, half: float) -> float:
+	var radius := _radius_at(index)
+	# Only the inside of the bend can fold; the outside opens out.
+	var turning_toward := signf(_curvature_at(index)) == signf(side)
+	if turning_toward and radius < half / OFFSET_SAFETY:
+		return side * radius * OFFSET_SAFETY
+	return side * half
+
+
+## Signed curvature at a sample, from the circle through its neighbours.
+func _curvature_at(index: int) -> float:
+	var n := _samples.size()
+	if n < 5:
+		return 0.0
+	var a: Vector2 = _samples[clampi(index - 2, 0, n - 1)]["pos"]
+	var b: Vector2 = _samples[clampi(index, 0, n - 1)]["pos"]
+	var c: Vector2 = _samples[clampi(index + 2, 0, n - 1)]["pos"]
+	var ab := b - a
+	var bc := c - b
+	var ca := a - c
+	var denominator := ab.length() * bc.length() * ca.length()
+	if absf(denominator) < 0.001:
+		return 0.0
+	return 2.0 * ab.cross(bc) / denominator
+
+
+func _radius_at(index: int) -> float:
+	var k := absf(_curvature_at(index))
+	return 1000000.0 if k < 0.0000001 else 1.0 / k
 
 
 func _edge_points(side: float, extra: float = 0.0) -> PackedVector2Array:
@@ -269,9 +314,11 @@ func _make_surface_zone(from_i: int, to_i: int, surf: TireModel.Surface, z: int)
 		var chunk_end := mini(i + SURFACE_CHUNK_SAMPLES, to_i)
 		var poly := PackedVector2Array()
 		for j in range(i, chunk_end + 1):
-			poly.append(_samples[j]["pos"] + _samples[j]["normal"] * half * -1.0)
+			poly.append(_samples[j]["pos"]
+				+ _samples[j]["normal"] * _offset_at(j, -1.0, half))
 		for j in range(chunk_end, i - 1, -1):
-			poly.append(_samples[j]["pos"] + _samples[j]["normal"] * half)
+			poly.append(_samples[j]["pos"]
+				+ _samples[j]["normal"] * _offset_at(j, 1.0, half))
 
 		var shape := CollisionPolygon2D.new()
 		shape.polygon = poly

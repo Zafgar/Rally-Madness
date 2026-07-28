@@ -24,6 +24,15 @@ const RACE_SIM_TIMEOUT := 600.0
 ## like it should; this is deliberately well clear of the expected run time.
 const RACE_WALL_TIMEOUT := 300.0
 
+## The tightest centreline radius any stage may contain, in metres.
+##
+## A road narrower in radius than this is not a corner, it is a wall: the inside
+## edge closes to nothing and no car in the game can steer round it. Set just
+## under the quarry stages, which are deliberately the tightest thing here and
+## are drivable.
+const MIN_DRIVABLE_RADIUS_M := 12.0
+
+
 var _failures: Array[String] = []
 var _checks: int = 0
 var _director: RaceDirector
@@ -1187,6 +1196,26 @@ func _test_visuals() -> void:
 		if tracks[id].night:
 			night_stages += 1
 	_check(night_stages > 0, "at least one stage runs after dark")
+
+	# No corner may be tighter than a car can go round.
+	#
+	# Harbour Night had a four-metre radius where its last waypoint overshot the
+	# start line, so closing the loop needed a hundred-and-eighty-seven-degree
+	# reversal. Fjord Road had an eight-metre one where a single waypoint
+	# carried a whole switchback. Neither is a corner; both are a wall you drive
+	# into, and the second was reported as a stage you could not get out of.
+	# Nothing here could see them — the road is generated from a spline, so a
+	# bad waypoint produces a perfectly valid road that happens to be
+	# undrivable.
+	for id in tracks:
+		var built := TrackBuilder.new(tracks[id])
+		built.build()
+		var road := TrackModel.analyse(built)
+		var tightest := 100000.0
+		for i in road.curvature.size():
+			tightest = minf(tightest, road.radius_at(i))
+		_check(tightest >= MIN_DRIVABLE_RADIUS_M,
+			"'%s' has nothing tighter than a car can turn (%.0f m)" % [id, tightest])
 
 
 ## Controller feedback.
