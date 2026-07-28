@@ -26,6 +26,8 @@ var _shake_decay: float = 5.0
 var target: RallyCar
 var _lead := Vector2.ZERO
 var _rng := RandomNumberGenerator.new()
+## Where the world is heard from. Pinned to the car, not to this camera.
+var _ear: AudioListener2D
 
 
 func _ready() -> void:
@@ -34,6 +36,22 @@ func _ready() -> void:
 		target = get_node_or_null(target_path)
 	# The camera is driven manually in _physics_process, in step with the car.
 	position_smoothing_enabled = false
+
+	# Without a listener of its own, a viewport hears everything from its
+	# current Camera2D — and this camera deliberately does not sit on the car.
+	# It smooths its follow and leads the direction of travel, so at speed it is
+	# ten or fifteen metres away from the thing making the noise. The engine
+	# panned and faded as though it were somewhere behind the car, which is
+	# exactly how it was reported: the sound was not attached to the car.
+	#
+	# A listener parented here but positioned on the car fixes it without giving
+	# up the look-ahead, which is most of what makes the game readable at speed.
+	# You watch from in front and you hear from the driver's seat.
+	_ear = AudioListener2D.new()
+	_ear.name = "Ear"
+	add_child(_ear)
+	_ear.make_current()
+
 	EventBus.car_landed.connect(_on_car_landed)
 	EventBus.car_damaged.connect(_on_car_damaged)
 
@@ -42,6 +60,8 @@ func set_target(car: RallyCar) -> void:
 	target = car
 	if car != null:
 		global_position = car.global_position
+		if _ear != null:
+			_ear.global_position = car.global_position
 
 
 func _physics_process(delta: float) -> void:
@@ -60,6 +80,11 @@ func _physics_process(delta: float) -> void:
 
 	var desired := target.global_position + _lead
 	global_position = global_position.lerp(desired, clampf(delta * follow_smoothing, 0.0, 1.0))
+
+	# Set after the camera has moved, so it lands on the car rather than on
+	# wherever the camera happened to be a frame ago.
+	if _ear != null:
+		_ear.global_position = target.global_position
 
 	if _shake_amount > 0.01:
 		global_position += Vector2(

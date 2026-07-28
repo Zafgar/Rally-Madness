@@ -174,6 +174,11 @@ func _spawn_ai() -> void:
 		# a walkover rather than a test of the player's own tire choice.
 		if not ai_tires.is_empty():
 			loadout.set_part("tires", ai_tires)
+		# Every rival was the same shade of red, because a loadout nobody has
+		# painted keeps the default colour and nothing ever painted an AI car.
+		# A grid of six identical red saloons reads as one car copied six times
+		# — which is exactly how it was reported.
+		loadout.paint_color = _ai_paint(rng)
 		var car := _make_car(spec, loadout, {}, grid_index)
 		car.is_locally_controlled = false
 		# Holding the brake to select reverse is a pad convenience. An AI that
@@ -357,6 +362,16 @@ func _make_car(
 	car.lights_on = track_spec.night
 	car.wrecked.connect(_on_car_wrecked)
 	return car
+
+
+## A colour for a rival, from the same tins the player's paint shop sells.
+##
+## Drawn from the field's own generator, so a given event's grid is the same
+## grid of colours every time it is run — a rival is a car you recognise, not a
+## new one each attempt.
+func _ai_paint(rng: RandomNumberGenerator) -> Color:
+	var entry: Array = PaintShop.PALETTE[rng.randi_range(0, PaintShop.PALETTE.size() - 1)]
+	return Color.from_string(String(entry[1]), Color(0.7, 0.7, 0.72))
 
 
 const AI_FIRST_NAMES := [

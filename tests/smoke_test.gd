@@ -51,6 +51,7 @@ func _ready() -> void:
 	_test_upgrade_ceiling()
 	_test_driver_profiles()
 	_test_every_script_parses()
+	_test_the_listener_rides_in_the_car()
 	_test_the_recce()
 	_test_rival_awareness()
 	_test_visuals()
@@ -727,6 +728,46 @@ func _test_driver_profiles() -> void:
 			works_pace, club_pace])
 	print("  %d archetypes; mean pace %.2f at club level, %.2f at works level" % [
 		pool.size(), club_pace, works_pace])
+
+
+## The world is heard from the car, not from the camera.
+##
+## A viewport with no listener of its own hears everything from its current
+## Camera2D, and the chase camera deliberately is not on the car — it smooths
+## its follow and leads the direction of travel, so at speed it sits ten or
+## fifteen metres away. Every engine in the game panned and faded as though it
+## were somewhere behind its own car.
+func _test_the_listener_rides_in_the_car() -> void:
+	_section("where the world is heard from")
+
+	var car := _make_bench_car("golf_gti_mk2", "elec_none")
+	add_child(car)
+	var camera := ChaseCamera.new()
+	add_child(camera)
+	camera.set_target(car)
+
+	var ear: AudioListener2D = camera.get_node_or_null("Ear")
+	_check(ear != null, "the camera carries a listener")
+	if ear == null:
+		camera.queue_free()
+		car.queue_free()
+		return
+	_check(ear.is_current(), "and it is the one the viewport uses")
+
+	# Drag the camera well away from the car, exactly as leading and smoothing
+	# do at speed, and step it. The ear has to end up on the car.
+	car.global_position = Vector2(4000, 1500)
+	camera.global_position = Vector2(0, 0)
+	camera._physics_process(1.0 / 60.0)
+	var camera_gap := camera.global_position.distance_to(car.global_position)
+	var ear_gap := ear.global_position.distance_to(car.global_position)
+	_check(camera_gap > 100.0,
+		"the camera is still somewhere else after a frame (%.0f px)" % camera_gap)
+	_check(ear_gap < 1.0,
+		"and the listener is on the car (%.1f px away)" % ear_gap)
+
+	camera.queue_free()
+	car.queue_free()
 
 
 ## Every script in the project has to parse.

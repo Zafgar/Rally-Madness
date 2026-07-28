@@ -200,18 +200,27 @@ func _open_garage() -> void:
 	screen.closed.connect(_close_open)
 	screen.tune_requested.connect(func(uid):
 		_close_open()
-		_open_tuning(uid))
+		_open_tuning(uid, true))
 	_push(screen)
 
 
-func _open_tuning(uid: String = "") -> void:
+## `from_garage` is where the player came from, and going back means going back
+## there. The tuning screen's own button says "< Garage" — it always did — and
+## it went to the hub instead, which is a small lie that costs two extra clicks
+## every time somebody fits a part and wants to look at the next car.
+func _open_tuning(uid: String = "", from_garage: bool = false) -> void:
 	var car: OwnedCar = profile.garage.get(uid) if not uid.is_empty() else profile.active_car()
 	if car == null:
 		return
 	var screen := TuningScreen.new()
 	screen.profile = profile
 	screen.car = car
-	screen.closed.connect(_close_open)
+	if from_garage:
+		screen.closed.connect(func():
+			_close_open()
+			_open_garage())
+	else:
+		screen.closed.connect(_close_open)
 	_push(screen)
 	screen.sync_setup()
 
