@@ -95,6 +95,16 @@ func setup(p_event: EventSpec, p_track: TrackSpec, car_scene: PackedScene) -> vo
 	track_model = TrackModel.analyse(builder)
 	racing_line = RacingLine.solve(track_model)
 
+	# Countdown boards and chevrons, placed from the recce rather than by hand.
+	# A top-down camera shows about eighty metres, which at rally speeds is two
+	# seconds — not enough warning to brake for anything. Every real circuit and
+	# every real rally solves that the same way.
+	var boards := CornerBoards.new()
+	boards.name = "CornerBoards"
+	boards.z_index = -6
+	boards.build(track_model)
+	_track_root.add_child(boards)
+
 	# Marks belong to the road, not to the car that laid them.
 	mark_layer = TireMarks.new()
 	mark_layer.name = "TireMarks"

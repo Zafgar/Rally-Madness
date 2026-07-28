@@ -975,6 +975,36 @@ func _test_the_recce() -> void:
 		"gravel tyres make the car quicker on gravel (%.1fs against %.1fs)" % [
 			built_lap, stock_lap])
 
+	# --- Corner boards -------------------------------------------------------
+	# A board is only useful if it is somewhere a driver will see it and nowhere
+	# a driver will hit it, and both of those are geometry rather than opinion.
+	var boards := CornerBoards.new()
+	boards.build(model)
+	var marked := 0
+	for corner in model.corners:
+		if corner.min_radius <= CornerBoards.WORTH_MARKING_RADIUS:
+			marked += 1
+	if marked > 0:
+		_check(boards._chevrons.size() >= marked,
+			"every corner worth marking gets chevrons (%d for %d corners)" % [
+				boards._chevrons.size(), marked])
+		_check(boards._boards.size() > 0,
+			"and there are countdown boards before them (%d)" % boards._boards.size())
+	# The verge, not the road. A sign in the racing line is not a warning, it is
+	# the thing the warning was about.
+	_check(CornerBoards.VERGE_OFFSET_M > 0.0,
+		"boards stand outside the road edge (%.1f m clear)"
+			% CornerBoards.VERGE_OFFSET_M)
+	# And on the outside of the bend, which is where a driver is looking on the
+	# way in — the inside is where the apex is and where the car will be.
+	for entry in boards._chevrons:
+		var corner := model.corner_at(model.distance_of(int(entry["index"])))
+		if corner == null:
+			continue
+		_check(is_equal_approx(float(entry["side"]), -corner.direction),
+			"and chevrons stand on the outside of the corner they mark")
+		break
+
 	# --- The calibration -----------------------------------------------------
 	# The plan is only worth having if the grip it assumes is grip the car has.
 	# Both of these numbers were wrong once and both failures looked identical

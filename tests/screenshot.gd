@@ -39,7 +39,14 @@ func _ready() -> void:
 		return
 
 	_builder = TrackBuilder.new(track)
-	add_child(_builder.build())
+	var track_root := _builder.build()
+	add_child(track_root)
+
+	# The corner boards a race puts up, so they can be judged here too.
+	var boards := CornerBoards.new()
+	boards.z_index = -6
+	boards.build(TrackModel.analyse(_builder))
+	track_root.add_child(boards)
 
 	# A short field so there is something to look at, drawn from cars around
 	# the requested one so tiers and categories are visible together.
