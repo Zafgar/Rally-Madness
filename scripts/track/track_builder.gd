@@ -13,6 +13,10 @@ const SAMPLE_STEP := 24.0
 ## Walls sit slightly outside the visible road edge so a car that clips the
 ## verge scrubs speed before it hits anything solid.
 const WALL_MARGIN := 1.2
+## How many centreline samples one surface collision strip covers. Small enough
+## that each strip decomposes into convex pieces instantly, large enough that a
+## long stage does not end up with thousands of nodes.
+const SURFACE_CHUNK_SAMPLES := 24
 
 const ROAD_COLOR_TARMAC := Color(0.18, 0.18, 0.20)
 const ROAD_COLOR_DIRT := Color(0.35, 0.26, 0.17)
@@ -37,27 +41,51 @@ func _init(p_spec: TrackSpec) -> void:
 	curve = spec.build_curve()
 
 
+## How long each stage of the build took, in microseconds. Filled in as it goes
+## so the frame probe can say which part of a slow track load is slow, rather
+## than reporting one number nobody can act on.
+var build_timings: Dictionary = {}
+
+
 func build() -> Node2D:
 	var root := Node2D.new()
 	root.name = "Track_%s" % spec.id
+	build_timings.clear()
 
 	if curve.point_count < 2:
 		push_error("TrackBuilder: track '%s' has too few waypoints" % spec.id)
 		return root
 
+	var mark := Time.get_ticks_usec()
 	_walk_centreline()
+	mark = _timed("centreline", mark)
 
 	root.add_child(_build_ground())
+	mark = _timed("ground", mark)
 	root.add_child(_build_road())
+	mark = _timed("road", mark)
 	root.add_child(_build_scenery())
+	mark = _timed("scenery", mark)
 	root.add_child(_build_surface_zones())
+	mark = _timed("surface zones", mark)
 	root.add_child(_build_walls())
+	mark = _timed("walls", mark)
 	root.add_child(_build_checkpoints())
+	mark = _timed("checkpoints", mark)
 	root.add_child(_build_ramps())
+	mark = _timed("ramps", mark)
 	# The grid is laid out before the props so a hazard can be kept off it.
 	_build_start_grid()
+	mark = _timed("start grid", mark)
 	root.add_child(_build_props())
+	mark = _timed("props", mark)
 	return root
+
+
+func _timed(phase: String, since: int) -> int:
+	var now := Time.get_ticks_usec()
+	build_timings[phase] = now - since
+	return now
 
 
 # --- Centreline -------------------------------------------------------------
@@ -223,23 +251,43 @@ func _make_surface_zone(from_i: int, to_i: int, surf: TireModel.Surface, z: int)
 	zone.name = "Surface_%d_%d" % [from_i, to_i]
 
 	var half := _half_width_px()
-	var poly := PackedVector2Array()
-	for i in range(from_i, to_i + 1):
-		poly.append(_samples[i]["pos"] + _samples[i]["normal"] * half * -1.0)
-	for i in range(to_i, from_i - 1, -1):
-		poly.append(_samples[i]["pos"] + _samples[i]["normal"] * half)
 
-	var shape := CollisionPolygon2D.new()
-	shape.polygon = poly
-	zone.add_child(shape)
+	# Built as a chain of short strips rather than one polygon down the whole
+	# stage. An Area2D takes any number of collision shapes, so this changes
+	# nothing about how a car enters or leaves the zone — but it changes the
+	# cost enormously.
+	#
+	# A CollisionPolygon2D is solid by default, so Godot decomposes it into
+	# convex pieces, and that decomposition is superlinear in the vertex count.
+	# The eight-kilometre marathon produced a single sixteen-thousand-point
+	# polygon: it took five and a half seconds to build, printed "Convex
+	# decomposing failed!", and was most of the eight seconds a player spent
+	# waiting for that stage to load. Short strips decompose instantly and
+	# cannot fail.
+	var i := from_i
+	while i < to_i:
+		var chunk_end := mini(i + SURFACE_CHUNK_SAMPLES, to_i)
+		var poly := PackedVector2Array()
+		for j in range(i, chunk_end + 1):
+			poly.append(_samples[j]["pos"] + _samples[j]["normal"] * half * -1.0)
+		for j in range(chunk_end, i - 1, -1):
+			poly.append(_samples[j]["pos"] + _samples[j]["normal"] * half)
 
-	# Overrides get a visible patch so the player can read the surface change.
-	if z == -8:
-		var visual := Polygon2D.new()
-		visual.polygon = poly
-		visual.color = _surface_color(surf)
-		visual.z_index = z
-		zone.add_child(visual)
+		var shape := CollisionPolygon2D.new()
+		shape.polygon = poly
+		zone.add_child(shape)
+
+		# Overrides get a visible patch so the player can read the surface
+		# change. Drawn per strip too, which also avoids handing the renderer a
+		# polygon it has to triangulate all at once.
+		if z == -8:
+			var visual := Polygon2D.new()
+			visual.polygon = poly
+			visual.color = _surface_color(surf)
+			visual.z_index = z
+			zone.add_child(visual)
+		# The strips share an edge so there is no seam a car can fall through.
+		i = chunk_end
 	return zone
 
 
@@ -514,14 +562,70 @@ func surface_at_offset(offset_px: float) -> TireModel.Surface:
 	return spec.surface_at_waypoint(int(_samples[index]["waypoint"]))
 
 
+## How many samples either side of a hint are searched before giving up on it
+## and scanning the whole track. Samples are one metre apart, so this is a
+## forty-metre window — far more than anything can move in a physics frame, and
+## enough that a car knocked sideways or spun round is still found.
+const PROGRESS_WINDOW := 40
+
+
 ## Distance along the centreline for an arbitrary world position. The race
-## director uses this to order the field.
-func progress_at(world_pos: Vector2) -> float:
-	var best := 0.0
+## director uses this to order the field, and the AI to know where it is.
+##
+## `near_px` is the last answer for this car. A car covers a metre or so between
+## physics frames, so searching a window around where it was is exact and costs
+## nothing. Without it this is a linear scan over every sample on the track, run
+## twice per car per frame — on the eight-kilometre marathon with a full grid
+## that is a hundred thousand distance checks every frame, and it was most of
+## why the game stuttered.
+func progress_at(world_pos: Vector2, near_px: float = -1.0) -> float:
+	if _samples.is_empty():
+		return 0.0
+	if near_px >= 0.0:
+		var found := _progress_near(world_pos, near_px)
+		if found >= 0.0:
+			return found
+	return _progress_scan(world_pos, 0, _samples.size())
+
+
+## Searches a window around a hint. Returns -1 when the best match sits on the
+## edge of the window, which means the real answer is probably outside it and
+## the caller should fall back to the full scan rather than trust this one.
+func _progress_near(world_pos: Vector2, near_px: float) -> float:
+	var count := _samples.size()
+	var centre := int(near_px / SAMPLE_STEP)
+	var best_index := -1
 	var best_dist := INF
-	for s in _samples:
-		var d: float = world_pos.distance_squared_to(s["pos"])
+	for step in range(-PROGRESS_WINDOW, PROGRESS_WINDOW + 1):
+		var i := centre + step
+		if spec.closed:
+			i = ((i % count) + count) % count
+		elif i < 0 or i >= count:
+			continue
+		var d: float = world_pos.distance_squared_to(_samples[i]["pos"])
 		if d < best_dist:
 			best_dist = d
-			best = s["offset"]
+			best_index = i
+	if best_index < 0:
+		return -1.0
+	var offset: float = _samples[best_index]["offset"]
+	# On the edge of the window the answer is not trustworthy: something moved
+	# further than a frame allows, which happens on a respawn or a big hit.
+	var reach := float(PROGRESS_WINDOW) * SAMPLE_STEP
+	var travelled := absf(offset - near_px)
+	if spec.closed:
+		travelled = minf(travelled, total_length_px - travelled)
+	if travelled > reach - SAMPLE_STEP * 2.0:
+		return -1.0
+	return offset
+
+
+func _progress_scan(world_pos: Vector2, from_i: int, to_i: int) -> float:
+	var best := 0.0
+	var best_dist := INF
+	for i in range(from_i, to_i):
+		var d: float = world_pos.distance_squared_to(_samples[i]["pos"])
+		if d < best_dist:
+			best_dist = d
+			best = _samples[i]["offset"]
 	return best

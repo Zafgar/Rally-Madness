@@ -44,6 +44,9 @@ const ITERATIONS := 120
 const RELAXATION := 1.6
 ## Smoothing passes applied to produce the flat line the bias blends towards.
 const FLATTEN_PASSES := 12
+## A pass that moves no point further than this, in metres, has converged.
+## A millimetre is far below anything a car could be asked to follow.
+const CONVERGED_M := 0.001
 
 var model: TrackModel
 ## Lateral offset from the centreline in metres, positive left, per sample.
@@ -155,6 +158,7 @@ func _pull_taut() -> void:
 	# verges — measurably *worse* than the centreline on every track in the
 	# game. This is slower to write down and cannot do that.
 	for iteration in ITERATIONS:
+		var largest_move := 0.0
 		for i in count:
 			# A stage has ends, and its ends must stay on the centreline or the
 			# line wanders off the road before the start line.
@@ -166,8 +170,17 @@ func _pull_taut() -> void:
 			var p_next := centre[next] + normal[next] * offsets[next]
 			var midpoint := (p_prev + p_next) * 0.5
 			var wanted := normal[i].dot(midpoint - centre[i])
-			offsets[i] = clampf(
+			var moved := clampf(
 				lerpf(offsets[i], wanted, RELAXATION), -limit, limit)
+			largest_move = maxf(largest_move, absf(moved - offsets[i]))
+			offsets[i] = moved
+		# Stop when the line has settled rather than grinding out the full count.
+		# It converges quickly on a short circuit and slowly on a long stage, and
+		# running the fixed hundred and twenty passes over the eight-kilometre
+		# marathon cost half a second of a player's race start for a line that
+		# had stopped moving long before.
+		if largest_move < CONVERGED_M:
+			break
 
 
 

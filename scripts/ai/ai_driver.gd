@@ -95,7 +95,10 @@ var plan: SpeedProfile
 var awareness: RivalAwareness
 
 var _command := VehicleCommand.new()
-var _progress: float = 0.0
+## -1 rather than 0: zero is a *plausible* hint — the start line — and a car
+## sitting on a grid slot behind it would have its first lookup quietly answered
+## with the wrong end of the track.
+var _progress: float = -1.0
 var _stuck_timer: float = 0.0
 var _mood_timer: float = 0.0
 ## Current commitment after consistency wander, re-rolled every MOOD_INTERVAL.
@@ -147,7 +150,9 @@ func update(delta: float) -> VehicleCommand:
 		return _command
 
 	var ppm := GameConfig.PIXELS_PER_METRE
-	_progress = track.progress_at(car.global_position)
+	# Handing the last answer back turns a scan of the whole track into a
+	# search of the forty metres around where this car actually was.
+	_progress = track.progress_at(car.global_position, _progress)
 	_update_mood(delta)
 	awareness.update(delta)
 

@@ -435,7 +435,8 @@ func _update_progress() -> void:
 	for e in entrants:
 		if e.car == null:
 			continue
-		var along := builder.progress_at(e.car.global_position)
+		var along := builder.progress_at(e.car.global_position, e.last_along)
+		e.last_along = along
 		e.total_progress = float(e.lap) * builder.total_length_px + along
 		if not e.started:
 			# Still on the grid, which is measured near the *end* of the lap.

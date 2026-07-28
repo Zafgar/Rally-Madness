@@ -22,6 +22,10 @@ var laps_target: int = 1
 ## Total distance along the centreline including completed laps, which is what
 ## the standings sort on.
 var total_progress: float = 0.0
+## The last distance along the centreline this car was found at, in pixels.
+## Handed back to the track so it can search the road around where the car
+## already was instead of scanning all of it. -1 means "no idea yet".
+var last_along: float = -1.0
 var last_checkpoint_time: float = 0.0
 
 var finished: bool = false

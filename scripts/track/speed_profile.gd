@@ -93,6 +93,13 @@ var speeds: PackedFloat32Array = PackedFloat32Array()
 ## "how much of the limit am I using" readout.
 var limits: PackedFloat32Array = PackedFloat32Array()
 
+# Worked out once by _precompute and then read by the solve's inner loops.
+var _radius: PackedFloat32Array = PackedFloat32Array()
+var _mu: PackedFloat32Array = PackedFloat32Array()
+var _peak_power_w: float = 0.0
+var _drag_coefficient: float = 0.0
+var _driven: float = 1.0
+
 
 ## `brake_margin` scales how much of the calibrated braking the plan assumes,
 ## so a nervous driver's plan genuinely has earlier braking points in it rather
@@ -122,10 +129,7 @@ func _grip_ceiling() -> void:
 
 	for i in count:
 		var radius := line.radius_at(i)
-		var mu := TireModel.surface_mu(stats, model.surface_at(i), true)
-		# v = sqrt(mu * g * r). Downforce raises the effective mu with speed,
-		# but solving that properly needs the speed we are solving for, so it
-		# is applied once at the ceiling rather than iterated.
+		# v = sqrt(mu * g * r).
 		var lateral := cornering_accel(stats, model.surface_at(i))
 		var v := sqrt(maxf(radius, 1.0) * lateral)
 		limits[i] = minf(v, top)
@@ -134,10 +138,33 @@ func _grip_ceiling() -> void:
 
 # --- Steps 2 and 3: what the car can actually do between points -------------
 
+## Everything the solve needs that does not change while it runs, worked out
+## once.
+##
+## This is not tidiness, it is the difference between a race starting and a race
+## hanging. The inner loop called PerformanceModel.peak_power_hp, which walks
+## the whole rev range in twenty-five rpm steps — about two hundred and fifty
+## torque evaluations. Three passes over a few hundred samples turned that into
+## a quarter of a million evaluations per car, and one speed profile took 780
+## milliseconds. Six cars on the grid meant five seconds of nothing happening
+## before a race would start.
+func _precompute() -> void:
+	var count := model.positions.size()
+	_radius.resize(count)
+	_mu.resize(count)
+	for i in count:
+		_radius[i] = line.radius_at(i)
+		_mu[i] = TireModel.surface_mu(stats, model.surface_at(i), true)
+	_peak_power_w = PerformanceModel.peak_power_hp(stats) * 745.7 * 0.82
+	_drag_coefficient = PerformanceModel.DRAG_CONSTANT * stats.drag_area
+	_driven = _driven_share()
+
+
 func _solve() -> void:
 	var count := speeds.size()
 	if count < 4:
 		return
+	_precompute()
 	var ds := TrackModel.SPACING_M
 
 	for pass_index in SOLVE_PASSES:
@@ -193,10 +220,10 @@ static func cornering_accel(p_stats: VehicleStats,
 ## laterally has nothing left for stopping, which is the whole reason trail
 ## braking is a skill rather than a default.
 func _braking_decel(i: int) -> float:
-	var available := straight_line_decel(stats, model.surface_at(i)) * brake_margin
-	var mu := TireModel.surface_mu(stats, model.surface_at(i), true)
+	var mu := _mu[i]
+	var available := mu * 9.81 * BRAKE_USE * brake_margin
 	var lateral_use := clampf(speeds[i] * speeds[i]
-		/ maxf(line.radius_at(i) * mu * 9.81, 0.001), 0.0, 1.0)
+		/ maxf(_radius[i] * mu * 9.81, 0.001), 0.0, 1.0)
 	# The friction circle: what is left for the long axis when the lateral axis
 	# is already using this much.
 	var remaining := sqrt(maxf(1.0 - lateral_use * lateral_use, 0.02))
@@ -206,10 +233,10 @@ func _braking_decel(i: int) -> float:
 ## Acceleration available, in m/s². The lesser of what the engine can push and
 ## what the driven tyres can take, sharing the same friction circle.
 func _drive_accel(i: int, speed: float) -> float:
-	var mu := TireModel.surface_mu(stats, model.surface_at(i), true)
-	var traction := mu * 9.81 * DRIVE_USE * _driven_share()
+	var mu := _mu[i]
+	var traction := mu * 9.81 * DRIVE_USE * _driven
 	var lateral_use := clampf(speed * speed
-		/ maxf(line.radius_at(i) * mu * 9.81, 0.001), 0.0, 1.0)
+		/ maxf(_radius[i] * mu * 9.81, 0.001), 0.0, 1.0)
 	var remaining := sqrt(maxf(1.0 - lateral_use * lateral_use, 0.02))
 
 	# What the engine can manage at this speed, from the power it makes and the
@@ -217,9 +244,8 @@ func _drive_accel(i: int, speed: float) -> float:
 	# the revs it happens to be pulling is a simplification, and the right one:
 	# the profile is a target, and a driver aiming at it will use the gearbox
 	# to get near the power peak.
-	var power_w := PerformanceModel.peak_power_hp(stats) * 745.7 * 0.82
-	var drag := PerformanceModel.DRAG_CONSTANT * stats.drag_area * speed * speed
-	var engine := (power_w / maxf(speed, 4.0) - drag) / maxf(stats.mass_kg, 1.0)
+	var drag := _drag_coefficient * speed * speed
+	var engine := (_peak_power_w / maxf(speed, 4.0) - drag) / maxf(stats.mass_kg, 1.0)
 	return maxf(minf(engine, traction * remaining), 0.2)
 
 
