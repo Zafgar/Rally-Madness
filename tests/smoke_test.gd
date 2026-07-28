@@ -53,6 +53,7 @@ func _ready() -> void:
 	_test_every_script_parses()
 	_test_the_listener_rides_in_the_car()
 	_test_screens_can_be_reached_with_a_pad()
+	_test_no_stage_is_a_ring()
 	_test_the_recce()
 	_test_rival_awareness()
 	_test_visuals()
@@ -138,6 +139,23 @@ func _test_data_integrity() -> void:
 			if prop != null:
 				_check(prop.kind == TrackProp.Kind.HAZARD,
 					"track '%s' places a hazard, not scenery ('%s')" % [id, entry["prop"]])
+				# And it stands clear of everything a car is allowed to drive
+				# on. A barrel in the racing line is not scenery: the camera
+				# shows two seconds of road, so the only way to learn it is
+				# there is to hit it. The builder used to clamp `side` to ±1
+				# and then multiply by 0.82, which put every prop on the road
+				# no matter what the data asked for.
+				#
+				# Checked against what the data asks for, not against what the
+				# builder ends up doing: the builder holds props clear as a
+				# backstop, and a test that only measures the backstop would
+				# pass however wrong the data was.
+				var reach: float = absf(float(entry["side"])) * track.width * 0.5
+				var clear: float = track.width * 0.5 + track.run_off \
+					+ TrackBuilder.PROP_CLEARANCE_M + prop.radius_m
+				_check(reach >= clear,
+					"track '%s' asks for '%s' off the road (%.1f m out, needs %.1f)" % [
+						id, entry["prop"], reach, clear])
 		# A theme with nothing to scatter leaves a stage looking abandoned.
 		var palette := TrackProp.for_theme(track.scenery_theme(), TrackProp.Kind.SCENERY)
 		_check(palette.size() >= 3,
@@ -770,6 +788,8 @@ func _test_screens_can_be_reached_with_a_pad() -> void:
 			s.profile = profile
 			s.car = profile.active_car()
 			return s,
+		"settings": func():
+			return SettingsScreen.new(),
 	}
 	for name in screens:
 		var screen: Control = screens[name].call()
@@ -778,16 +798,42 @@ func _test_screens_can_be_reached_with_a_pad() -> void:
 		_check(target != null, "the %s has something a pad can start on" % name)
 		screen.queue_free()
 
-	# There is deliberately no assertion here that pressing a row leaves focus
-	# intact, though that is the bug this section exists because of: every list
-	# row called refresh(), which frees and rebuilds the list including the
-	# button whose signal is still running, so a pad lost focus the moment you
-	# selected a car. queue_free() does not take effect until the end of the
-	# frame, so a synchronous check sees a node that is still perfectly valid
-	# and passes either way. A test that cannot fail is worse than no test —
-	# it reads as coverage. The fix is in showroom_screen._choose and
-	# garage_screen: selection marks the rows and redraws the detail panel,
-	# and only the rows that genuinely change what the list contains rebuild it.
+	# A disabled choice must not be the thing a pad starts on. The opening
+	# screen greeted every new player with the highlight sitting on CAREER,
+	# which is greyed out until a career exists — so the first button anybody
+	# pressed did nothing, and a controller that does nothing reads as broken.
+	var holder := VBoxContainer.new()
+	add_child(holder)
+	var dead := Button.new()
+	dead.text = "Not yet"
+	UiTheme.set_disabled(dead, true)
+	holder.add_child(dead)
+	var live := Button.new()
+	live.text = "Go"
+	holder.add_child(live)
+	_check(UiTheme.first_focusable(holder) == live,
+		"a pad starts on the first button it can actually press")
+
+	# Emptying a list has to take effect now, not at the end of the frame.
+	#
+	# This is the bug that killed the pad on the opening screen: taking a seat
+	# rebuilt the seat cards and the action buttons, the rebuild used
+	# queue_free, and the "has anything still got focus?" check that follows it
+	# ran while the doomed button was still alive and still focused. It decided
+	# nothing needed doing. The button was deleted a moment later and the
+	# screen was left with no focus at all and no way to get any back.
+	#
+	# Asserting on queue_free directly is what made this untestable before —
+	# a synchronous check sees a perfectly valid node either way. Detaching
+	# first is what makes it observable: leaving the tree releases focus at
+	# once, so both halves of this check fail against the old code.
+	live.grab_focus()
+	_check(get_viewport().gui_get_focus_owner() == live, "a button can take focus")
+	UiTheme.clear(holder)
+	_check(holder.get_child_count() == 0, "clearing a list empties it immediately")
+	_check(get_viewport().gui_get_focus_owner() == null,
+		"and the screen knows it has lost focus in the same frame")
+	holder.queue_free()
 
 
 func _collect_rows(node: Node, into: Array[Button]) -> void:
@@ -835,6 +881,34 @@ func _test_the_listener_rides_in_the_car() -> void:
 
 	camera.queue_free()
 	car.queue_free()
+
+	# And the viewport the player is actually looking through has to be
+	# listening at all.
+	#
+	# The listener above was correct and did nothing, for months, because a
+	# SubViewport does not process 2D listeners unless it is told to and
+	# nothing told it to. Every AudioStreamPlayer2D in the game was therefore
+	# panned against the only viewport that was listening — the root, which has
+	# no camera in it during a race and so sits at a fixed point in the middle
+	# of the world. That is why the engines came from somewhere off to one
+	# side, swelled when the car happened to pass that spot, and faded out
+	# when it drove away. Two separate flags, both wrong, and the symptom of
+	# each is the same.
+	var seats: Array = [PlayerManager.get_seat(0)]
+	if seats[0] == null:
+		seats = [PlayerManager.join(DeviceInput.DEVICE_KEYBOARD)]
+	var split := SplitScreen.new()
+	add_child(split)
+	split.build(seats, get_viewport().world_2d)
+	var listening := 0
+	for view in split.views:
+		if (view["viewport"] as SubViewport).audio_listener_enable_2d:
+			listening += 1
+	_check(listening == split.views.size(),
+		"every seat's viewport is listening (%d of %d)" % [listening, split.views.size()])
+	_check(not get_viewport().audio_listener_enable_2d,
+		"and the cameraless root viewport is not listening over the top of them")
+	split.queue_free()
 
 
 ## Every script in the project has to parse.
@@ -885,6 +959,57 @@ func _parse_folder(path: String, broken: Array[String]) -> int:
 		name = dir.get_next()
 	dir.list_dir_end()
 	return count
+
+
+## No stage in the game is a plain ring.
+##
+## "A big circle you just hold flat is a boring track" is a complaint that turns
+## out to be measurable, and measuring it is what showed how bad it was: several
+## stages never changed direction at all, and two of them carried the game's
+## finales. Corners per kilometre alone will not catch it — the recce counts
+## anything tighter than a ninety-metre radius as a corner, so a constant-radius
+## ring scores as nothing but corner and looks excellent on paper.
+##
+## What tells them apart is how often the road changes hands. A ring scores
+## exactly zero. Anything a driver would call a route scores several per
+## kilometre, because that is what makes them keep working.
+func _test_no_stage_is_a_ring() -> void:
+	_section("stages are routes, not rings")
+
+	# An arena is exempt, and only an arena. A demolition derby is held in a
+	# bowl because a bowl is the point — there is no route to be twisty, and
+	# ninety metres of it is width.
+	var arenas := ["derby_bowl"]
+
+	for id in TrackSpec.load_all():
+		if arenas.has(id):
+			continue
+		var spec: TrackSpec = TrackSpec.load_all()[id]
+		var builder := TrackBuilder.new(spec)
+		# The centreline only: everything measurable about a stage comes from
+		# it, and building the collision shapes and the scenery for two dozen
+		# tracks costs a minute for nothing.
+		builder.walk()
+		var model := TrackModel.analyse(builder)
+		var km := maxf(model.length_m / 1000.0, 0.001)
+
+		var changes := 0
+		for i in range(1, model.corners.size()):
+			if signf(model.corners[i].direction) != signf(model.corners[i - 1].direction):
+				changes += 1
+		if model.closed and model.corners.size() >= 2:
+			if signf(model.corners[0].direction) \
+					!= signf(model.corners[model.corners.size() - 1].direction):
+				changes += 1
+
+		_check(model.corners.size() >= 3,
+			"'%s' has corners to speak of (%d)" % [id, model.corners.size()])
+		# Both a count and a rate. The rate alone would let a very long stage
+		# pass on three switchbacks in eight kilometres; the count alone would
+		# fail a nine-hundred-metre sprint that is busy the whole way round.
+		_check(changes >= 3 and float(changes) / km >= 1.0,
+			"'%s' turns both ways (%d changes, %.1f per km over %.2f km)" % [
+				id, changes, float(changes) / km, km])
 
 
 ## The recce: reading a road, finding a line through it, and solving what a

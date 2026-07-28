@@ -13,11 +13,15 @@ const HUD_SCENE := preload("res://scenes/ui/race_hud.tscn")
 
 var views: Array[Dictionary] = []   # [{ slot, container, viewport, camera, hud }]
 
+## Whether the root viewport was listening before the race took the job over.
+var _root_listened: bool = false
+
 
 func build(seats: Array, world: World2D) -> void:
 	_clear()
 	var count := clampi(seats.size(), 1, GameConfig.MAX_LOCAL_PLAYERS)
 	var rects := _layout_rects(count)
+	_silence_the_root_listener()
 
 	for i in count:
 		var seat = seats[i]
@@ -40,6 +44,14 @@ func build(seats: Array, world: World2D) -> void:
 		# Sharing the World2D is what makes this a split screen rather than
 		# four separate simulations.
 		viewport.world_2d = world
+		# A SubViewport does not listen by default, and this is why the engines
+		# used to come from somewhere off to one side and stay there. Every car
+		# voice is an AudioStreamPlayer2D, and Godot only pans one against
+		# viewports whose listener flag is set. With the flag off, the seat's
+		# own chase camera was not a listener at all and the only listener left
+		# was the root viewport — which has no camera, so it sat at a fixed
+		# point in the middle of the world while the car drove away from it.
+		viewport.audio_listener_enable_2d = true
 		container.add_child(viewport)
 
 		var camera := ChaseCamera.new()
@@ -69,6 +81,7 @@ func build(seats: Array, world: World2D) -> void:
 		})
 
 	_add_dividers(count, rects)
+	AudioDirector.set_listener_count(count)
 
 
 ## Attaches each view's camera and HUD to the car that seat is driving.
@@ -133,6 +146,30 @@ func _add_dividers(count: int, rects: Array[Rect2]) -> void:
 		style.set_border_width_all(3)
 		border.add_theme_stylebox_override("panel", style)
 		add_child(border)
+
+
+## The root viewport is a 2D listener by default and it has no camera, so it
+## hears the whole race from a fixed point near the world origin. Left on, it
+## sums with the seat listeners and every engine arrives twice: once correctly
+## from the car and once from a spot on the map that never moves. That second
+## copy is the swelling, lagging, disappearing sound — it is loudest when the
+## car happens to drive past the origin and gone when it does not.
+##
+## Turned off for as long as a split screen exists, and put back afterwards so
+## the menus keep whatever the project asked for.
+func _silence_the_root_listener() -> void:
+	var root := get_viewport()
+	if root == null:
+		return
+	_root_listened = root.audio_listener_enable_2d
+	root.audio_listener_enable_2d = false
+
+
+func _exit_tree() -> void:
+	var root := get_viewport()
+	if root != null and _root_listened:
+		root.audio_listener_enable_2d = true
+	AudioDirector.set_listener_count(1)
 
 
 func _clear() -> void:

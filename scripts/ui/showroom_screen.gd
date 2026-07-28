@@ -223,8 +223,7 @@ func _best_owned_potential() -> float:
 
 
 func _rebuild_list() -> void:
-	for child in _list.get_children():
-		child.queue_free()
+	UiTheme.clear(_list)
 
 	var owned_ceiling := _best_owned_potential()
 	var shown: Array[CarSpec] = []
@@ -364,8 +363,7 @@ func _rebuild_marque_list(shown: Array[CarSpec]) -> void:
 ## bottom, and reading all of it is how you spot the one that is cheap for what
 ## it is. A filter would hide exactly the car worth finding.
 func _rebuild_used_list() -> void:
-	for child in _list.get_children():
-		child.queue_free()
+	UiTheme.clear(_list)
 
 	if _stock.is_empty():
 		_list.add_child(UiTheme.label("The forecourt is empty today.",
@@ -483,10 +481,8 @@ func _car_row(spec: CarSpec) -> Control:
 # --- The chosen car ---------------------------------------------------------
 
 func _rebuild_details() -> void:
-	for child in _details.get_children():
-		child.queue_free()
-	for child in _actions.get_children():
-		child.queue_free()
+	UiTheme.clear(_details)
+	UiTheme.clear(_actions)
 	if _selected == null:
 		return
 
@@ -610,7 +606,7 @@ func _build_actions(spec: CarSpec) -> void:
 	if owned:
 		var again := Button.new()
 		again.text = "Buy another  %s" % UiTheme.money(spec.price)
-		again.disabled = not affordable
+		UiTheme.set_disabled(again, not affordable)
 		again.pressed.connect(func():
 			var extra := profile.buy_car(spec)
 			if extra != null:
@@ -631,7 +627,7 @@ func _build_actions(spec: CarSpec) -> void:
 	else:
 		var short := Button.new()
 		short.text = "Need %s more" % UiTheme.money(spec.price - profile.money)
-		short.disabled = true
+		UiTheme.set_disabled(short, true)
 		_actions.add_child(short)
 
 
@@ -648,7 +644,7 @@ func _build_used_actions() -> void:
 	if not affordable:
 		var short := Button.new()
 		short.text = "Need %s more" % UiTheme.money(_listing.price - profile.money)
-		short.disabled = true
+		UiTheme.set_disabled(short, true)
 		_actions.add_child(short)
 		return
 

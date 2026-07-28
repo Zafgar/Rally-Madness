@@ -111,8 +111,7 @@ func _door(title: String, blurb: String, action: Callable) -> Control:
 func refresh() -> void:
 	if profile == null:
 		return
-	for child in _summary.get_children():
-		child.queue_free()
+	UiTheme.clear(_summary)
 
 	var avatar_row := HBoxContainer.new()
 	avatar_row.add_theme_constant_override("separation", UiTheme.GAP)

@@ -1,3133 +1,3985 @@
 {
-  "_comment": [
-    "Tracks are a centreline plus a width; everything else - road, barriers,",
-    "checkpoints, the start grid, jumps and surface changes - is derived from it",
-    "at load time. A new stage is a few dozen numbers, not a hand-built scene.",
-    "",
-    "'theme' picks which scenery props are scattered beside the road (see",
-    "data/props.json); it defaults to the surface. 'props' places hazards on the",
-    "racing surface itself, where 'side' is across the road as a fraction of half",
-    "width, so -1 is the left edge and 0 the centre line, and 'along' is metres",
-    "past the waypoint. Those are real bodies you can hit, so place them where a",
-    "driver ought to be thinking."
-  ],
-  "tracks": [
+ "_comment": [
+  "Tracks are a centreline plus a width; everything else - road, barriers,",
+  "checkpoints, the start grid, jumps and surface changes - is derived from it",
+  "at load time. A new stage is a few dozen numbers, not a hand-built scene.",
+  "",
+  "'theme' picks which scenery props are scattered beside the road (see",
+  "data/props.json); it defaults to the surface. 'props' places hazards on the",
+  "racing surface itself, where 'side' is across the road as a fraction of half",
+  "width, so -1 is the left edge and 0 the centre line, and 'along' is metres",
+  "past the waypoint. Those are real bodies you can hit, so place them where a",
+  "driver ought to be thinking."
+ ],
+ "tracks": [
+  {
+   "id": "gravel_loop",
+   "name": "Pine Ridge Loop",
+   "description": "The club loop. Wide, forgiving, and a good place to learn what a car does.",
+   "surface": "gravel",
+   "closed": true,
+   "width": 15,
+   "checkpoint_spacing": 110,
+   "waypoints": [
+    [
+     266.4,
+     0.0
+    ],
+    [
+     276.5,
+     81.2
+    ],
+    [
+     210.5,
+     135.3
+    ],
+    [
+     151.0,
+     174.2
+    ],
+    [
+     88.2,
+     193.1
+    ],
+    [
+     30.0,
+     208.8
+    ],
+    [
+     -34.3,
+     238.4
+    ],
+    [
+     -89.2,
+     195.4
+    ],
+    [
+     -115.6,
+     133.4
+    ],
+    [
+     -200.8,
+     129.1
+    ],
+    [
+     -280.9,
+     82.5
+    ],
+    [
+     -250.9,
+     0.0
+    ],
+    [
+     -222.2,
+     -65.2
+    ],
+    [
+     -215.2,
+     -138.3
+    ],
+    [
+     -163.6,
+     -188.8
+    ],
+    [
+     -99.1,
+     -217.0
+    ],
+    [
+     -30.8,
+     -214.0
+    ],
+    [
+     25.0,
+     -173.8
+    ],
+    [
+     86.2,
+     -188.8
+    ],
+    [
+     174.5,
+     -201.3
+    ],
+    [
+     195.9,
+     -125.9
+    ],
+    [
+     198.3,
+     -58.2
+    ]
+   ],
+   "ramps": [
     {
-      "id": "gravel_loop",
-      "name": "Pine Ridge Loop",
-      "description": "The club loop. Wide, forgiving, and a good place to learn what a car does.",
-      "surface": "gravel",
-      "closed": true,
-      "width": 15,
-      "checkpoint_spacing": 110,
-      "waypoints": [
-        [
-          266.4,
-          0.0
-        ],
-        [
-          276.5,
-          81.2
-        ],
-        [
-          210.5,
-          135.3
-        ],
-        [
-          151.0,
-          174.2
-        ],
-        [
-          88.2,
-          193.1
-        ],
-        [
-          30.0,
-          208.8
-        ],
-        [
-          -34.3,
-          238.4
-        ],
-        [
-          -89.2,
-          195.4
-        ],
-        [
-          -115.6,
-          133.4
-        ],
-        [
-          -200.8,
-          129.1
-        ],
-        [
-          -280.9,
-          82.5
-        ],
-        [
-          -250.9,
-          0.0
-        ],
-        [
-          -222.2,
-          -65.2
-        ],
-        [
-          -215.2,
-          -138.3
-        ],
-        [
-          -163.6,
-          -188.8
-        ],
-        [
-          -99.1,
-          -217.0
-        ],
-        [
-          -30.8,
-          -214.0
-        ],
-        [
-          25.0,
-          -173.8
-        ],
-        [
-          86.2,
-          -188.8
-        ],
-        [
-          174.5,
-          -201.3
-        ],
-        [
-          195.9,
-          -125.9
-        ],
-        [
-          198.3,
-          -58.2
-        ]
-      ],
-      "ramps": [
-        {
-          "at": 4,
-          "launch": 5.5,
-          "length": 9
-        }
-      ],
-      "theme": "gravel",
-      "props": [
-        {
-          "prop": "hay_bale",
-          "at": 6,
-          "side": -1.12,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 6,
-          "side": -1.12,
-          "along": 6
-        },
-        {
-          "prop": "stage_sign",
-          "at": 13,
-          "side": 1.12,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 17,
-          "side": 1.12,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 17,
-          "side": 1.12,
-          "along": 4
-        }
-      ]
-    },
-    {
-      "id": "forest_sprint",
-      "name": "Blackwood Sprint",
-      "description": "Narrow, fast, and lined with trees. Run after dark, so all you have is what the headlights reach.",
-      "surface": "dirt",
-      "closed": false,
-      "width": 13,
-      "checkpoint_spacing": 130,
-      "night": true,
-      "waypoints": [
-        [
-          0.0,
-          0.0
-        ],
-        [
-          53.7,
-          -23.4
-        ],
-        [
-          102.1,
-          0.4
-        ],
-        [
-          127.8,
-          72.0
-        ],
-        [
-          112.1,
-          156.0
-        ],
-        [
-          151.9,
-          237.1
-        ],
-        [
-          146.6,
-          308.8
-        ],
-        [
-          186.0,
-          372.9
-        ],
-        [
-          184.9,
-          429.8
-        ],
-        [
-          219.7,
-          470.4
-        ],
-        [
-          242.7,
-          545.2
-        ],
-        [
-          282.5,
-          587.2
-        ],
-        [
-          275.0,
-          665.7
-        ],
-        [
-          317.2,
-          727.4
-        ],
-        [
-          302.4,
-          773.4
-        ],
-        [
-          307.7,
-          836.4
-        ],
-        [
-          274.8,
-          870.5
-        ],
-        [
-          214.3,
-          897.7
-        ],
-        [
-          149.2,
-          890.8
-        ],
-        [
-          83.0,
-          948.0
-        ],
-        [
-          1.3,
-          964.7
-        ],
-        [
-          -70.7,
-          934.8
-        ],
-        [
-          -109.3,
-          897.4
-        ]
-      ],
-      "ramps": [
-        {
-          "at": 3,
-          "launch": 7.5,
-          "length": 10
-        },
-        {
-          "at": 6,
-          "launch": 8.5,
-          "length": 12
-        },
-        {
-          "at": 9,
-          "launch": 6.5,
-          "length": 9
-        }
-      ],
-      "surface_overrides": [
-        {
-          "from": 0,
-          "to": 1,
-          "surface": "tarmac"
-        },
-        {
-          "from": 7,
-          "to": 8,
-          "surface": "mud"
-        }
-      ],
-      "theme": "forest",
-      "props": [
-        {
-          "prop": "stage_sign",
-          "at": 1,
-          "side": 1.12,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 7,
-          "side": -1.12,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "tarmac_circuit",
-      "name": "Harbour Circuit",
-      "description": "Sealed surface, walls close in. Grip is high until it very suddenly is not.",
-      "surface": "tarmac",
-      "closed": true,
-      "width": 16,
-      "checkpoint_spacing": 100,
-      "waypoints": [
-        [
-          140.6,
-          0.0
-        ],
-        [
-          185.1,
-          54.3
-        ],
-        [
-          201.8,
-          129.7
-        ],
-        [
-          137.7,
-          159.0
-        ],
-        [
-          99.7,
-          218.4
-        ],
-        [
-          37.7,
-          262.1
-        ],
-        [
-          -28.7,
-          199.9
-        ],
-        [
-          -84.2,
-          184.5
-        ],
-        [
-          -160.6,
-          185.4
-        ],
-        [
-          -172.4,
-          110.8
-        ],
-        [
-          -190.6,
-          56.0
-        ],
-        [
-          -238.0,
-          0.0
-        ],
-        [
-          -180.9,
-          -53.1
-        ],
-        [
-          -134.5,
-          -86.5
-        ],
-        [
-          -142.6,
-          -164.6
-        ],
-        [
-          -90.2,
-          -197.5
-        ],
-        [
-          -30.3,
-          -210.9
-        ],
-        [
-          40.1,
-          -278.8
-        ],
-        [
-          112.1,
-          -245.4
-        ],
-        [
-          132.9,
-          -153.3
-        ],
-        [
-          179.6,
-          -115.4
-        ],
-        [
-          185.9,
-          -54.6
-        ]
-      ],
-      "ramps": [],
-      "theme": "coast",
-      "props": [
-        {
-          "prop": "tyre_stack",
-          "at": 4,
-          "side": -1.12,
-          "along": 0
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 4,
-          "side": -1.12,
-          "along": 8
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 10,
-          "side": 1.12,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 14,
-          "side": -1.12,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "mountain_stage",
-      "name": "Kaltavaara Stage",
-      "description": "Long, mixed-surface and relentless. Tarmac hairpins into loose gravel.",
-      "surface": "gravel",
-      "closed": true,
-      "width": 12.5,
-      "checkpoint_spacing": 140,
-      "waypoints": [
-        [
-          417.9,
-          0.0
-        ],
-        [
-          342.6,
-          91.8
-        ],
-        [
-          304.2,
-          175.6
-        ],
-        [
-          361.3,
-          361.3
-        ],
-        [
-          276.9,
-          479.6
-        ],
-        [
-          126.4,
-          471.7
-        ],
-        [
-          0.0,
-          559.2
-        ],
-        [
-          -157.8,
-          588.9
-        ],
-        [
-          -235.3,
-          407.5
-        ],
-        [
-          -281.0,
-          281.0
-        ],
-        [
-          -391.8,
-          226.2
-        ],
-        [
-          -367.6,
-          98.5
-        ],
-        [
-          -282.9,
-          0.0
-        ],
-        [
-          -370.5,
-          -99.3
-        ],
-        [
-          -408.1,
-          -235.6
-        ],
-        [
-          -297.0,
-          -297.0
-        ],
-        [
-          -240.4,
-          -416.4
-        ],
-        [
-          -159.7,
-          -596.1
-        ],
-        [
-          -0.0,
-          -565.6
-        ],
-        [
-          123.6,
-          -461.4
-        ],
-        [
-          266.3,
-          -461.2
-        ],
-        [
-          351.6,
-          -351.6
-        ],
-        [
-          293.3,
-          -169.3
-        ],
-        [
-          328.0,
-          -87.9
-        ]
-      ],
-      "ramps": [
-        {
-          "at": 5,
-          "launch": 9,
-          "length": 12
-        },
-        {
-          "at": 12,
-          "launch": 7,
-          "length": 10
-        },
-        {
-          "at": 15,
-          "launch": 8,
-          "length": 11
-        }
-      ],
-      "surface_overrides": [
-        {
-          "from": 7,
-          "to": 10,
-          "surface": "tarmac"
-        },
-        {
-          "from": 13,
-          "to": 14,
-          "surface": "mud"
-        }
-      ],
-      "theme": "mountain",
-      "props": [
-        {
-          "prop": "fallen_rock",
-          "at": 5,
-          "side": 1.12,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 8,
-          "side": -1.12,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "snow_stage",
-      "name": "Frostfell Trial",
-      "description": "Packed snow with ice in the shade. Studded tires or an early bath.",
-      "surface": "snow",
-      "closed": false,
-      "width": 16,
-      "checkpoint_spacing": 130,
-      "waypoints": [
-        [
-          0.0,
-          0.0
-        ],
-        [
-          106.1,
-          -74.1
-        ],
-        [
-          139.3,
-          -152.6
-        ],
-        [
-          220.8,
-          -174.8
-        ],
-        [
-          343.1,
-          -133.4
-        ],
-        [
-          444.3,
-          -198.8
-        ],
-        [
-          480.7,
-          -301.6
-        ],
-        [
-          471.0,
-          -392.1
-        ],
-        [
-          528.5,
-          -451.0
-        ],
-        [
-          519.4,
-          -552.6
-        ],
-        [
-          453.5,
-          -643.0
-        ],
-        [
-          474.3,
-          -769.1
-        ],
-        [
-          435.0,
-          -879.9
-        ],
-        [
-          480.0,
-          -952.6
-        ],
-        [
-          450.5,
-          -1082.0
-        ]
-      ],
-      "ramps": [
-        {
-          "at": 5,
-          "launch": 6,
-          "length": 10
-        }
-      ],
-      "surface_overrides": [
-        {
-          "from": 3,
-          "to": 4,
-          "surface": "ice"
-        },
-        {
-          "from": 7,
-          "to": 8,
-          "surface": "ice"
-        }
-      ],
-      "theme": "snow",
-      "props": [
-        {
-          "prop": "stage_sign",
-          "at": 1,
-          "side": 1.12,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "derby_bowl",
-      "name": "Scrapyard Bowl",
-      "description": "An arena, not a course. No finish line, just the last car moving.",
-      "surface": "dirt",
-      "closed": true,
-      "width": 90,
-      "checkpoint_spacing": 200,
-      "waypoints": [
-        [
-          0,
-          0
-        ],
-        [
-          90,
-          -30
-        ],
-        [
-          150,
-          40
-        ],
-        [
-          120,
-          140
-        ],
-        [
-          20,
-          170
-        ],
-        [
-          -70,
-          110
-        ],
-        [
-          -80,
-          20
-        ]
-      ],
-      "ramps": [],
-      "theme": "derby",
-      "props": [
-        {
-          "prop": "oil_drum",
-          "at": 1,
-          "side": 0.3,
-          "along": 0
-        },
-        {
-          "prop": "oil_drum",
-          "at": 3,
-          "side": -0.4,
-          "along": 0
-        },
-        {
-          "prop": "crate",
-          "at": 4,
-          "side": 0.2,
-          "along": 0
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 5,
-          "side": -0.7,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 6,
-          "side": 0.5,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "village_sprint",
-      "name": "Ahonpaa Village Sprint",
-      "description": "Two kilometres of village tarmac between stone walls. Narrow, fast and completely unforgiving of a wide line.",
-      "surface": "tarmac",
-      "closed": true,
-      "width": 11,
-      "checkpoint_spacing": 90,
-      "waypoints": [
-        [
-          0,
-          0
-        ],
-        [
-          120,
-          -10
-        ],
-        [
-          190,
-          -60
-        ],
-        [
-          240,
-          -20
-        ],
-        [
-          300,
-          40
-        ],
-        [
-          300,
-          140
-        ],
-        [
-          220,
-          200
-        ],
-        [
-          100,
-          210
-        ],
-        [
-          10,
-          160
-        ],
-        [
-          -40,
-          80
-        ]
-      ],
-      "theme": "village",
-      "props": [
-        {
-          "prop": "tyre_stack",
-          "at": 2,
-          "side": -0.9,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 3,
-          "side": 0.8,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 3,
-          "side": 0.8,
-          "along": 5
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 6,
-          "side": -0.85,
-          "along": 0
-        },
-        {
-          "prop": "crate",
-          "at": 8,
-          "side": 0.6,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "quarry_run",
-      "name": "Granite Quarry Run",
-      "description": "Loose gravel across a working quarry, with two crests that will have you off the ground whether you meant it or not.",
-      "surface": "gravel",
-      "closed": false,
-      "width": 16,
-      "checkpoint_spacing": 120,
-      "waypoints": [
-        [
-          0.0,
-          0.0
-        ],
-        [
-          49.9,
-          -24.7
-        ],
-        [
-          93.8,
-          -27.4
-        ],
-        [
-          141.3,
-          6.8
-        ],
-        [
-          165.4,
-          71.4
-        ],
-        [
-          198.5,
-          106.6
-        ],
-        [
-          207.2,
-          146.2
-        ],
-        [
-          245.6,
-          166.0
-        ],
-        [
-          264.1,
-          215.5
-        ],
-        [
-          258.8,
-          286.2
-        ],
-        [
-          280.9,
-          347.4
-        ],
-        [
-          277.6,
-          423.9
-        ],
-        [
-          320.9,
-          472.6
-        ],
-        [
-          336.6,
-          534.7
-        ],
-        [
-          325.5,
-          583.3
-        ],
-        [
-          349.7,
-          653.6
-        ],
-        [
-          409.9,
-          680.9
-        ],
-        [
-          438.8,
-          730.5
-        ],
-        [
-          494.0,
-          761.0
-        ],
-        [
-          515.8,
-          802.2
-        ],
-        [
-          567.4,
-          839.9
-        ],
-        [
-          594.8,
-          883.0
-        ],
-        [
-          571.2,
-          947.2
-        ]
-      ],
-      "ramps": [
-        {
-          "at": 3,
-          "launch": 7.0,
-          "length": 12
-        },
-        {
-          "at": 7,
-          "launch": 5.5,
-          "length": 9
-        }
-      ],
-      "theme": "quarry",
-      "props": [
-        {
-          "prop": "oil_drum",
-          "at": 4,
-          "side": 1.12,
-          "along": 0
-        },
-        {
-          "prop": "crate",
-          "at": 10,
-          "side": -1.12,
-          "along": 0
-        },
-        {
-          "prop": "concrete_block",
-          "at": 16,
-          "side": 1.12,
-          "along": 0
-        },
-        {
-          "prop": "stage_sign",
-          "at": 2,
-          "side": 1.12,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "coastal_tarmac",
-      "name": "Saltmarsh Coast",
-      "description": "Long, open sea-wall tarmac. The corners are quick rather than tight, so it rewards a car that stays settled at speed.",
-      "surface": "tarmac",
-      "closed": true,
-      "width": 14,
-      "checkpoint_spacing": 130,
-      "waypoints": [
-        [
-          418.8,
-          0.0
-        ],
-        [
-          349.9,
-          113.7
-        ],
-        [
-          253.2,
-          183.9
-        ],
-        [
-          227.7,
-          313.3
-        ],
-        [
-          87.8,
-          270.3
-        ],
-        [
-          0.0,
-          258.0
-        ],
-        [
-          -106.4,
-          327.5
-        ],
-        [
-          -155.8,
-          214.5
-        ],
-        [
-          -253.3,
-          184.0
-        ],
-        [
-          -386.6,
-          125.6
-        ],
-        [
-          -321.7,
-          0.0
-        ],
-        [
-          -357.2,
-          -116.0
-        ],
-        [
-          -324.4,
-          -235.7
-        ],
-        [
-          -162.3,
-          -223.4
-        ],
-        [
-          -101.0,
-          -310.9
-        ],
-        [
-          -0.0,
-          -319.1
-        ],
-        [
-          71.0,
-          -218.6
-        ],
-        [
-          199.0,
-          -273.9
-        ],
-        [
-          276.0,
-          -200.5
-        ],
-        [
-          285.3,
-          -92.7
-        ]
-      ],
-      "theme": "coast",
-      "props": [
-        {
-          "prop": "tyre_stack",
-          "at": 5,
-          "side": -1.12,
-          "along": 0
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 5,
-          "side": -1.12,
-          "along": 9
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 11,
-          "side": 1.12,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 15,
-          "side": 1.12,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "lakeside_night",
-      "name": "Lakeside Night Stage",
-      "description": "Dirt along the lake shore after dark. Your headlights are the only thing between you and the water.",
-      "surface": "dirt",
-      "closed": false,
-      "width": 12,
-      "checkpoint_spacing": 110,
-      "night": true,
-      "waypoints": [
-        [
-          0.0,
-          0.0
-        ],
-        [
-          28.8,
-          40.9
-        ],
-        [
-          12.1,
-          117.9
-        ],
-        [
-          26.1,
-          183.6
-        ],
-        [
-          60.8,
-          226.2
-        ],
-        [
-          52.4,
-          268.7
-        ],
-        [
-          2.1,
-          321.2
-        ],
-        [
-          -14.2,
-          395.7
-        ],
-        [
-          -45.2,
-          429.0
-        ],
-        [
-          -110.4,
-          425.1
-        ],
-        [
-          -143.9,
-          385.2
-        ],
-        [
-          -132.1,
-          318.7
-        ],
-        [
-          -163.3,
-          285.5
-        ],
-        [
-          -231.2,
-          253.5
-        ],
-        [
-          -293.6,
-          277.0
-        ],
-        [
-          -330.4,
-          323.9
-        ],
-        [
-          -402.0,
-          338.4
-        ],
-        [
-          -432.9,
-          378.6
-        ],
-        [
-          -423.5,
-          438.1
-        ],
-        [
-          -445.6,
-          478.7
-        ],
-        [
-          -441.0,
-          553.0
-        ],
-        [
-          -463.1,
-          590.7
-        ],
-        [
-          -498.4,
-          613.1
-        ]
-      ],
-      "ramps": [
-        {
-          "at": 4,
-          "launch": 6.0,
-          "length": 10
-        }
-      ],
-      "theme": "forest",
-      "props": [
-        {
-          "prop": "stage_sign",
-          "at": 3,
-          "side": 1.12,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 11,
-          "side": -1.12,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 11,
-          "side": -1.12,
-          "along": 6
-        }
-      ]
-    },
-    {
-      "id": "alpine_pass",
-      "name": "Hjelmstad Pass",
-      "description": "A mountain pass that starts and ends on tarmac and loses its surface in the middle. One stage, two very different cars needed.",
-      "surface": "tarmac",
-      "closed": false,
-      "width": 12,
-      "checkpoint_spacing": 140,
-      "waypoints": [
-        [
-          0,
-          0
-        ],
-        [
-          150,
-          -40
-        ],
-        [
-          300,
-          -30
-        ],
-        [
-          420,
-          40
-        ],
-        [
-          470,
-          170
-        ],
-        [
-          420,
-          300
-        ],
-        [
-          300,
-          380
-        ],
-        [
-          160,
-          400
-        ],
-        [
-          40,
-          470
-        ],
-        [
-          -20,
-          600
-        ],
-        [
-          40,
-          730
-        ],
-        [
-          180,
-          800
-        ],
-        [
-          330,
-          800
-        ],
-        [
-          460,
-          860
-        ],
-        [
-          540,
-          970
-        ],
-        [
-          560,
-          1110
-        ]
-      ],
-      "surface_overrides": [
-        {
-          "from": 5,
-          "to": 11,
-          "surface": "gravel"
-        }
-      ],
-      "ramps": [
-        {
-          "at": 9,
-          "launch": 6.5,
-          "length": 11
-        }
-      ],
-      "theme": "mountain",
-      "props": [
-        {
-          "prop": "stage_sign",
-          "at": 1,
-          "side": 0.9,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 6,
-          "side": 0.82,
-          "along": 0
-        },
-        {
-          "prop": "concrete_block",
-          "at": 12,
-          "side": -0.9,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "arctic_marathon",
-      "name": "Arctic Marathon",
-      "description": "The longest stage in the game, on snow the whole way. Nothing about it is difficult; all of it is difficult for long enough.",
-      "surface": "snow",
-      "closed": false,
-      "width": 18,
-      "checkpoint_spacing": 160,
-      "waypoints": [
-        [
-          0,
-          0
-        ],
-        [
-          180,
-          -60
-        ],
-        [
-          380,
-          -40
-        ],
-        [
-          540,
-          50
-        ],
-        [
-          620,
-          200
-        ],
-        [
-          600,
-          370
-        ],
-        [
-          480,
-          490
-        ],
-        [
-          300,
-          540
-        ],
-        [
-          130,
-          520
-        ],
-        [
-          -30,
-          570
-        ],
-        [
-          -130,
-          700
-        ],
-        [
-          -100,
-          860
-        ],
-        [
-          40,
-          950
-        ],
-        [
-          220,
-          970
-        ],
-        [
-          390,
-          930
-        ],
-        [
-          540,
-          1000
-        ],
-        [
-          620,
-          1140
-        ]
-      ],
-      "theme": "arctic",
-      "props": [
-        {
-          "prop": "stage_sign",
-          "at": 2,
-          "side": 0.9,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "harbour_night",
-      "name": "Harbour Night Sprint",
-      "description": "Dock roads after dark. Nine hundred metres, stone on both sides, and nowhere at all to put a mistake.",
-      "surface": "tarmac",
-      "closed": true,
-      "width": 11,
-      "checkpoint_spacing": 90,
-      "theme": "village",
-      "night": true,
-      "waypoints": [
-        [
-          0,
-          0
-        ],
-        [
-          57,
-          -3
-        ],
-        [
-          113,
-          -7
-        ],
-        [
-          170,
-          -10
-        ],
-        [
-          205,
-          -1
-        ],
-        [
-          231,
-          25
-        ],
-        [
-          240,
-          60
-        ],
-        [
-          245,
-          118
-        ],
-        [
-          250,
-          175
-        ],
-        [
-          242,
-          205
-        ],
-        [
-          220,
-          227
-        ],
-        [
-          190,
-          235
-        ],
-        [
-          137,
-          238
-        ],
-        [
-          83,
-          242
-        ],
-        [
-          30,
-          245
-        ],
-        [
-          0,
-          237
-        ],
-        [
-          -22,
-          215
-        ],
-        [
-          -30,
-          185
-        ],
-        [
-          -35,
-          122
-        ],
-        [
-          -40,
-          60
-        ],
-        [
-          -32,
-          30
-        ]
-      ],
-      "props": [
-        {
-          "prop": "tyre_stack",
-          "at": 1,
-          "side": -0.9,
-          "along": 0
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 1,
-          "side": -0.9,
-          "along": 12
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 2,
-          "side": 0.9,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 5,
-          "side": 0.85,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 5,
-          "side": 0.85,
-          "along": 5
-        },
-        {
-          "prop": "crate",
-          "at": 8,
-          "side": -0.8,
-          "along": 0
-        },
-        {
-          "prop": "crate",
-          "at": 8,
-          "side": -0.8,
-          "along": 4
-        },
-        {
-          "prop": "oil_drum",
-          "at": 11,
-          "side": 0.8,
-          "along": 0
-        },
-        {
-          "prop": "concrete_block",
-          "at": 14,
-          "side": -0.9,
-          "along": 0
-        },
-        {
-          "prop": "stage_sign",
-          "at": 17,
-          "side": 0.9,
-          "along": 0
-        },
-        {
-          "prop": "concrete_block",
-          "at": 20,
-          "side": 0.85,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 19,
-          "side": -0.85,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "birch_valley",
-      "name": "Birch Valley",
-      "description": "Gravel sweepers that never quite straighten out. Lift once and you have lost the whole sequence.",
-      "surface": "gravel",
-      "closed": false,
-      "width": 14,
-      "checkpoint_spacing": 140,
-      "theme": "gravel",
-      "waypoints": [
-        [
-          0,
-          0
-        ],
-        [
-          60,
-          -15
-        ],
-        [
-          120,
-          -30
-        ],
-        [
-          180,
-          -45
-        ],
-        [
-          240,
-          -60
-        ],
-        [
-          288,
-          -81
-        ],
-        [
-          344,
-          -65
-        ],
-        [
-          389,
-          -35
-        ],
-        [
-          438,
-          -10
-        ],
-        [
-          480,
-          30
-        ],
-        [
-          487,
-          87
-        ],
-        [
-          490,
-          130
-        ],
-        [
-          513,
-          197
-        ],
-        [
-          537,
-          263
-        ],
-        [
-          560,
-          330
-        ],
-        [
-          561,
-          400
-        ],
-        [
-          564,
-          463
-        ],
-        [
-          532,
-          519
-        ],
-        [
-          476,
-          548
-        ],
-        [
-          421,
-          577
-        ],
-        [
-          360,
-          580
-        ],
-        [
-          300,
-          600
-        ],
-        [
-          240,
-          620
-        ],
-        [
-          180,
-          640
-        ],
-        [
-          120,
-          660
-        ],
-        [
-          66,
-          683
-        ],
-        [
-          15,
-          656
-        ],
-        [
-          -31,
-          634
-        ],
-        [
-          -84,
-          613
-        ],
-        [
-          -100,
-          558
-        ],
-        [
-          -100,
-          440
-        ],
-        [
-          -127,
-          360
-        ],
-        [
-          -153,
-          280
-        ],
-        [
-          -180,
-          200
-        ]
-      ],
-      "ramps": [
-        {
-          "at": 12,
-          "launch": 6.2,
-          "length": 11
-        }
-      ],
-      "props": [
-        {
-          "prop": "hay_bale",
-          "at": 2,
-          "side": -0.9,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 2,
-          "side": -0.9,
-          "along": 5
-        },
-        {
-          "prop": "cone",
-          "at": 5,
-          "side": 0.85,
-          "along": 0
-        },
-        {
-          "prop": "stage_sign",
-          "at": 8,
-          "side": 0.9,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 11,
-          "side": -0.85,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 12,
-          "side": 0.8,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 15,
-          "side": -0.85,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 15,
-          "side": -0.85,
-          "along": 5
-        },
-        {
-          "prop": "fallen_rock",
-          "at": 19,
-          "side": 0.7,
-          "along": 0
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 22,
-          "side": -0.88,
-          "along": 0
-        },
-        {
-          "prop": "stage_sign",
-          "at": 25,
-          "side": 0.9,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 28,
-          "side": -0.85,
-          "along": 0
-        },
-        {
-          "prop": "fallen_rock",
-          "at": 30,
-          "side": 0.72,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "quarry_descent",
-      "name": "Old Quarry Descent",
-      "description": "Five switchbacks cut into working stone. First gear, full lock, and a drop on the outside of every one.",
-      "surface": "dirt",
-      "closed": false,
-      "width": 12,
-      "checkpoint_spacing": 80,
-      "theme": "quarry",
-      "waypoints": [
-        [
-          -140,
-          0
-        ],
-        [
-          -47,
-          3
-        ],
-        [
-          47,
-          7
-        ],
-        [
-          140,
-          10
-        ],
-        [
-          172,
-          23
-        ],
-        [
-          185,
-          55
-        ],
-        [
-          172,
-          87
-        ],
-        [
-          140,
-          100
-        ],
-        [
-          47,
-          93
-        ],
-        [
-          -47,
-          97
-        ],
-        [
-          -140,
-          100
-        ],
-        [
-          -172,
-          113
-        ],
-        [
-          -185,
-          145
-        ],
-        [
-          -172,
-          177
-        ],
-        [
-          -140,
-          190
-        ],
-        [
-          -47,
-          183
-        ],
-        [
-          47,
-          187
-        ],
-        [
-          140,
-          190
-        ],
-        [
-          172,
-          203
-        ],
-        [
-          185,
-          235
-        ],
-        [
-          172,
-          267
-        ],
-        [
-          140,
-          280
-        ],
-        [
-          47,
-          273
-        ],
-        [
-          -47,
-          277
-        ],
-        [
-          -140,
-          280
-        ],
-        [
-          -172,
-          293
-        ],
-        [
-          -185,
-          325
-        ],
-        [
-          -172,
-          357
-        ],
-        [
-          -140,
-          370
-        ],
-        [
-          -47,
-          363
-        ],
-        [
-          47,
-          367
-        ],
-        [
-          140,
-          370
-        ],
-        [
-          172,
-          383
-        ],
-        [
-          185,
-          415
-        ],
-        [
-          172,
-          447
-        ],
-        [
-          140,
-          460
-        ]
-      ],
-      "props": [
-        {
-          "prop": "fallen_rock",
-          "at": 1,
-          "side": -0.8,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 2,
-          "side": -0.85,
-          "along": 0
-        },
-        {
-          "prop": "fallen_rock",
-          "at": 5,
-          "side": 0.75,
-          "along": 0
-        },
-        {
-          "prop": "oil_drum",
-          "at": 8,
-          "side": -0.85,
-          "along": 0
-        },
-        {
-          "prop": "concrete_block",
-          "at": 11,
-          "side": 0.85,
-          "along": 0
-        },
-        {
-          "prop": "crate",
-          "at": 14,
-          "side": -0.88,
-          "along": 0
-        },
-        {
-          "prop": "fallen_rock",
-          "at": 17,
-          "side": 0.72,
-          "along": 0
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 20,
-          "side": -0.85,
-          "along": 0
-        },
-        {
-          "prop": "crate",
-          "at": 23,
-          "side": 0.8,
-          "along": 0
-        },
-        {
-          "prop": "fallen_rock",
-          "at": 26,
-          "side": 0.7,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 30,
-          "side": -0.85,
-          "along": 0
-        },
-        {
-          "prop": "stage_sign",
-          "at": 33,
-          "side": 0.9,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "fjord_road",
-      "name": "Fjord Road",
-      "description": "Four kilometres of coast road. Long enough that fuel and tyres start to matter, and fast enough that they matter a lot.",
-      "surface": "tarmac",
-      "closed": false,
-      "width": 13,
-      "checkpoint_spacing": 190,
-      "theme": "coast",
-      "waypoints": [
-        [
-          0,
-          0
-        ],
-        [
-          87,
-          -9
-        ],
-        [
-          173,
-          -18
-        ],
-        [
-          260,
-          -28
-        ],
-        [
-          347,
-          -37
-        ],
-        [
-          433,
-          -46
-        ],
-        [
-          520,
-          -55
-        ],
-        [
-          585,
-          -63
-        ],
-        [
-          644,
-          -32
-        ],
-        [
-          690,
-          12
-        ],
-        [
-          741,
-          49
-        ],
-        [
-          782,
-          102
-        ],
-        [
-          784,
-          169
-        ],
-        [
-          785,
-          200
-        ],
-        [
-          799,
-          273
-        ],
-        [
-          813,
-          347
-        ],
-        [
-          828,
-          420
-        ],
-        [
-          842,
-          493
-        ],
-        [
-          856,
-          567
-        ],
-        [
-          870,
-          640
-        ],
-        [
-          867,
-          701
-        ],
-        [
-          853,
-          755
-        ],
-        [
-          826,
-          806
-        ],
-        [
-          788,
-          848
-        ],
-        [
-          741,
-          881
-        ],
-        [
-          688,
-          902
-        ],
-        [
-          570,
-          900
-        ],
-        [
-          488,
-          922
-        ],
-        [
-          407,
-          945
-        ],
-        [
-          325,
-          968
-        ],
-        [
-          243,
-          990
-        ],
-        [
-          162,
-          1012
-        ],
-        [
-          80,
-          1035
-        ],
-        [
-          30,
-          1052
-        ],
-        [
-          -32,
-          1030
-        ],
-        [
-          -82,
-          994
-        ],
-        [
-          -138,
-          968
-        ],
-        [
-          -188,
-          926
-        ],
-        [
-          -200,
-          862
-        ],
-        [
-          -200,
-          775
-        ],
-        [
-          -218,
-          705
-        ],
-        [
-          -237,
-          635
-        ],
-        [
-          -255,
-          565
-        ],
-        [
-          -273,
-          495
-        ],
-        [
-          -292,
-          425
-        ],
-        [
-          -310,
-          355
-        ],
-        [
-          -312,
-          302
-        ],
-        [
-          -302,
-          248
-        ],
-        [
-          -281,
-          199
-        ],
-        [
-          -249,
-          156
-        ],
-        [
-          -207,
-          121
-        ],
-        [
-          -159,
-          97
-        ],
-        [
-          -100,
-          99
-        ],
-        [
-          -68,
-          84
-        ],
-        [
-          -64,
-          55
-        ],
-        [
-          -95,
-          40
-        ],
-        [
-          -128,
-          36
-        ],
-        [
-          -201,
-          -13
-        ],
-        [
-          -274,
-          -62
-        ],
-        [
-          -347,
-          -111
-        ],
-        [
-          -420,
-          -160
-        ]
-      ],
-      "ramps": [
-        {
-          "at": 16,
-          "launch": 4,
-          "length": 8
-        }
-      ],
-      "props": [
-        {
-          "prop": "tyre_stack",
-          "at": 2,
-          "side": 0.9,
-          "along": 0
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 2,
-          "side": 0.9,
-          "along": 8
-        },
-        {
-          "prop": "cone",
-          "at": 5,
-          "side": 0.9,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 8,
-          "side": -0.88,
-          "along": 0
-        },
-        {
-          "prop": "concrete_block",
-          "at": 12,
-          "side": 0.88,
-          "along": 0
-        },
-        {
-          "prop": "stage_sign",
-          "at": 15,
-          "side": -0.9,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 18,
-          "side": 0.88,
-          "along": 0
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 22,
-          "side": -0.85,
-          "along": 0
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 22,
-          "side": -0.85,
-          "along": 6
-        },
-        {
-          "prop": "stage_sign",
-          "at": 26,
-          "side": 0.9,
-          "along": 0
-        },
-        {
-          "prop": "fallen_rock",
-          "at": 30,
-          "side": -0.75,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 34,
-          "side": 0.88,
-          "along": 0
-        },
-        {
-          "prop": "oil_drum",
-          "at": 38,
-          "side": -0.85,
-          "along": 0
-        },
-        {
-          "prop": "concrete_block",
-          "at": 42,
-          "side": 0.9,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "deep_forest",
-      "name": "Deep Forest Marathon",
-      "description": "Six kilometres of narrow dirt in the dark. Nothing about it is fast, and every one of those kilometres is a chance to get it wrong.",
-      "surface": "dirt",
-      "closed": false,
-      "width": 10,
-      "checkpoint_spacing": 260,
-      "theme": "forest",
-      "night": true,
-      "waypoints": [
-        [
-          94,
-          -34
-        ],
-        [
-          188,
-          -68
-        ],
-        [
-          297,
-          -69
-        ],
-        [
-          400,
-          -34
-        ],
-        [
-          452,
-          -16
-        ],
-        [
-          504,
-          2
-        ],
-        [
-          569,
-          -10
-        ],
-        [
-          620,
-          -52
-        ],
-        [
-          644,
-          -114
-        ],
-        [
-          635,
-          -179
-        ],
-        [
-          596,
-          -232
-        ],
-        [
-          547,
-          -296
-        ],
-        [
-          499,
-          -360
-        ],
-        [
-          471,
-          -421
-        ],
-        [
-          456,
-          -486
-        ],
-        [
-          435,
-          -576
-        ],
-        [
-          414,
-          -666
-        ],
-        [
-          362,
-          -752
-        ],
-        [
-          287,
-          -818
-        ],
-        [
-          251,
-          -849
-        ],
-        [
-          215,
-          -881
-        ],
-        [
-          179,
-          -959
-        ],
-        [
-          180,
-          -1046
-        ],
-        [
-          217,
-          -1124
-        ],
-        [
-          283,
-          -1179
-        ],
-        [
-          373,
-          -1255
-        ],
-        [
-          463,
-          -1331
-        ],
-        [
-          501,
-          -1376
-        ],
-        [
-          529,
-          -1427
-        ],
-        [
-          553,
-          -1471
-        ],
-        [
-          577,
-          -1515
-        ],
-        [
-          580,
-          -1575
-        ],
-        [
-          556,
-          -1630
-        ],
-        [
-          509,
-          -1668
-        ],
-        [
-          451,
-          -1681
-        ],
-        [
-          385,
-          -1696
-        ],
-        [
-          319,
-          -1712
-        ],
-        [
-          243,
-          -1781
-        ],
-        [
-          211,
-          -1879
-        ],
-        [
-          171,
-          -2003
-        ],
-        [
-          131,
-          -2126
-        ],
-        [
-          129,
-          -2221
-        ],
-        [
-          155,
-          -2313
-        ],
-        [
-          171,
-          -2368
-        ],
-        [
-          187,
-          -2423
-        ],
-        [
-          179,
-          -2500
-        ],
-        [
-          143,
-          -2567
-        ],
-        [
-          84,
-          -2617
-        ],
-        [
-          50,
-          -2646
-        ],
-        [
-          15,
-          -2675
-        ],
-        [
-          -42,
-          -2689
-        ],
-        [
-          -100,
-          -2677
-        ],
-        [
-          -146,
-          -2640
-        ],
-        [
-          -172,
-          -2587
-        ],
-        [
-          -172,
-          -2528
-        ],
-        [
-          -146,
-          -2475
-        ],
-        [
-          -108,
-          -2397
-        ],
-        [
-          -69,
-          -2318
-        ],
-        [
-          -66,
-          -2181
-        ],
-        [
-          -119,
-          -2055
-        ],
-        [
-          -180,
-          -1913
-        ],
-        [
-          -240,
-          -1770
-        ],
-        [
-          -290,
-          -1706
-        ],
-        [
-          -353,
-          -1656
-        ],
-        [
-          -395,
-          -1623
-        ],
-        [
-          -436,
-          -1591
-        ],
-        [
-          -476,
-          -1499
-        ],
-        [
-          -467,
-          -1400
-        ],
-        [
-          -411,
-          -1317
-        ],
-        [
-          -384,
-          -1277
-        ],
-        [
-          -357,
-          -1238
-        ],
-        [
-          -352,
-          -1173
-        ],
-        [
-          -378,
-          -1113
-        ],
-        [
-          -430,
-          -1073
-        ],
-        [
-          -494,
-          -1063
-        ],
-        [
-          -555,
-          -1085
-        ],
-        [
-          -652,
-          -1120
-        ],
-        [
-          -748,
-          -1156
-        ],
-        [
-          -834,
-          -1162
-        ],
-        [
-          -919,
-          -1146
-        ],
-        [
-          -993,
-          -1131
-        ],
-        [
-          -1067,
-          -1117
-        ],
-        [
-          -1143,
-          -1056
-        ],
-        [
-          -1181,
-          -966
-        ],
-        [
-          -1205,
-          -908
-        ],
-        [
-          -1230,
-          -851
-        ],
-        [
-          -1306,
-          -789
-        ],
-        [
-          -1402,
-          -770
-        ],
-        [
-          -1495,
-          -799
-        ],
-        [
-          -1631,
-          -841
-        ],
-        [
-          -1768,
-          -882
-        ],
-        [
-          -1812,
-          -889
-        ],
-        [
-          -1856,
-          -890
-        ],
-        [
-          -1904,
-          -891
-        ],
-        [
-          -1951,
-          -892
-        ],
-        [
-          -2002,
-          -870
-        ],
-        [
-          -2039,
-          -830
-        ],
-        [
-          -2056,
-          -778
-        ],
-        [
-          -2051,
-          -723
-        ],
-        [
-          -2023,
-          -675
-        ],
-        [
-          -1983,
-          -606
-        ],
-        [
-          -1943,
-          -537
-        ],
-        [
-          -1935,
-          -451
-        ],
-        [
-          -1964,
-          -370
-        ],
-        [
-          -2024,
-          -308
-        ]
-      ],
-      "ramps": [
-        {
-          "at": 14,
-          "launch": 5,
-          "length": 9
-        },
-        {
-          "at": 42,
-          "launch": 4.4,
-          "length": 8
-        }
-      ],
-      "props": [
-        {
-          "prop": "cone",
-          "at": 3,
-          "side": -0.88,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 6,
-          "side": 0.88,
-          "along": 0
-        },
-        {
-          "prop": "fallen_rock",
-          "at": 9,
-          "side": -0.75,
-          "along": 0
-        },
-        {
-          "prop": "stage_sign",
-          "at": 13,
-          "side": 0.9,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 17,
-          "side": -0.88,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 20,
-          "side": 0.88,
-          "along": 0
-        },
-        {
-          "prop": "fallen_rock",
-          "at": 24,
-          "side": -0.72,
-          "along": 0
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 28,
-          "side": 0.88,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 32,
-          "side": -0.88,
-          "along": 0
-        },
-        {
-          "prop": "stage_sign",
-          "at": 36,
-          "side": 0.9,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 40,
-          "side": -0.88,
-          "along": 0
-        },
-        {
-          "prop": "fallen_rock",
-          "at": 45,
-          "side": 0.74,
-          "along": 0
-        },
-        {
-          "prop": "crate",
-          "at": 49,
-          "side": -0.85,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 53,
-          "side": 0.88,
-          "along": 0
-        },
-        {
-          "prop": "stage_sign",
-          "at": 56,
-          "side": -0.9,
-          "along": 0
-        }
-      ]
-    },
-    {
-      "id": "frozen_lake",
-      "name": "Frozen Lake Circuit",
-      "description": "A course marked out in snow banks on lake ice. Nothing here is a wall, and nothing here grips either.",
-      "surface": "ice",
-      "closed": true,
-      "width": 22,
-      "checkpoint_spacing": 130,
-      "theme": "arctic",
-      "waypoints": [
-        [
-          335,
-          0
-        ],
-        [
-          378,
-          76
-        ],
-        [
-          363,
-          156
-        ],
-        [
-          297,
-          216
-        ],
-        [
-          205,
-          244
-        ],
-        [
-          113,
-          244
-        ],
-        [
-          34,
-          231
-        ],
-        [
-          -32,
-          215
-        ],
-        [
-          -91,
-          196
-        ],
-        [
-          -143,
-          170
-        ],
-        [
-          -186,
-          135
-        ],
-        [
-          -217,
-          93
-        ],
-        [
-          -241,
-          49
-        ],
-        [
-          -265,
-          0
-        ],
-        [
-          -291,
-          -59
-        ],
-        [
-          -307,
-          -132
-        ],
-        [
-          -293,
-          -213
-        ],
-        [
-          -237,
-          -281
-        ],
-        [
-          -144,
-          -312
-        ],
-        [
-          -44,
-          -294
-        ],
-        [
-          35,
-          -237
-        ],
-        [
-          78,
-          -168
-        ],
-        [
-          97,
-          -115
-        ],
-        [
-          122,
-          -88
-        ],
-        [
-          176,
-          -76
-        ],
-        [
-          256,
-          -52
-        ]
-      ],
-      "props": [
-        {
-          "prop": "cone",
-          "at": 1,
-          "side": -0.9,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 1,
-          "side": -0.9,
-          "along": 10
-        },
-        {
-          "prop": "cone",
-          "at": 4,
-          "side": 0.9,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 7,
-          "side": -0.88,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 10,
-          "side": 0.9,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 13,
-          "side": -0.88,
-          "along": 0
-        },
-        {
-          "prop": "stage_sign",
-          "at": 15,
-          "side": 0.9,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 18,
-          "side": -0.9,
-          "along": 0
-        },
-        {
-          "prop": "hay_bale",
-          "at": 21,
-          "side": 0.88,
-          "along": 0
-        },
-        {
-          "prop": "cone",
-          "at": 24,
-          "side": -0.9,
-          "along": 0
-        },
-        {
-          "prop": "tyre_stack",
-          "at": 6,
-          "side": 0.92,
-          "along": 0
-        }
-      ]
+     "at": 4,
+     "launch": 5.5,
+     "length": 9
     }
-  ]
+   ],
+   "theme": "gravel",
+   "props": [
+    {
+     "prop": "hay_bale",
+     "at": 6,
+     "side": -2.268,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 6,
+     "side": -2.268,
+     "along": 6
+    },
+    {
+     "prop": "stage_sign",
+     "at": 13,
+     "side": 2.294,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 17,
+     "side": 2.194,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 17,
+     "side": 2.194,
+     "along": 4
+    }
+   ],
+   "run_off": 7.0,
+   "run_off_surface": "grass"
+  },
+  {
+   "id": "forest_sprint",
+   "name": "Blackwood Sprint",
+   "description": "Narrow, fast, and lined with trees. Run after dark, so all you have is what the headlights reach.",
+   "surface": "dirt",
+   "closed": false,
+   "width": 13,
+   "checkpoint_spacing": 130,
+   "night": true,
+   "waypoints": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     53.7,
+     -23.4
+    ],
+    [
+     102.1,
+     0.4
+    ],
+    [
+     127.8,
+     72.0
+    ],
+    [
+     112.1,
+     156.0
+    ],
+    [
+     151.9,
+     237.1
+    ],
+    [
+     146.6,
+     308.8
+    ],
+    [
+     186.0,
+     372.9
+    ],
+    [
+     184.9,
+     429.8
+    ],
+    [
+     219.7,
+     470.4
+    ],
+    [
+     242.7,
+     545.2
+    ],
+    [
+     282.5,
+     587.2
+    ],
+    [
+     275.0,
+     665.7
+    ],
+    [
+     317.2,
+     727.4
+    ],
+    [
+     302.4,
+     773.4
+    ],
+    [
+     307.7,
+     836.4
+    ],
+    [
+     274.8,
+     870.5
+    ],
+    [
+     214.3,
+     897.7
+    ],
+    [
+     149.2,
+     890.8
+    ],
+    [
+     83.0,
+     948.0
+    ],
+    [
+     1.3,
+     964.7
+    ],
+    [
+     -70.7,
+     934.8
+    ],
+    [
+     -109.3,
+     897.4
+    ]
+   ],
+   "ramps": [
+    {
+     "at": 3,
+     "launch": 7.5,
+     "length": 10
+    },
+    {
+     "at": 6,
+     "launch": 8.5,
+     "length": 12
+    },
+    {
+     "at": 9,
+     "launch": 6.5,
+     "length": 9
+    }
+   ],
+   "surface_overrides": [
+    {
+     "from": 0,
+     "to": 1,
+     "surface": "tarmac"
+    },
+    {
+     "from": 7,
+     "to": 8,
+     "surface": "mud"
+    }
+   ],
+   "theme": "forest",
+   "props": [
+    {
+     "prop": "stage_sign",
+     "at": 1,
+     "side": 1.801,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 7,
+     "side": -1.77,
+     "along": 0
+    }
+   ],
+   "run_off": 2.5,
+   "run_off_surface": "grass"
+  },
+  {
+   "id": "tarmac_circuit",
+   "name": "Harbour Circuit",
+   "description": "Sealed surface, walls close in. Grip is high until it very suddenly is not.",
+   "surface": "tarmac",
+   "closed": true,
+   "width": 16,
+   "checkpoint_spacing": 100,
+   "waypoints": [
+    [
+     140.6,
+     0.0
+    ],
+    [
+     185.1,
+     54.3
+    ],
+    [
+     201.8,
+     129.7
+    ],
+    [
+     137.7,
+     159.0
+    ],
+    [
+     99.7,
+     218.4
+    ],
+    [
+     37.7,
+     262.1
+    ],
+    [
+     -28.7,
+     199.9
+    ],
+    [
+     -84.2,
+     184.5
+    ],
+    [
+     -160.6,
+     185.4
+    ],
+    [
+     -172.4,
+     110.8
+    ],
+    [
+     -190.6,
+     56.0
+    ],
+    [
+     -238.0,
+     0.0
+    ],
+    [
+     -180.9,
+     -53.1
+    ],
+    [
+     -134.5,
+     -86.5
+    ],
+    [
+     -142.6,
+     -164.6
+    ],
+    [
+     -90.2,
+     -197.5
+    ],
+    [
+     -30.3,
+     -210.9
+    ],
+    [
+     40.1,
+     -278.8
+    ],
+    [
+     112.1,
+     -245.4
+    ],
+    [
+     132.9,
+     -153.3
+    ],
+    [
+     179.6,
+     -115.4
+    ],
+    [
+     185.9,
+     -54.6
+    ]
+   ],
+   "ramps": [],
+   "theme": "coast",
+   "props": [
+    {
+     "prop": "tyre_stack",
+     "at": 4,
+     "side": -2.051,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 4,
+     "side": -2.051,
+     "along": 8
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 10,
+     "side": 2.051,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 14,
+     "side": -1.995,
+     "along": 0
+    }
+   ],
+   "run_off": 6.0,
+   "run_off_surface": "grass"
+  },
+  {
+   "id": "mountain_stage",
+   "name": "Kaltavaara Stage",
+   "description": "Long, mixed-surface and relentless. Tarmac hairpins into loose gravel.",
+   "surface": "gravel",
+   "closed": true,
+   "width": 12.5,
+   "checkpoint_spacing": 140,
+   "waypoints": [
+    [
+     417.9,
+     0.0
+    ],
+    [
+     342.6,
+     91.8
+    ],
+    [
+     304.2,
+     175.6
+    ],
+    [
+     361.3,
+     361.3
+    ],
+    [
+     276.9,
+     479.6
+    ],
+    [
+     126.4,
+     471.7
+    ],
+    [
+     0.0,
+     559.2
+    ],
+    [
+     -157.8,
+     588.9
+    ],
+    [
+     -235.3,
+     407.5
+    ],
+    [
+     -281.0,
+     281.0
+    ],
+    [
+     -391.8,
+     226.2
+    ],
+    [
+     -367.6,
+     98.5
+    ],
+    [
+     -282.9,
+     0.0
+    ],
+    [
+     -370.5,
+     -99.3
+    ],
+    [
+     -408.1,
+     -235.6
+    ],
+    [
+     -297.0,
+     -297.0
+    ],
+    [
+     -240.4,
+     -416.4
+    ],
+    [
+     -159.7,
+     -596.1
+    ],
+    [
+     -0.0,
+     -565.6
+    ],
+    [
+     123.6,
+     -461.4
+    ],
+    [
+     266.3,
+     -461.2
+    ],
+    [
+     351.6,
+     -351.6
+    ],
+    [
+     293.3,
+     -169.3
+    ],
+    [
+     328.0,
+     -87.9
+    ]
+   ],
+   "ramps": [
+    {
+     "at": 5,
+     "launch": 9,
+     "length": 12
+    },
+    {
+     "at": 12,
+     "launch": 7,
+     "length": 10
+    },
+    {
+     "at": 15,
+     "launch": 8,
+     "length": 11
+    }
+   ],
+   "surface_overrides": [
+    {
+     "from": 7,
+     "to": 10,
+     "surface": "tarmac"
+    },
+    {
+     "from": 13,
+     "to": 14,
+     "surface": "mud"
+    }
+   ],
+   "theme": "mountain",
+   "props": [
+    {
+     "prop": "fallen_rock",
+     "at": 5,
+     "side": 1.673,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 8,
+     "side": -1.641,
+     "along": 0
+    }
+   ],
+   "run_off": 1.5,
+   "run_off_surface": "gravel"
+  },
+  {
+   "id": "snow_stage",
+   "name": "Frostfell Trial",
+   "description": "Packed snow with ice in the shade. Studded tires or an early bath.",
+   "surface": "snow",
+   "closed": false,
+   "width": 16,
+   "checkpoint_spacing": 130,
+   "waypoints": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     106.1,
+     -74.1
+    ],
+    [
+     139.3,
+     -152.6
+    ],
+    [
+     220.8,
+     -174.8
+    ],
+    [
+     343.1,
+     -133.4
+    ],
+    [
+     444.3,
+     -198.8
+    ],
+    [
+     480.7,
+     -301.6
+    ],
+    [
+     471.0,
+     -392.1
+    ],
+    [
+     528.5,
+     -451.0
+    ],
+    [
+     519.4,
+     -552.6
+    ],
+    [
+     453.5,
+     -643.0
+    ],
+    [
+     474.3,
+     -769.1
+    ],
+    [
+     435.0,
+     -879.9
+    ],
+    [
+     480.0,
+     -952.6
+    ],
+    [
+     450.5,
+     -1082.0
+    ]
+   ],
+   "ramps": [
+    {
+     "at": 5,
+     "launch": 6,
+     "length": 10
+    }
+   ],
+   "surface_overrides": [
+    {
+     "from": 3,
+     "to": 4,
+     "surface": "ice"
+    },
+    {
+     "from": 7,
+     "to": 8,
+     "surface": "ice"
+    }
+   ],
+   "theme": "snow",
+   "props": [
+    {
+     "prop": "stage_sign",
+     "at": 1,
+     "side": 1.963,
+     "along": 0
+    }
+   ],
+   "run_off": 5.0,
+   "run_off_surface": "snow"
+  },
+  {
+   "id": "derby_bowl",
+   "name": "Scrapyard Bowl",
+   "description": "An arena, not a course. No finish line, just the last car moving.",
+   "surface": "dirt",
+   "closed": true,
+   "width": 90,
+   "checkpoint_spacing": 200,
+   "waypoints": [
+    [
+     0,
+     0
+    ],
+    [
+     90,
+     -30
+    ],
+    [
+     150,
+     40
+    ],
+    [
+     120,
+     140
+    ],
+    [
+     20,
+     170
+    ],
+    [
+     -70,
+     110
+    ],
+    [
+     -80,
+     20
+    ]
+   ],
+   "ramps": [],
+   "theme": "derby",
+   "props": [
+    {
+     "prop": "oil_drum",
+     "at": 1,
+     "side": 1.137,
+     "along": 0
+    },
+    {
+     "prop": "oil_drum",
+     "at": 3,
+     "side": -1.137,
+     "along": 0
+    },
+    {
+     "prop": "crate",
+     "at": 4,
+     "side": 1.141,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 5,
+     "side": -1.143,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 6,
+     "side": 1.145,
+     "along": 0
+    }
+   ],
+   "run_off": 4.0,
+   "run_off_surface": "dirt"
+  },
+  {
+   "id": "village_sprint",
+   "name": "Ahonpaa Village Sprint",
+   "description": "Two kilometres of village tarmac between stone walls. Narrow, fast and completely unforgiving of a wide line.",
+   "surface": "tarmac",
+   "closed": true,
+   "width": 11,
+   "checkpoint_spacing": 90,
+   "waypoints": [
+    [
+     111.0,
+     19.4
+    ],
+    [
+     115.2,
+     56.5
+    ],
+    [
+     94.2,
+     76.6
+    ],
+    [
+     77.6,
+     93.8
+    ],
+    [
+     61.9,
+     143.3
+    ],
+    [
+     19.4,
+     172.6
+    ],
+    [
+     -26.1,
+     127.2
+    ],
+    [
+     -49.3,
+     64.2
+    ],
+    [
+     -70.9,
+     35.3
+    ],
+    [
+     -92.4,
+     11.5
+    ],
+    [
+     -96.5,
+     -19.4
+    ],
+    [
+     -104.1,
+     -51.3
+    ],
+    [
+     -120.6,
+     -104.0
+    ],
+    [
+     -105.5,
+     -148.8
+    ],
+    [
+     -59.2,
+     -131.7
+    ],
+    [
+     -19.4,
+     -93.8
+    ],
+    [
+     18.6,
+     -94.1
+    ],
+    [
+     63.3,
+     -91.9
+    ],
+    [
+     87.6,
+     -52.7
+    ],
+    [
+     95.2,
+     -12.8
+    ]
+   ],
+   "theme": "village",
+   "props": [
+    {
+     "prop": "tyre_stack",
+     "at": 2,
+     "side": -1.983,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 3,
+     "side": 2.001,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 3,
+     "side": 2.001,
+     "along": 5
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 6,
+     "side": -1.983,
+     "along": 0
+    },
+    {
+     "prop": "crate",
+     "at": 8,
+     "side": 1.965,
+     "along": 0
+    }
+   ],
+   "run_off": 3.0,
+   "run_off_surface": "grass"
+  },
+  {
+   "id": "quarry_run",
+   "name": "Granite Quarry Run",
+   "description": "Loose gravel across a working quarry, with two crests that will have you off the ground whether you meant it or not.",
+   "surface": "gravel",
+   "closed": false,
+   "width": 16,
+   "checkpoint_spacing": 120,
+   "waypoints": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     49.9,
+     -24.7
+    ],
+    [
+     93.8,
+     -27.4
+    ],
+    [
+     141.3,
+     6.8
+    ],
+    [
+     165.4,
+     71.4
+    ],
+    [
+     198.5,
+     106.6
+    ],
+    [
+     207.2,
+     146.2
+    ],
+    [
+     245.6,
+     166.0
+    ],
+    [
+     264.1,
+     215.5
+    ],
+    [
+     258.8,
+     286.2
+    ],
+    [
+     280.9,
+     347.4
+    ],
+    [
+     277.6,
+     423.9
+    ],
+    [
+     320.9,
+     472.6
+    ],
+    [
+     336.6,
+     534.7
+    ],
+    [
+     325.5,
+     583.3
+    ],
+    [
+     349.7,
+     653.6
+    ],
+    [
+     409.9,
+     680.9
+    ],
+    [
+     438.8,
+     730.5
+    ],
+    [
+     494.0,
+     761.0
+    ],
+    [
+     515.8,
+     802.2
+    ],
+    [
+     567.4,
+     839.9
+    ],
+    [
+     594.8,
+     883.0
+    ],
+    [
+     571.2,
+     947.2
+    ]
+   ],
+   "ramps": [
+    {
+     "at": 3,
+     "launch": 7.0,
+     "length": 12
+    },
+    {
+     "at": 7,
+     "launch": 5.5,
+     "length": 9
+    }
+   ],
+   "theme": "quarry",
+   "props": [
+    {
+     "prop": "oil_drum",
+     "at": 4,
+     "side": 1.888,
+     "along": 0
+    },
+    {
+     "prop": "crate",
+     "at": 10,
+     "side": -1.913,
+     "along": 0
+    },
+    {
+     "prop": "concrete_block",
+     "at": 16,
+     "side": 1.951,
+     "along": 0
+    },
+    {
+     "prop": "stage_sign",
+     "at": 2,
+     "side": 1.963,
+     "along": 0
+    }
+   ],
+   "run_off": 5.0,
+   "run_off_surface": "gravel"
+  },
+  {
+   "id": "coastal_tarmac",
+   "name": "Saltmarsh Coast",
+   "description": "Long, open sea-wall tarmac. The corners are quick rather than tight, so it rewards a car that stays settled at speed.",
+   "surface": "tarmac",
+   "closed": true,
+   "width": 14,
+   "checkpoint_spacing": 130,
+   "waypoints": [
+    [
+     418.8,
+     0.0
+    ],
+    [
+     349.9,
+     113.7
+    ],
+    [
+     253.2,
+     183.9
+    ],
+    [
+     227.7,
+     313.3
+    ],
+    [
+     87.8,
+     270.3
+    ],
+    [
+     0.0,
+     258.0
+    ],
+    [
+     -106.4,
+     327.5
+    ],
+    [
+     -155.8,
+     214.5
+    ],
+    [
+     -253.3,
+     184.0
+    ],
+    [
+     -386.6,
+     125.6
+    ],
+    [
+     -321.7,
+     0.0
+    ],
+    [
+     -357.2,
+     -116.0
+    ],
+    [
+     -324.4,
+     -235.7
+    ],
+    [
+     -162.3,
+     -223.4
+    ],
+    [
+     -101.0,
+     -310.9
+    ],
+    [
+     -0.0,
+     -319.1
+    ],
+    [
+     71.0,
+     -218.6
+    ],
+    [
+     199.0,
+     -273.9
+    ],
+    [
+     276.0,
+     -200.5
+    ],
+    [
+     285.3,
+     -92.7
+    ]
+   ],
+   "theme": "coast",
+   "props": [
+    {
+     "prop": "tyre_stack",
+     "at": 5,
+     "side": -1.915,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 5,
+     "side": -1.915,
+     "along": 9
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 11,
+     "side": 1.915,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 15,
+     "side": 1.851,
+     "along": 0
+    }
+   ],
+   "run_off": 4.0,
+   "run_off_surface": "grass"
+  },
+  {
+   "id": "lakeside_night",
+   "name": "Lakeside Night Stage",
+   "description": "Dirt along the lake shore after dark. Your headlights are the only thing between you and the water.",
+   "surface": "dirt",
+   "closed": false,
+   "width": 12,
+   "checkpoint_spacing": 110,
+   "night": true,
+   "waypoints": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     28.8,
+     40.9
+    ],
+    [
+     12.1,
+     117.9
+    ],
+    [
+     26.1,
+     183.6
+    ],
+    [
+     60.8,
+     226.2
+    ],
+    [
+     52.4,
+     268.7
+    ],
+    [
+     2.1,
+     321.2
+    ],
+    [
+     -14.2,
+     395.7
+    ],
+    [
+     -45.2,
+     429.0
+    ],
+    [
+     -110.4,
+     425.1
+    ],
+    [
+     -143.9,
+     385.2
+    ],
+    [
+     -132.1,
+     318.7
+    ],
+    [
+     -163.3,
+     285.5
+    ],
+    [
+     -231.2,
+     253.5
+    ],
+    [
+     -293.6,
+     277.0
+    ],
+    [
+     -330.4,
+     323.9
+    ],
+    [
+     -402.0,
+     338.4
+    ],
+    [
+     -432.9,
+     378.6
+    ],
+    [
+     -423.5,
+     438.1
+    ],
+    [
+     -445.6,
+     478.7
+    ],
+    [
+     -441.0,
+     553.0
+    ],
+    [
+     -463.1,
+     590.7
+    ],
+    [
+     -498.4,
+     613.1
+    ]
+   ],
+   "ramps": [
+    {
+     "at": 4,
+     "launch": 6.0,
+     "length": 10
+    }
+   ],
+   "theme": "forest",
+   "props": [
+    {
+     "prop": "stage_sign",
+     "at": 3,
+     "side": 1.951,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 11,
+     "side": -1.918,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 11,
+     "side": -1.918,
+     "along": 6
+    }
+   ],
+   "run_off": 3.0,
+   "run_off_surface": "grass"
+  },
+  {
+   "id": "alpine_pass",
+   "name": "Hjelmstad Pass",
+   "description": "A mountain pass that starts and ends on tarmac and loses its surface in the middle. One stage, two very different cars needed.",
+   "surface": "tarmac",
+   "closed": false,
+   "width": 12,
+   "checkpoint_spacing": 140,
+   "waypoints": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     81.3,
+     21.9
+    ],
+    [
+     129.3,
+     103.1
+    ],
+    [
+     205.4,
+     124.9
+    ],
+    [
+     256.0,
+     204.8
+    ],
+    [
+     327.2,
+     253.7
+    ],
+    [
+     413.6,
+     268.9
+    ],
+    [
+     489.3,
+     350.5
+    ],
+    [
+     560.4,
+     381.3
+    ],
+    [
+     590.1,
+     459.1
+    ],
+    [
+     588.4,
+     584.6
+    ],
+    [
+     672.5,
+     653.7
+    ],
+    [
+     682.7,
+     726.1
+    ],
+    [
+     658.8,
+     805.1
+    ],
+    [
+     680.5,
+     874.5
+    ],
+    [
+     678.0,
+     944.2
+    ],
+    [
+     724.7,
+     993.4
+    ],
+    [
+     806.1,
+     1003.5
+    ],
+    [
+     883.7,
+     1065.3
+    ],
+    [
+     961.2,
+     1065.8
+    ],
+    [
+     1018.9,
+     1142.8
+    ],
+    [
+     1109.7,
+     1191.7
+    ],
+    [
+     1145.5,
+     1252.1
+    ],
+    [
+     1152.8,
+     1338.7
+    ],
+    [
+     1236.5,
+     1384.3
+    ],
+    [
+     1265.6,
+     1468.0
+    ],
+    [
+     1338.2,
+     1513.6
+    ]
+   ],
+   "surface_overrides": [
+    {
+     "from": 5,
+     "to": 11,
+     "surface": "gravel"
+    }
+   ],
+   "ramps": [
+    {
+     "at": 9,
+     "launch": 6.5,
+     "length": 11
+    }
+   ],
+   "theme": "mountain",
+   "props": [
+    {
+     "prop": "stage_sign",
+     "at": 1,
+     "side": 1.701,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 6,
+     "side": 1.668,
+     "along": 0
+    },
+    {
+     "prop": "concrete_block",
+     "at": 12,
+     "side": -1.684,
+     "along": 0
+    }
+   ],
+   "run_off": 1.5,
+   "run_off_surface": "gravel"
+  },
+  {
+   "id": "arctic_marathon",
+   "name": "Arctic Marathon",
+   "description": "The longest stage in the game, on snow the whole way. Nothing about it is difficult; all of it is difficult for long enough.",
+   "surface": "snow",
+   "closed": false,
+   "width": 18,
+   "checkpoint_spacing": 160,
+   "waypoints": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     -83.1,
+     35.6
+    ],
+    [
+     -153.2,
+     -4.5
+    ],
+    [
+     -237.7,
+     -18.8
+    ],
+    [
+     -322.8,
+     -69.7
+    ],
+    [
+     -424.3,
+     -37.0
+    ],
+    [
+     -539.3,
+     -53.3
+    ],
+    [
+     -604.8,
+     -143.1
+    ],
+    [
+     -599.8,
+     -233.2
+    ],
+    [
+     -667.0,
+     -292.8
+    ],
+    [
+     -711.4,
+     -404.8
+    ],
+    [
+     -728.4,
+     -513.1
+    ],
+    [
+     -830.7,
+     -617.0
+    ],
+    [
+     -851.0,
+     -708.8
+    ],
+    [
+     -964.3,
+     -798.1
+    ],
+    [
+     -1043.2,
+     -810.3
+    ],
+    [
+     -1086.6,
+     -879.5
+    ],
+    [
+     -1178.7,
+     -903.2
+    ],
+    [
+     -1231.2,
+     -991.8
+    ],
+    [
+     -1236.6,
+     -1098.4
+    ],
+    [
+     -1284.2,
+     -1165.1
+    ],
+    [
+     -1355.8,
+     -1198.0
+    ],
+    [
+     -1503.1,
+     -1214.4
+    ],
+    [
+     -1570.3,
+     -1298.1
+    ],
+    [
+     -1650.8,
+     -1337.3
+    ],
+    [
+     -1709.6,
+     -1427.8
+    ],
+    [
+     -1802.8,
+     -1464.6
+    ],
+    [
+     -1855.6,
+     -1526.9
+    ],
+    [
+     -1957.4,
+     -1545.6
+    ],
+    [
+     -2027.4,
+     -1508.8
+    ],
+    [
+     -2147.2,
+     -1534.3
+    ]
+   ],
+   "theme": "arctic",
+   "props": [
+    {
+     "prop": "stage_sign",
+     "at": 2,
+     "side": 2.19,
+     "along": 0
+    }
+   ],
+   "run_off": 8.0,
+   "run_off_surface": "snow"
+  },
+  {
+   "id": "harbour_night",
+   "name": "Harbour Night Sprint",
+   "description": "Dock roads after dark. Nine hundred metres, stone on both sides, and nowhere at all to put a mistake.",
+   "surface": "tarmac",
+   "closed": true,
+   "width": 11,
+   "checkpoint_spacing": 90,
+   "theme": "village",
+   "night": true,
+   "waypoints": [
+    [
+     141.5,
+     -2.3
+    ],
+    [
+     151.2,
+     22.8
+    ],
+    [
+     138.1,
+     67.4
+    ],
+    [
+     93.6,
+     108.3
+    ],
+    [
+     38.9,
+     117.1
+    ],
+    [
+     2.3,
+     104.8
+    ],
+    [
+     -30.5,
+     101.4
+    ],
+    [
+     -86.4,
+     95.8
+    ],
+    [
+     -137.4,
+     62.9
+    ],
+    [
+     -150.6,
+     24.1
+    ],
+    [
+     -154.7,
+     2.3
+    ],
+    [
+     -164.5,
+     -26.0
+    ],
+    [
+     -137.5,
+     -67.1
+    ],
+    [
+     -73.5,
+     -87.9
+    ],
+    [
+     -27.9,
+     -92.1
+    ],
+    [
+     -2.3,
+     -113.5
+    ],
+    [
+     44.6,
+     -133.4
+    ],
+    [
+     99.5,
+     -109.1
+    ],
+    [
+     124.9,
+     -56.2
+    ],
+    [
+     130.7,
+     -19.3
+    ]
+   ],
+   "props": [
+    {
+     "prop": "tyre_stack",
+     "at": 1,
+     "side": -1.983,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 1,
+     "side": -1.983,
+     "along": 12
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 2,
+     "side": 1.983,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 5,
+     "side": 1.901,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 5,
+     "side": 1.901,
+     "along": 5
+    },
+    {
+     "prop": "crate",
+     "at": 8,
+     "side": -1.965,
+     "along": 0
+    },
+    {
+     "prop": "crate",
+     "at": 8,
+     "side": -1.965,
+     "along": 4
+    },
+    {
+     "prop": "oil_drum",
+     "at": 11,
+     "side": 1.928,
+     "along": 0
+    },
+    {
+     "prop": "concrete_block",
+     "at": 14,
+     "side": -2.019,
+     "along": 0
+    },
+    {
+     "prop": "stage_sign",
+     "at": 17,
+     "side": 2.037,
+     "along": 0
+    },
+    {
+     "prop": "concrete_block",
+     "at": 19,
+     "side": 2.019,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 19,
+     "side": -2.001,
+     "along": 0
+    }
+   ],
+   "run_off": 3.0,
+   "run_off_surface": "tarmac"
+  },
+  {
+   "id": "birch_valley",
+   "name": "Birch Valley",
+   "description": "Gravel sweepers that never quite straighten out. Lift once and you have lost the whole sequence.",
+   "surface": "gravel",
+   "closed": false,
+   "width": 14,
+   "checkpoint_spacing": 140,
+   "theme": "gravel",
+   "waypoints": [
+    [
+     0,
+     0
+    ],
+    [
+     60,
+     -15
+    ],
+    [
+     120,
+     -30
+    ],
+    [
+     180,
+     -45
+    ],
+    [
+     240,
+     -60
+    ],
+    [
+     288,
+     -81
+    ],
+    [
+     344,
+     -65
+    ],
+    [
+     389,
+     -35
+    ],
+    [
+     438,
+     -10
+    ],
+    [
+     480,
+     30
+    ],
+    [
+     487,
+     87
+    ],
+    [
+     490,
+     130
+    ],
+    [
+     513,
+     197
+    ],
+    [
+     537,
+     263
+    ],
+    [
+     560,
+     330
+    ],
+    [
+     561,
+     400
+    ],
+    [
+     564,
+     463
+    ],
+    [
+     532,
+     519
+    ],
+    [
+     476,
+     548
+    ],
+    [
+     421,
+     577
+    ],
+    [
+     360,
+     580
+    ],
+    [
+     300,
+     600
+    ],
+    [
+     240,
+     620
+    ],
+    [
+     180,
+     640
+    ],
+    [
+     120,
+     660
+    ],
+    [
+     66,
+     683
+    ],
+    [
+     15,
+     656
+    ],
+    [
+     -31,
+     634
+    ],
+    [
+     -84,
+     613
+    ],
+    [
+     -100,
+     558
+    ],
+    [
+     -100,
+     440
+    ],
+    [
+     -127,
+     360
+    ],
+    [
+     -153,
+     280
+    ],
+    [
+     -180,
+     200
+    ]
+   ],
+   "ramps": [
+    {
+     "at": 12,
+     "launch": 6.2,
+     "length": 11
+    }
+   ],
+   "props": [
+    {
+     "prop": "hay_bale",
+     "at": 2,
+     "side": -1.93,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 2,
+     "side": -1.93,
+     "along": 5
+    },
+    {
+     "prop": "cone",
+     "at": 5,
+     "side": 1.851,
+     "along": 0
+    },
+    {
+     "prop": "stage_sign",
+     "at": 8,
+     "side": 1.958,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 11,
+     "side": -1.93,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 12,
+     "side": 1.851,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 15,
+     "side": -1.93,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 15,
+     "side": -1.93,
+     "along": 5
+    },
+    {
+     "prop": "fallen_rock",
+     "at": 19,
+     "side": 1.958,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 22,
+     "side": -1.915,
+     "along": 0
+    },
+    {
+     "prop": "stage_sign",
+     "at": 25,
+     "side": 1.958,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 28,
+     "side": -1.851,
+     "along": 0
+    },
+    {
+     "prop": "fallen_rock",
+     "at": 30,
+     "side": 1.958,
+     "along": 0
+    }
+   ],
+   "run_off": 4.0,
+   "run_off_surface": "grass"
+  },
+  {
+   "id": "quarry_descent",
+   "name": "Old Quarry Descent",
+   "description": "Five switchbacks cut into working stone. First gear, full lock, and a drop on the outside of every one.",
+   "surface": "dirt",
+   "closed": false,
+   "width": 12,
+   "checkpoint_spacing": 80,
+   "theme": "quarry",
+   "waypoints": [
+    [
+     -140,
+     0
+    ],
+    [
+     -47,
+     3
+    ],
+    [
+     47,
+     7
+    ],
+    [
+     140,
+     10
+    ],
+    [
+     172,
+     23
+    ],
+    [
+     185,
+     55
+    ],
+    [
+     172,
+     87
+    ],
+    [
+     140,
+     100
+    ],
+    [
+     47,
+     93
+    ],
+    [
+     -47,
+     97
+    ],
+    [
+     -140,
+     100
+    ],
+    [
+     -172,
+     113
+    ],
+    [
+     -185,
+     145
+    ],
+    [
+     -172,
+     177
+    ],
+    [
+     -140,
+     190
+    ],
+    [
+     -47,
+     183
+    ],
+    [
+     47,
+     187
+    ],
+    [
+     140,
+     190
+    ],
+    [
+     172,
+     203
+    ],
+    [
+     185,
+     235
+    ],
+    [
+     172,
+     267
+    ],
+    [
+     140,
+     280
+    ],
+    [
+     47,
+     273
+    ],
+    [
+     -47,
+     277
+    ],
+    [
+     -140,
+     280
+    ],
+    [
+     -172,
+     293
+    ],
+    [
+     -185,
+     325
+    ],
+    [
+     -172,
+     357
+    ],
+    [
+     -140,
+     370
+    ],
+    [
+     -47,
+     363
+    ],
+    [
+     47,
+     367
+    ],
+    [
+     140,
+     370
+    ],
+    [
+     172,
+     383
+    ],
+    [
+     185,
+     415
+    ],
+    [
+     172,
+     447
+    ],
+    [
+     140,
+     460
+    ]
+   ],
+   "props": [
+    {
+     "prop": "fallen_rock",
+     "at": 1,
+     "side": -1.951,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 2,
+     "side": -1.826,
+     "along": 0
+    },
+    {
+     "prop": "fallen_rock",
+     "at": 5,
+     "side": 1.951,
+     "along": 0
+    },
+    {
+     "prop": "oil_drum",
+     "at": 8,
+     "side": -1.851,
+     "along": 0
+    },
+    {
+     "prop": "concrete_block",
+     "at": 11,
+     "side": 1.934,
+     "along": 0
+    },
+    {
+     "prop": "crate",
+     "at": 14,
+     "side": -1.884,
+     "along": 0
+    },
+    {
+     "prop": "fallen_rock",
+     "at": 17,
+     "side": 1.951,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 20,
+     "side": -1.901,
+     "along": 0
+    },
+    {
+     "prop": "crate",
+     "at": 23,
+     "side": 1.884,
+     "along": 0
+    },
+    {
+     "prop": "fallen_rock",
+     "at": 26,
+     "side": 1.951,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 30,
+     "side": -1.826,
+     "along": 0
+    },
+    {
+     "prop": "stage_sign",
+     "at": 33,
+     "side": 1.951,
+     "along": 0
+    }
+   ],
+   "run_off": 3.0,
+   "run_off_surface": "gravel"
+  },
+  {
+   "id": "fjord_road",
+   "name": "Fjord Road",
+   "description": "Four kilometres of coast road. Long enough that fuel and tyres start to matter, and fast enough that they matter a lot.",
+   "surface": "tarmac",
+   "closed": false,
+   "width": 13,
+   "checkpoint_spacing": 190,
+   "theme": "coast",
+   "waypoints": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     -95.4,
+     32.7
+    ],
+    [
+     -176.7,
+     116.5
+    ],
+    [
+     -314.9,
+     146.3
+    ],
+    [
+     -433.0,
+     205.8
+    ],
+    [
+     -510.9,
+     274.8
+    ],
+    [
+     -612.4,
+     269.9
+    ],
+    [
+     -745.6,
+     344.5
+    ],
+    [
+     -803.2,
+     424.3
+    ],
+    [
+     -857.3,
+     528.5
+    ],
+    [
+     -883.0,
+     650.7
+    ],
+    [
+     -884.2,
+     764.9
+    ],
+    [
+     -948.2,
+     857.7
+    ],
+    [
+     -984.3,
+     947.5
+    ],
+    [
+     -1034.3,
+     1110.1
+    ],
+    [
+     -1063.2,
+     1209.0
+    ],
+    [
+     -1155.6,
+     1255.6
+    ],
+    [
+     -1225.7,
+     1356.4
+    ],
+    [
+     -1335.5,
+     1385.3
+    ],
+    [
+     -1414.6,
+     1443.6
+    ],
+    [
+     -1587.1,
+     1480.0
+    ],
+    [
+     -1673.2,
+     1522.9
+    ],
+    [
+     -1759.7,
+     1587.3
+    ],
+    [
+     -1829.9,
+     1652.5
+    ],
+    [
+     -1939.2,
+     1677.1
+    ],
+    [
+     -2048.5,
+     1746.9
+    ],
+    [
+     -2176.7,
+     1756.4
+    ],
+    [
+     -2332.1,
+     1821.9
+    ],
+    [
+     -2440.4,
+     1791.9
+    ],
+    [
+     -2549.5,
+     1826.6
+    ],
+    [
+     -2685.7,
+     1818.0
+    ],
+    [
+     -2794.1,
+     1852.2
+    ],
+    [
+     -2926.6,
+     1801.8
+    ],
+    [
+     -3051.0,
+     1839.9
+    ],
+    [
+     -3141.6,
+     1812.8
+    ],
+    [
+     -3231.6,
+     1734.0
+    ],
+    [
+     -3376.4,
+     1708.3
+    ]
+   ],
+   "ramps": [
+    {
+     "at": 16,
+     "launch": 4,
+     "length": 8
+    }
+   ],
+   "props": [
+    {
+     "prop": "tyre_stack",
+     "at": 2,
+     "side": 1.678,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 2,
+     "side": 1.678,
+     "along": 8
+    },
+    {
+     "prop": "cone",
+     "at": 5,
+     "side": 1.609,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 8,
+     "side": -1.693,
+     "along": 0
+    },
+    {
+     "prop": "concrete_block",
+     "at": 12,
+     "side": 1.709,
+     "along": 0
+    },
+    {
+     "prop": "stage_sign",
+     "at": 15,
+     "side": -1.724,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 18,
+     "side": 1.609,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 22,
+     "side": -1.678,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 22,
+     "side": -1.678,
+     "along": 6
+    },
+    {
+     "prop": "stage_sign",
+     "at": 26,
+     "side": 1.724,
+     "along": 0
+    },
+    {
+     "prop": "fallen_rock",
+     "at": 30,
+     "side": -1.724,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 34,
+     "side": 1.693,
+     "along": 0
+    },
+    {
+     "prop": "oil_drum",
+     "at": 36,
+     "side": -1.632,
+     "along": 0
+    },
+    {
+     "prop": "concrete_block",
+     "at": 36,
+     "side": 1.709,
+     "along": 0
+    }
+   ],
+   "run_off": 2.0,
+   "run_off_surface": "grass"
+  },
+  {
+   "id": "deep_forest",
+   "name": "Deep Forest Marathon",
+   "description": "Six kilometres of narrow dirt in the dark. Nothing about it is fast, and every one of those kilometres is a chance to get it wrong.",
+   "surface": "dirt",
+   "closed": false,
+   "width": 10,
+   "checkpoint_spacing": 260,
+   "theme": "forest",
+   "night": true,
+   "waypoints": [
+    [
+     94,
+     -34
+    ],
+    [
+     188,
+     -68
+    ],
+    [
+     297,
+     -69
+    ],
+    [
+     400,
+     -34
+    ],
+    [
+     452,
+     -16
+    ],
+    [
+     504,
+     2
+    ],
+    [
+     569,
+     -10
+    ],
+    [
+     620,
+     -52
+    ],
+    [
+     644,
+     -114
+    ],
+    [
+     635,
+     -179
+    ],
+    [
+     596,
+     -232
+    ],
+    [
+     547,
+     -296
+    ],
+    [
+     499,
+     -360
+    ],
+    [
+     471,
+     -421
+    ],
+    [
+     456,
+     -486
+    ],
+    [
+     435,
+     -576
+    ],
+    [
+     414,
+     -666
+    ],
+    [
+     362,
+     -752
+    ],
+    [
+     287,
+     -818
+    ],
+    [
+     251,
+     -849
+    ],
+    [
+     215,
+     -881
+    ],
+    [
+     179,
+     -959
+    ],
+    [
+     180,
+     -1046
+    ],
+    [
+     217,
+     -1124
+    ],
+    [
+     283,
+     -1179
+    ],
+    [
+     373,
+     -1255
+    ],
+    [
+     463,
+     -1331
+    ],
+    [
+     501,
+     -1376
+    ],
+    [
+     529,
+     -1427
+    ],
+    [
+     553,
+     -1471
+    ],
+    [
+     577,
+     -1515
+    ],
+    [
+     580,
+     -1575
+    ],
+    [
+     556,
+     -1630
+    ],
+    [
+     509,
+     -1668
+    ],
+    [
+     451,
+     -1681
+    ],
+    [
+     385,
+     -1696
+    ],
+    [
+     319,
+     -1712
+    ],
+    [
+     243,
+     -1781
+    ],
+    [
+     211,
+     -1879
+    ],
+    [
+     171,
+     -2003
+    ],
+    [
+     131,
+     -2126
+    ],
+    [
+     129,
+     -2221
+    ],
+    [
+     155,
+     -2313
+    ],
+    [
+     171,
+     -2368
+    ],
+    [
+     187,
+     -2423
+    ],
+    [
+     179,
+     -2500
+    ],
+    [
+     143,
+     -2567
+    ],
+    [
+     84,
+     -2617
+    ],
+    [
+     50,
+     -2646
+    ],
+    [
+     15,
+     -2675
+    ],
+    [
+     -42,
+     -2689
+    ],
+    [
+     -100,
+     -2677
+    ],
+    [
+     -146,
+     -2640
+    ],
+    [
+     -172,
+     -2587
+    ],
+    [
+     -172,
+     -2528
+    ],
+    [
+     -146,
+     -2475
+    ],
+    [
+     -108,
+     -2397
+    ],
+    [
+     -69,
+     -2318
+    ],
+    [
+     -66,
+     -2181
+    ],
+    [
+     -119,
+     -2055
+    ],
+    [
+     -180,
+     -1913
+    ],
+    [
+     -240,
+     -1770
+    ],
+    [
+     -290,
+     -1706
+    ],
+    [
+     -353,
+     -1656
+    ],
+    [
+     -395,
+     -1623
+    ],
+    [
+     -436,
+     -1591
+    ],
+    [
+     -476,
+     -1499
+    ],
+    [
+     -467,
+     -1400
+    ],
+    [
+     -411,
+     -1317
+    ],
+    [
+     -384,
+     -1277
+    ],
+    [
+     -357,
+     -1238
+    ],
+    [
+     -352,
+     -1173
+    ],
+    [
+     -378,
+     -1113
+    ],
+    [
+     -430,
+     -1073
+    ],
+    [
+     -494,
+     -1063
+    ],
+    [
+     -555,
+     -1085
+    ],
+    [
+     -652,
+     -1120
+    ],
+    [
+     -748,
+     -1156
+    ],
+    [
+     -834,
+     -1162
+    ],
+    [
+     -919,
+     -1146
+    ],
+    [
+     -993,
+     -1131
+    ],
+    [
+     -1067,
+     -1117
+    ],
+    [
+     -1143,
+     -1056
+    ],
+    [
+     -1181,
+     -966
+    ],
+    [
+     -1205,
+     -908
+    ],
+    [
+     -1230,
+     -851
+    ],
+    [
+     -1306,
+     -789
+    ],
+    [
+     -1402,
+     -770
+    ],
+    [
+     -1495,
+     -799
+    ],
+    [
+     -1631,
+     -841
+    ],
+    [
+     -1768,
+     -882
+    ],
+    [
+     -1812,
+     -889
+    ],
+    [
+     -1856,
+     -890
+    ],
+    [
+     -1904,
+     -891
+    ],
+    [
+     -1951,
+     -892
+    ],
+    [
+     -2002,
+     -870
+    ],
+    [
+     -2039,
+     -830
+    ],
+    [
+     -2056,
+     -778
+    ],
+    [
+     -2051,
+     -723
+    ],
+    [
+     -2023,
+     -675
+    ],
+    [
+     -1983,
+     -606
+    ],
+    [
+     -1943,
+     -537
+    ],
+    [
+     -1935,
+     -451
+    ],
+    [
+     -1964,
+     -370
+    ],
+    [
+     -2024,
+     -308
+    ]
+   ],
+   "ramps": [
+    {
+     "at": 14,
+     "launch": 5,
+     "length": 9
+    },
+    {
+     "at": 42,
+     "launch": 4.4,
+     "length": 8
+    }
+   ],
+   "props": [
+    {
+     "prop": "cone",
+     "at": 3,
+     "side": -1.791,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 6,
+     "side": 1.901,
+     "along": 0
+    },
+    {
+     "prop": "fallen_rock",
+     "at": 9,
+     "side": -1.941,
+     "along": 0
+    },
+    {
+     "prop": "stage_sign",
+     "at": 13,
+     "side": 1.941,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 17,
+     "side": -1.901,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 20,
+     "side": 1.791,
+     "along": 0
+    },
+    {
+     "prop": "fallen_rock",
+     "at": 24,
+     "side": -1.941,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 28,
+     "side": 1.881,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 32,
+     "side": -1.791,
+     "along": 0
+    },
+    {
+     "prop": "stage_sign",
+     "at": 36,
+     "side": 1.941,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 40,
+     "side": -1.901,
+     "along": 0
+    },
+    {
+     "prop": "fallen_rock",
+     "at": 45,
+     "side": 1.941,
+     "along": 0
+    },
+    {
+     "prop": "crate",
+     "at": 49,
+     "side": -1.861,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 53,
+     "side": 1.791,
+     "along": 0
+    },
+    {
+     "prop": "stage_sign",
+     "at": 56,
+     "side": -1.941,
+     "along": 0
+    }
+   ],
+   "run_off": 2.0,
+   "run_off_surface": "grass"
+  },
+  {
+   "id": "frozen_lake",
+   "name": "Frozen Lake Circuit",
+   "description": "A course marked out in snow banks on lake ice. Nothing here is a wall, and nothing here grips either.",
+   "surface": "ice",
+   "closed": true,
+   "width": 22,
+   "checkpoint_spacing": 130,
+   "theme": "arctic",
+   "waypoints": [
+    [
+     270.1,
+     -18.6
+    ],
+    [
+     212.1,
+     39.9
+    ],
+    [
+     187.5,
+     99.4
+    ],
+    [
+     190.4,
+     175.3
+    ],
+    [
+     160.6,
+     224.7
+    ],
+    [
+     110.5,
+     228.6
+    ],
+    [
+     71.7,
+     245.9
+    ],
+    [
+     18.6,
+     285.9
+    ],
+    [
+     -55.7,
+     280.4
+    ],
+    [
+     -121.1,
+     231.4
+    ],
+    [
+     -187.3,
+     204.3
+    ],
+    [
+     -260.8,
+     188.4
+    ],
+    [
+     -286.0,
+     137.5
+    ],
+    [
+     -253.3,
+     73.1
+    ],
+    [
+     -236.1,
+     18.6
+    ],
+    [
+     -245.4,
+     -47.5
+    ],
+    [
+     -218.1,
+     -114.1
+    ],
+    [
+     -163.6,
+     -154.0
+    ],
+    [
+     -139.4,
+     -198.2
+    ],
+    [
+     -125.3,
+     -259.3
+    ],
+    [
+     -79.3,
+     -279.0
+    ],
+    [
+     -18.6,
+     -251.8
+    ],
+    [
+     48.2,
+     -247.3
+    ],
+    [
+     135.9,
+     -262.2
+    ],
+    [
+     208.5,
+     -230.9
+    ],
+    [
+     234.0,
+     -167.1
+    ],
+    [
+     255.4,
+     -122.8
+    ],
+    [
+     286.6,
+     -80.7
+    ]
+   ],
+   "props": [
+    {
+     "prop": "cone",
+     "at": 1,
+     "side": -2.451,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 1,
+     "side": -2.451,
+     "along": 10
+    },
+    {
+     "prop": "cone",
+     "at": 4,
+     "side": 2.451,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 7,
+     "side": -2.501,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 10,
+     "side": 2.451,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 13,
+     "side": -2.501,
+     "along": 0
+    },
+    {
+     "prop": "stage_sign",
+     "at": 15,
+     "side": 2.519,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 18,
+     "side": -2.451,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 21,
+     "side": 2.501,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 24,
+     "side": -2.451,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 6,
+     "side": 2.492,
+     "along": 0
+    }
+   ],
+   "run_off": 14.0,
+   "run_off_surface": "snow"
+  },
+  {
+   "id": "car_park_night",
+   "name": "Kivel\u00e4 Car Park",
+   "description": "A supermarket car park after closing, taped off with cones. Nine hundred metres of second gear and no room to make a mistake worth telling anyone about.",
+   "surface": "tarmac",
+   "closed": true,
+   "width": 13.0,
+   "run_off": 9.0,
+   "run_off_surface": "tarmac",
+   "checkpoint_spacing": 70,
+   "waypoints": [
+    [
+     110.0,
+     11.7
+    ],
+    [
+     105.1,
+     47.3
+    ],
+    [
+     85.9,
+     73.8
+    ],
+    [
+     61.7,
+     93.9
+    ],
+    [
+     36.9,
+     143.3
+    ],
+    [
+     -10.8,
+     123.0
+    ],
+    [
+     -44.2,
+     87.3
+    ],
+    [
+     -75.0,
+     59.6
+    ],
+    [
+     -90.2,
+     23.0
+    ],
+    [
+     -125.9,
+     -11.7
+    ],
+    [
+     -101.9,
+     -46.2
+    ],
+    [
+     -77.7,
+     -67.1
+    ],
+    [
+     -71.7,
+     -110.6
+    ],
+    [
+     -33.5,
+     -124.5
+    ],
+    [
+     12.6,
+     -132.8
+    ],
+    [
+     46.1,
+     -90.6
+    ],
+    [
+     62.6,
+     -49.5
+    ],
+    [
+     109.9,
+     -29.9
+    ]
+   ],
+   "theme": "village",
+   "props": [
+    {
+     "prop": "cone",
+     "at": 3,
+     "side": 2.686,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 3,
+     "side": -2.686,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 8,
+     "side": 2.755,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 12,
+     "side": -2.686,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 15,
+     "side": 2.755,
+     "along": 0
+    }
+   ],
+   "night": true
+  },
+  {
+   "id": "estate_run",
+   "name": "Lehmusrinne Estate Run",
+   "description": "Four blocks of housing, a lookout on every junction and no permission from anybody. Home before the second call comes in.",
+   "surface": "tarmac",
+   "closed": true,
+   "width": 11.5,
+   "run_off": 4.0,
+   "run_off_surface": "grass",
+   "checkpoint_spacing": 80,
+   "waypoints": [
+    [
+     -106.7,
+     -107.0
+    ],
+    [
+     -34.5,
+     -106.5
+    ],
+    [
+     37.7,
+     -106.4
+    ],
+    [
+     97.6,
+     -111.3
+    ],
+    [
+     122.8,
+     -39.1
+    ],
+    [
+     103.5,
+     33.1
+    ],
+    [
+     109.9,
+     114.6
+    ],
+    [
+     37.7,
+     100.6
+    ],
+    [
+     -34.5,
+     122.6
+    ],
+    [
+     -98.8,
+     105.3
+    ],
+    [
+     -124.7,
+     33.1
+    ],
+    [
+     -110.1,
+     -39.1
+    ]
+   ],
+   "theme": "village",
+   "props": [
+    {
+     "prop": "concrete_block",
+     "at": 2,
+     "side": 2.149,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 5,
+     "side": -2.114,
+     "along": 0
+    },
+    {
+     "prop": "concrete_block",
+     "at": 8,
+     "side": 2.149,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 10,
+     "side": -2.114,
+     "along": 0
+    }
+   ],
+   "night": true
+  },
+  {
+   "id": "farm_paddock",
+   "name": "Ojala Farmyard Dash",
+   "description": "Somebody's yard, somebody's field, and a line of hay bales where the barn used to have a door. Everyone watching knows whose tractor is in the way.",
+   "surface": "dirt",
+   "closed": true,
+   "width": 14.0,
+   "run_off": 11.0,
+   "run_off_surface": "grass",
+   "checkpoint_spacing": 75,
+   "waypoints": [
+    [
+     62.9,
+     0.2
+    ],
+    [
+     70.5,
+     19.7
+    ],
+    [
+     90.3,
+     65.2
+    ],
+    [
+     84.3,
+     121.2
+    ],
+    [
+     42.6,
+     131.5
+    ],
+    [
+     0.2,
+     107.4
+    ],
+    [
+     -35.0,
+     101.4
+    ],
+    [
+     -70.9,
+     96.5
+    ],
+    [
+     -85.9,
+     60.8
+    ],
+    [
+     -77.8,
+     22.5
+    ],
+    [
+     -75.7,
+     -0.2
+    ],
+    [
+     -77.4,
+     -22.7
+    ],
+    [
+     -66.4,
+     -41.6
+    ],
+    [
+     -55.9,
+     -68.1
+    ],
+    [
+     -41.9,
+     -128.9
+    ],
+    [
+     -0.2,
+     -178.5
+    ],
+    [
+     46.8,
+     -150.9
+    ],
+    [
+     62.9,
+     -81.5
+    ],
+    [
+     62.5,
+     -37.5
+    ],
+    [
+     64.2,
+     -16.5
+    ]
+   ],
+   "theme": "village",
+   "props": [
+    {
+     "prop": "hay_bale",
+     "at": 4,
+     "side": 2.93,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 4,
+     "side": -2.93,
+     "along": 0
+    },
+    {
+     "prop": "crate",
+     "at": 9,
+     "side": 2.901,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 14,
+     "side": -2.93,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 14,
+     "side": 2.93,
+     "along": 0
+    }
+   ]
+  },
+  {
+   "id": "riverside_meadow",
+   "name": "Riverside Meadow",
+   "description": "A club course cut into a water meadow with a mower and a bag of pegs. Wide, soft, and impossible to hurt yourself on.",
+   "surface": "gravel",
+   "closed": true,
+   "width": 15.0,
+   "run_off": 13.0,
+   "run_off_surface": "grass",
+   "checkpoint_spacing": 80,
+   "waypoints": [
+    [
+     108.3,
+     -15.5
+    ],
+    [
+     108.9,
+     19.0
+    ],
+    [
+     84.8,
+     46.0
+    ],
+    [
+     57.7,
+     67.0
+    ],
+    [
+     41.8,
+     117.5
+    ],
+    [
+     9.2,
+     178.5
+    ],
+    [
+     -39.3,
+     179.9
+    ],
+    [
+     -67.0,
+     127.0
+    ],
+    [
+     -81.9,
+     93.2
+    ],
+    [
+     -116.7,
+     87.1
+    ],
+    [
+     -148.1,
+     60.5
+    ],
+    [
+     -136.8,
+     15.5
+    ],
+    [
+     -107.5,
+     -18.5
+    ],
+    [
+     -94.9,
+     -53.9
+    ],
+    [
+     -77.4,
+     -94.5
+    ],
+    [
+     -37.0,
+     -104.9
+    ],
+    [
+     0.6,
+     -96.0
+    ],
+    [
+     32.6,
+     -123.9
+    ],
+    [
+     83.9,
+     -171.6
+    ],
+    [
+     132.5,
+     -163.7
+    ],
+    [
+     134.6,
+     -101.0
+    ],
+    [
+     111.7,
+     -47.6
+    ]
+   ],
+   "theme": "gravel",
+   "props": [
+    {
+     "prop": "stage_sign",
+     "at": 5,
+     "side": 3.094,
+     "along": 0
+    },
+    {
+     "prop": "hay_bale",
+     "at": 11,
+     "side": -3.068,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 16,
+     "side": 2.994,
+     "along": 0
+    },
+    {
+     "prop": "cone",
+     "at": 16,
+     "side": -2.994,
+     "along": 0
+    }
+   ]
+  },
+  {
+   "id": "kartano_circuit",
+   "name": "Kartano Club Circuit",
+   "description": "A real circuit at last: kerbs, run-off, a timing tower and somebody in the pit lane who knows what your class is.",
+   "surface": "tarmac",
+   "closed": true,
+   "width": 12.0,
+   "run_off": 7.0,
+   "run_off_surface": "grass",
+   "checkpoint_spacing": 110,
+   "waypoints": [
+    [
+     205.9,
+     20.9
+    ],
+    [
+     205.2,
+     51.4
+    ],
+    [
+     221.5,
+     92.2
+    ],
+    [
+     224.0,
+     145.3
+    ],
+    [
+     178.3,
+     176.2
+    ],
+    [
+     103.9,
+     159.0
+    ],
+    [
+     43.6,
+     123.8
+    ],
+    [
+     -1.8,
+     118.4
+    ],
+    [
+     -60.7,
+     138.2
+    ],
+    [
+     -127.0,
+     135.5
+    ],
+    [
+     -163.3,
+     92.4
+    ],
+    [
+     -165.6,
+     40.8
+    ],
+    [
+     -174.3,
+     7.0
+    ],
+    [
+     -207.1,
+     -20.9
+    ],
+    [
+     -228.0,
+     -56.3
+    ],
+    [
+     -206.6,
+     -85.4
+    ],
+    [
+     -165.9,
+     -100.7
+    ],
+    [
+     -138.9,
+     -126.8
+    ],
+    [
+     -112.6,
+     -178.7
+    ],
+    [
+     -57.0,
+     -219.5
+    ],
+    [
+     13.4,
+     -200.8
+    ],
+    [
+     58.4,
+     -133.0
+    ],
+    [
+     78.0,
+     -74.1
+    ],
+    [
+     110.4,
+     -51.8
+    ],
+    [
+     164.1,
+     -40.1
+    ],
+    [
+     202.1,
+     -12.9
+    ]
+   ],
+   "theme": "tarmac",
+   "props": [
+    {
+     "prop": "tyre_stack",
+     "at": 6,
+     "side": 2.568,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 13,
+     "side": -2.568,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 20,
+     "side": 2.568,
+     "along": 0
+    }
+   ]
+  },
+  {
+   "id": "norsholm_park",
+   "name": "Norsholm Motorpark",
+   "description": "Two kilometres of proper motorpark, run anticlockwise, with three places to pass and a chicane that has ended more races than the rest of it together.",
+   "surface": "tarmac",
+   "closed": true,
+   "width": 13.0,
+   "run_off": 9.0,
+   "run_off_surface": "gravel",
+   "checkpoint_spacing": 130,
+   "waypoints": [
+    [
+     265.4,
+     15.5
+    ],
+    [
+     295.2,
+     69.2
+    ],
+    [
+     325.4,
+     130.6
+    ],
+    [
+     288.1,
+     170.3
+    ],
+    [
+     208.6,
+     173.1
+    ],
+    [
+     152.8,
+     188.4
+    ],
+    [
+     117.6,
+     252.7
+    ],
+    [
+     60.1,
+     317.6
+    ],
+    [
+     -15.5,
+     329.1
+    ],
+    [
+     -82.2,
+     316.2
+    ],
+    [
+     -149.9,
+     325.3
+    ],
+    [
+     -224.4,
+     325.7
+    ],
+    [
+     -263.2,
+     266.2
+    ],
+    [
+     -247.8,
+     171.0
+    ],
+    [
+     -239.7,
+     97.5
+    ],
+    [
+     -286.6,
+     45.4
+    ],
+    [
+     -335.4,
+     -15.5
+    ],
+    [
+     -319.9,
+     -73.8
+    ],
+    [
+     -269.9,
+     -109.2
+    ],
+    [
+     -247.7,
+     -145.2
+    ],
+    [
+     -237.7,
+     -200.2
+    ],
+    [
+     -188.7,
+     -238.5
+    ],
+    [
+     -111.5,
+     -239.0
+    ],
+    [
+     -46.2,
+     -252.9
+    ],
+    [
+     15.5,
+     -318.2
+    ],
+    [
+     95.1,
+     -376.8
+    ],
+    [
+     164.3,
+     -357.6
+    ],
+    [
+     195.7,
+     -285.8
+    ],
+    [
+     222.4,
+     -228.2
+    ],
+    [
+     272.0,
+     -186.1
+    ],
+    [
+     303.5,
+     -122.2
+    ],
+    [
+     284.5,
+     -45.0
+    ]
+   ],
+   "theme": "tarmac",
+   "props": [
+    {
+     "prop": "tyre_stack",
+     "at": 5,
+     "side": 2.755,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 12,
+     "side": -2.755,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 19,
+     "side": 2.755,
+     "along": 0
+    },
+    {
+     "prop": "tyre_stack",
+     "at": 26,
+     "side": -2.755,
+     "along": 0
+    }
+   ]
+  }
+ ]
 }

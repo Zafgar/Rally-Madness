@@ -34,6 +34,13 @@ const STARTER_TIER := 0
 
 var debug_overlay: bool = false
 
+## Whether the front end should open straight back into the career when it
+## loads. A race is entered from the career calendar, so coming out of one and
+## landing on the title screen throws away everything the player had open and
+## makes entering the next event a four-step journey back to where they already
+## were. Set when a career starts a race, cleared the moment it is honoured.
+var resume_career: bool = false
+
 
 func metres_to_px(m: float) -> float:
 	return m * PIXELS_PER_METRE

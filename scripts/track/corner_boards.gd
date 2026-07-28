@@ -106,7 +106,9 @@ func _draw() -> void:
 	if model == null:
 		return
 	var ppm := GameConfig.PIXELS_PER_METRE
-	var edge := (model.width_m * 0.5 + VERGE_OFFSET_M) * ppm
+	# Past the run-off, not just past the white line: a board standing in the
+	# middle of ground a car is allowed to use is a board a car drives through.
+	var edge := (model.width_m * 0.5 + model.run_off_m + VERGE_OFFSET_M) * ppm
 
 	for chevron in _chevrons:
 		var i: int = chevron["index"]

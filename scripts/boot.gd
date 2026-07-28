@@ -24,6 +24,7 @@ var _address_field: LineEdit
 
 var _profile_screen: NewProfileScreen = null
 var _career_hub: CareerHub = null
+var _settings_screen: SettingsScreen = null
 
 
 func _ready() -> void:
@@ -39,6 +40,10 @@ func _ready() -> void:
 	EventBus.net_peer_left.connect(func(_id): _refresh())
 	_build()
 	_refresh()
+	# Straight back into the career if that is where the player came from.
+	if GameConfig.resume_career:
+		GameConfig.resume_career = false
+		_open_career_hub()
 
 
 func _build() -> void:
@@ -186,8 +191,9 @@ func _refresh() -> void:
 	_refresh_actions()
 	_refresh_net()
 	_refresh_next_step()
-	# The action buttons are rebuilt by _refresh_actions, so whatever had focus
-	# has just been freed. Put it back or the pad goes dead after every change.
+	# The seat cards and the action buttons have just been rebuilt, so whatever
+	# had focus is gone. Put it back, or the pad dies the moment anybody sits
+	# down — which was the first thing every player did.
 	if get_viewport() != null and get_viewport().gui_get_focus_owner() == null:
 		_focus_menu()
 
@@ -205,8 +211,7 @@ func _refresh_next_step() -> void:
 
 
 func _refresh_seats() -> void:
-	for child in _seat_column.get_children():
-		child.queue_free()
+	UiTheme.clear(_seat_column)
 
 	if PlayerManager.seat_count() == 0:
 		var empty := UiTheme.card()
@@ -293,8 +298,7 @@ func _focus_menu() -> void:
 
 
 func _refresh_actions() -> void:
-	for child in _action_column.get_children():
-		child.queue_free()
+	UiTheme.clear(_action_column)
 	_action_column.add_child(UiTheme.section("Play"))
 
 	var seat = PlayerManager.get_seat(0)
@@ -309,6 +313,9 @@ func _refresh_actions() -> void:
 		"Host a game on this network, or join one. Up to twelve cars.",
 		"", func(): _net_panel.visible = not _net_panel.visible))
 
+	_action_column.add_child(_big_button("SETTINGS",
+		"Window size, full screen, and the sound levels.", "", _open_settings))
+
 	_action_column.add_child(_big_button("QUIT", "Close the game.", "",
 		func(): get_tree().quit()))
 
@@ -319,7 +326,7 @@ func _big_button(title: String, blurb: String, blocked_reason: String,
 		action: Callable) -> Control:
 	var button := Button.new()
 	button.custom_minimum_size = Vector2(0, 86)
-	button.disabled = not blocked_reason.is_empty()
+	UiTheme.set_disabled(button, not blocked_reason.is_empty())
 	if button.disabled:
 		button.tooltip_text = blocked_reason
 	else:
@@ -392,7 +399,32 @@ func _close_career_hub() -> void:
 
 func _on_career_race_requested(event: EventSpec) -> void:
 	_close_career_hub()
+	# So that finishing the race puts the player back on the calendar they
+	# entered it from, rather than at the title screen.
+	GameConfig.resume_career = true
 	_start_event(event)
+
+
+# --- Settings ---------------------------------------------------------------
+
+func _open_settings() -> void:
+	if _settings_screen != null:
+		return
+	var layer := CanvasLayer.new()
+	layer.name = "SettingsLayer"
+	add_child(layer)
+	_settings_screen = SettingsScreen.new()
+	_settings_screen.closed.connect(_close_settings)
+	layer.add_child(_settings_screen)
+
+
+func _close_settings() -> void:
+	var layer := get_node_or_null("SettingsLayer")
+	if layer != null:
+		remove_child(layer)
+		layer.queue_free()
+	_settings_screen = null
+	_focus_menu()
 
 
 # --- Profiles ---------------------------------------------------------------

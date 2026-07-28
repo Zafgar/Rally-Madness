@@ -49,11 +49,58 @@ func _ready() -> void:
 	add_child(interface)
 
 
+## How far the master is pulled down to make room for several listeners.
+var listener_trim: float = 0.0
+## Whether the music is currently under a race.
+var music_ducked: bool = false
+
+
 ## Music down while a race is running. It is still there — a soundtrack that
 ## vanishes the moment the action starts is a soundtrack nobody hears — but
 ## twelve engines have to be able to get past it.
 func duck_music(ducked: bool) -> void:
-	set_bus_volume("Music", float(DEFAULT_LEVELS["Music"]) + (-9.0 if ducked else 0.0))
+	music_ducked = ducked
+	set_bus_volume("Music", level_for("Music"))
+
+
+## Every seat's viewport is its own 2D listener, so a sound in the world is
+## mixed once per player and four people on a couch get every engine four times.
+## That is four times the power into one pair of speakers, so the master comes
+## down by the usual ten-log-ten to put it back where one player had it.
+##
+## Not twenty-log-ten: the copies are only truly coherent for a source the same
+## distance from every seat, which during a race is almost never true.
+func set_listener_count(count: int) -> void:
+	listener_trim = -10.0 * log(float(maxi(count, 1))) / log(10.0)
+	refresh_levels()
+
+
+## What a bus should be sitting at right now: the tuned default, the player's
+## own slider, and whatever the game is doing to it at this moment.
+##
+## One function so the three cannot disagree. They used to: ducking the music
+## wrote the default back over the player's setting, so turning the soundtrack
+## down in the menus and then starting a race turned it back up again.
+func level_for(bus: String) -> float:
+	var level: float = float(DEFAULT_LEVELS.get(bus, 0.0))
+	# Settings is a later autoload, so early calls fall back to the defaults.
+	var settings := _settings()
+	if settings != null:
+		level = settings.volume_db(bus)
+	if bus == "Music" and music_ducked:
+		level -= 9.0
+	if bus == "Master":
+		level += listener_trim
+	return level
+
+
+func refresh_levels() -> void:
+	for bus in DEFAULT_LEVELS:
+		set_bus_volume(bus, level_for(bus))
+
+
+func _settings() -> Node:
+	return get_tree().root.get_node_or_null("Settings") if is_inside_tree() else null
 
 
 ## Creates the buses if the project does not already have them, so the audio

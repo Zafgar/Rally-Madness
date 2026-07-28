@@ -11,6 +11,7 @@ signal resume_requested()
 signal retire_requested()
 signal quit_requested()
 signal continue_requested()
+signal settings_requested()
 ## Escape, from either state. The overlay owns this because it is the only node
 ## in the race that still gets input while the tree is paused — a paused scene
 ## cannot un-pause itself.
@@ -101,8 +102,16 @@ func show_pause(event_name: String, can_retire: bool) -> void:
 		retire.pressed.connect(func(): retire_requested.emit())
 		_buttons.add_child(retire)
 
+	# The sound sliders belong here as well as in the front end: the moment
+	# anybody wants them is the moment the engines are too loud, and that is
+	# never while looking at a title screen.
+	var settings := Button.new()
+	settings.text = "Settings"
+	settings.pressed.connect(func(): settings_requested.emit())
+	_buttons.add_child(settings)
+
 	var quit := Button.new()
-	quit.text = "Abandon and return to the menu"
+	quit.text = "Abandon and return to the career"
 	quit.pressed.connect(func(): quit_requested.emit())
 	_buttons.add_child(quit)
 
@@ -187,7 +196,5 @@ func _open() -> void:
 
 
 func _clear() -> void:
-	for child in _body.get_children():
-		child.queue_free()
-	for child in _buttons.get_children():
-		child.queue_free()
+	UiTheme.clear(_body)
+	UiTheme.clear(_buttons)

@@ -144,7 +144,8 @@ func _refresh() -> void:
 	for i in _car_row.get_child_count():
 		(_car_row.get_child(i) as Button).button_pressed = (i == _chosen_car)
 
-	_confirm.disabled = _name_field.text.strip_edges().is_empty() or _starters.is_empty()
+	UiTheme.set_disabled(_confirm,
+		_name_field.text.strip_edges().is_empty() or _starters.is_empty())
 	if _starters.is_empty():
 		_detail.text = "[color=#dd7f7f]No starter cars in the catalogue.[/color]"
 		return

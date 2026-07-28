@@ -42,6 +42,19 @@ var theme: String = ""
 ## edge, 0 the centre line and 1 the right edge.
 var props: Array[Dictionary] = []
 
+## How much drivable ground there is beyond the road edge, in metres, before
+## anything solid.
+##
+## Zero is the old behaviour: a wall a metre outside the white line, so a wheel
+## off the road is a crash. That is not what a road is. Every real stage has a
+## verge, a field, a gravel trap or a car park apron, and running wide onto it
+## should cost time and grip — not the race. It also makes an early event
+## forgiving without making it slower, which is exactly what a first race needs.
+var run_off: float = 0.0
+## What that ground is. Grass by default, because that is what is beside most
+## roads and it is slow enough to be a real penalty without being a trap.
+var run_off_surface: TireModel.Surface = TireModel.Surface.GRASS
+
 
 ## The theme to scatter scenery from. A track can name one; otherwise the
 ## surface it is made of is a good enough answer.
@@ -87,6 +100,9 @@ static func from_dict(d: Dictionary) -> TrackSpec:
 			"along": float(entry.get("along", 0.0)),
 		})
 	t.default_surface = TireModel.surface_from_string(String(d.get("surface", "gravel")))
+	t.run_off = maxf(float(d.get("run_off", 0.0)), 0.0)
+	t.run_off_surface = TireModel.surface_from_string(
+		String(d.get("run_off_surface", "grass")))
 
 	for p in d.get("waypoints", []):
 		if p is Array and p.size() >= 2:

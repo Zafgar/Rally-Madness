@@ -21,6 +21,13 @@ const SURFACE_CHUNK_SAMPLES := 24
 ## a fraction of the local radius. Short of 1 so the edge never quite reaches
 ## the centre, which is where a polygon inverts.
 const OFFSET_SAFETY := 0.92
+## The same idea for the run-off band, which reaches further out and so folds
+## sooner. Tighter than OFFSET_SAFETY because a band has two edges to keep in
+## order rather than one.
+const BAND_SAFETY := 0.80
+## How many samples one run-off strip covers. Shorter than a road strip: a long
+## band swings further across a bend, and a short one is cheap to decompose.
+const BAND_CHUNK_SAMPLES := 12
 
 const ROAD_COLOR_TARMAC := Color(0.18, 0.18, 0.20)
 const ROAD_COLOR_DIRT := Color(0.35, 0.26, 0.17)
@@ -61,7 +68,7 @@ func build() -> Node2D:
 		return root
 
 	var mark := Time.get_ticks_usec()
-	_walk_centreline()
+	walk()
 	mark = _timed("centreline", mark)
 
 	root.add_child(_build_ground())
@@ -72,6 +79,8 @@ func build() -> Node2D:
 	mark = _timed("scenery", mark)
 	root.add_child(_build_surface_zones())
 	mark = _timed("surface zones", mark)
+	root.add_child(_build_run_off())
+	mark = _timed("run-off", mark)
 	root.add_child(_build_walls())
 	mark = _timed("walls", mark)
 	root.add_child(_build_checkpoints())
@@ -94,7 +103,14 @@ func _timed(phase: String, since: int) -> int:
 
 # --- Centreline -------------------------------------------------------------
 
-func _walk_centreline() -> void:
+## Walks the centreline and nothing else.
+##
+## Everything the recce needs — and so everything that can be measured about a
+## stage — comes from this alone. Separated from build() so that measuring a
+## stage does not also cost the collision shapes, the scenery and the props,
+## which is the difference between reading all two dozen tracks in a second and
+## reading them in a minute.
+func walk() -> void:
 	_samples.clear()
 	total_length_px = curve.get_baked_length()
 	var offset := 0.0
@@ -346,9 +362,13 @@ func _build_walls() -> StaticBody2D:
 	body.collision_layer = 1
 	body.collision_mask = 0
 
-	var margin := WALL_MARGIN * GameConfig.PIXELS_PER_METRE
+	var ppm := GameConfig.PIXELS_PER_METRE
+	var margin := WALL_MARGIN * ppm
+	# The solid stuff sits beyond the run-off, not against the white line. With
+	# no run-off declared this is exactly where it always was.
+	var wall_out := margin + spec.run_off * ppm
 	for side in [-1.0, 1.0]:
-		var pts := _edge_points(side, margin)
+		var pts := _edge_points(side, wall_out)
 		var shape := CollisionShape2D.new()
 		shape.shape = _barrier_shape(pts)
 		body.add_child(shape)
@@ -358,14 +378,112 @@ func _build_walls() -> StaticBody2D:
 		# overlay: it was the most prominent thing on screen and it made a
 		# forest road look like a slot-car track. What is actually at the edge
 		# of a road depends on the road, so that is what gets drawn.
+		#
+		# The road edge is drawn where the road ends, which on a stage with
+		# run-off is not where the barrier is. Getting that wrong would be worse
+		# than no marking at all: a driver aims at the edge they can see, and if
+		# the visible edge is ten metres past the grip the car is already gone.
+		var edge_pts := _edge_points(side, margin)
 		for layer in _barrier_layers():
 			var line := Line2D.new()
-			line.points = pts
+			line.points = edge_pts
 			line.width = float(layer["width"])
 			line.default_color = layer["colour"]
 			line.closed = spec.closed
 			body.add_child(line)
+
+		if spec.run_off > 0.0:
+			# And something solid at the far side of it, drawn plainly, because
+			# the message is only "this is as far as it goes".
+			var fence := Line2D.new()
+			fence.points = pts
+			fence.width = 5.0
+			fence.default_color = Color(0.16, 0.15, 0.14, 0.9)
+			fence.closed = spec.closed
+			body.add_child(fence)
 	return body
+
+
+## The drivable ground beside the road, as a surface band on each side.
+##
+## Disjoint from the road's own zone rather than overlapping it, so the two can
+## never fight over which one a car is in: the road band ends exactly where this
+## one starts. A car that runs wide picks up grass grip and grass drag, loses a
+## second or two, and drives back on — which is what running wide should cost.
+func _build_run_off() -> Node2D:
+	var holder := Node2D.new()
+	holder.name = "RunOff"
+	if spec.run_off <= 0.0:
+		return holder
+	var half := _half_width_px()
+	var outer := half + spec.run_off * GameConfig.PIXELS_PER_METRE
+	for side in [-1.0, 1.0]:
+		holder.add_child(_make_band_zone(side, half, outer, spec.run_off_surface))
+	return holder
+
+
+## One side's band, from `inner` to `outer` pixels off the centreline.
+##
+## Broken wherever the geometry stops being safe rather than pushed through it.
+## The outside of a bend opens out and is never a problem; the inside closes,
+## and once the outer edge reaches the centre of curvature the strip folds over
+## itself. Godot cannot decompose a self-intersecting polygon into convex
+## pieces — it prints "Convex decomposing failed!" and silently produces no
+## collision shape at all, which is a hole in the surface exactly where the
+## corner is tightest. So a strip ends at the last sample that is still sound
+## and a new one starts after the pinch, leaving a small gap at the apex of a
+## hairpin instead of a shape that does not work.
+func _make_band_zone(side: float, inner: float, outer: float,
+		surf: TireModel.Surface) -> SurfaceZone:
+	var zone := SurfaceZone.new()
+	zone.surface = surf
+	zone.name = "RunOff_%s" % ("left" if side < 0.0 else "right")
+
+	var run: Array[int] = []
+	for j in _samples.size():
+		if _band_is_sound(j, side, inner, outer):
+			run.append(j)
+			if run.size() >= BAND_CHUNK_SAMPLES:
+				_emit_band(zone, run, side, inner, outer, surf)
+				# Strips share their last sample so there is no seam between
+				# them for a car to fall through.
+				run = [j]
+		else:
+			_emit_band(zone, run, side, inner, outer, surf)
+			run = []
+	_emit_band(zone, run, side, inner, outer, surf)
+	return zone
+
+
+## Whether a strip through this sample would keep its two edges in order and
+## clear of the centre of curvature.
+func _band_is_sound(index: int, side: float, inner: float, outer: float) -> bool:
+	var radius := _radius_at(index)
+	var turning_toward := signf(_curvature_at(index)) == signf(side)
+	if turning_toward and outer > radius * BAND_SAFETY:
+		return false
+	return outer > inner * 1.02
+
+
+func _emit_band(zone: SurfaceZone, run: Array[int], side: float,
+		inner: float, outer: float, surf: TireModel.Surface) -> void:
+	if run.size() < 2:
+		return
+	var poly := PackedVector2Array()
+	for j in run:
+		poly.append(_samples[j]["pos"] + _samples[j]["normal"] * inner * side)
+	for i in range(run.size() - 1, -1, -1):
+		var j: int = run[i]
+		poly.append(_samples[j]["pos"] + _samples[j]["normal"] * outer * side)
+
+	var shape := CollisionPolygon2D.new()
+	shape.polygon = poly
+	zone.add_child(shape)
+	var visual := Polygon2D.new()
+	visual.polygon = poly
+	visual.color = _surface_color(surf)
+	visual.z_index = -10
+	zone.add_child(visual)
 
 
 ## How the edge of the road is drawn, back to front.
@@ -439,7 +557,12 @@ func _build_checkpoints() -> Node2D:
 
 		var shape := CollisionShape2D.new()
 		var rect := RectangleShape2D.new()
-		rect.size = Vector2(18.0, _half_width_px() * 2.2)
+		# Wide enough to catch a car that is out on the run-off. A checkpoint
+		# that only spans the road turns a harmless trip across the grass
+		# into a missed sector and a lap that never counts, which is a much
+		# worse punishment than the two seconds it has already cost.
+		rect.size = Vector2(18.0,
+			(_half_width_px() + spec.run_off * GameConfig.PIXELS_PER_METRE) * 2.4)
 		shape.shape = rect
 		cp.add_child(shape)
 
@@ -466,6 +589,15 @@ func _build_checkpoints() -> Node2D:
 ## what happened, twice, before this existed. Track authors should not have to
 ## hold the grid layout in their heads to place a hay bale safely.
 const PROP_GRID_CLEARANCE_M := 12.0
+## How far past the last drivable ground a prop has to stand, in metres.
+##
+## Props used to be clamped to ±1 of half-width and then multiplied by 0.82,
+## which put every hay bale, barrel and cone *on the road* no matter what the
+## track data asked for — the data had already been moved out to 1.12 and the
+## builder was quietly dragging it back in. A barrel in the racing line is not
+## scenery, it is a trap: the camera shows two seconds of road, so the first
+## time anybody learns it is there is by hitting it.
+const PROP_CLEARANCE_M := 1.0
 
 
 func _build_props() -> Node2D:
@@ -481,7 +613,14 @@ func _build_props() -> Node2D:
 		var index := clampi(int(entry["at"]), 0, spec.waypoints.size() - 1)
 		var sample := _sample_at_waypoint(index)
 		var along: float = float(entry["along"]) * GameConfig.PIXELS_PER_METRE
-		var across: float = clampf(float(entry["side"]), -1.0, 1.0) * _half_width_px() * 0.82
+		# `side` is a multiple of half-width, honoured as written, and then held
+		# clear of everything a car is allowed to be on: the road, the run-off,
+		# and the prop's own body.
+		var wanted: float = float(entry["side"])
+		var side_sign: float = -1.0 if wanted < 0.0 else 1.0
+		var floor_px: float = _half_width_px() \
+			+ (spec.run_off + PROP_CLEARANCE_M + prop.radius_m) * GameConfig.PIXELS_PER_METRE
+		var across: float = side_sign * maxf(absf(wanted) * _half_width_px(), floor_px)
 		var position: Vector2 = sample["pos"] + sample["dir"] * along \
 			+ sample["normal"] * across
 		var angle: float = sample["dir"].angle()

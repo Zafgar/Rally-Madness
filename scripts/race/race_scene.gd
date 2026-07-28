@@ -88,6 +88,7 @@ func _ready() -> void:
 	_overlay.quit_requested.connect(_return_to_menu)
 	_overlay.continue_requested.connect(_return_to_menu)
 	_overlay.pause_toggled.connect(_toggle_pause)
+	_overlay.settings_requested.connect(_open_settings)
 	overlay_layer.add_child(_overlay)
 
 	# Night. It existed only in the screenshot harness before this, so a night
@@ -169,10 +170,32 @@ func _retire_all_players() -> void:
 	_resume()
 
 
-## Back to the front end. Abandoning mid-race pays nothing, which is why it is
-## worded as abandoning and retiring is not.
+## The sound sliders, from the pause menu, while the race is stopped. On its own
+## layer above the overlay and running while paused, like everything else here.
+func _open_settings() -> void:
+	if get_node_or_null("SettingsLayer") != null:
+		return
+	var layer := CanvasLayer.new()
+	layer.name = "SettingsLayer"
+	layer.layer = 20
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(layer)
+	var screen := SettingsScreen.new()
+	screen.closed.connect(func():
+		remove_child(layer)
+		layer.queue_free()
+		# Back to the pause menu the player opened it from, still paused.
+		if _overlay != null and not _results_shown:
+			_pause())
+	layer.add_child(screen)
+
+
+## Back to the career the race was entered from. Abandoning mid-race pays
+## nothing, which is why it is worded as abandoning and retiring is not.
 func _return_to_menu() -> void:
 	get_tree().paused = false
+	# A race is entered from the calendar, so this is where it should end up.
+	GameConfig.resume_career = true
 	AudioDirector.duck_music(false)
 	AudioDirector.clear_local_cars()
 	PlayerManager.release_haptics()

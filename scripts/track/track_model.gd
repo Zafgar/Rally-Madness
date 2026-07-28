@@ -103,6 +103,11 @@ class PassZone extends RefCounted:
 var spec: TrackSpec
 var closed: bool = true
 var width_m: float = 10.0
+## Drivable ground beyond the road edge. The line and the plan ignore it — it
+## is a mistake to use, not a wider road — but anything drawn beside the road
+## has to clear it or it ends up standing in the middle of somewhere a car can
+## be.
+var run_off_m: float = 0.0
 var length_m: float = 0.0
 
 ## Position in world pixels at each sample.
@@ -123,6 +128,7 @@ static func analyse(builder: TrackBuilder) -> TrackModel:
 	m.spec = builder.spec
 	m.closed = builder.spec.closed
 	m.width_m = builder.spec.width
+	m.run_off_m = builder.spec.run_off
 	m._sample(builder)
 	m._measure_curvature()
 	m._find_corners()

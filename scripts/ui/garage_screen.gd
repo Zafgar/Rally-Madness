@@ -128,8 +128,7 @@ func refresh() -> void:
 # --- The car list -----------------------------------------------------------
 
 func _rebuild_list() -> void:
-	for child in _list.get_children():
-		child.queue_free()
+	UiTheme.clear(_list)
 
 	# Sorted by what the car can become, so the garage reads as a ladder: the
 	# thing you are developing at the top, the cheap runabout you keep for the
@@ -235,10 +234,8 @@ static func _condition_colour(condition: float) -> Color:
 # --- The selected car -------------------------------------------------------
 
 func _rebuild_details() -> void:
-	for child in _details.get_children():
-		child.queue_free()
-	for child in _actions.get_children():
-		child.queue_free()
+	UiTheme.clear(_details)
+	UiTheme.clear(_actions)
 
 	var car: OwnedCar = profile.garage.get(_selected_uid)
 	if car == null:
@@ -360,7 +357,7 @@ func _build_actions(car: OwnedCar, bill: int) -> void:
 	if bill > 0:
 		var repair := Button.new()
 		repair.text = "Repair  %s" % UiTheme.money(bill)
-		repair.disabled = bill > profile.money
+		UiTheme.set_disabled(repair, bill > profile.money)
 		repair.pressed.connect(func():
 			if profile.spend(bill):
 				car.repair()
@@ -383,7 +380,7 @@ func _build_actions(car: OwnedCar, bill: int) -> void:
 			continue
 		var button := Button.new()
 		button.text = "Replace %s  %s" % [item, UiTheme.money(cost)]
-		button.disabled = cost > profile.money
+		UiTheme.set_disabled(button, cost > profile.money)
 		button.pressed.connect(func():
 			if profile.spend(cost):
 				car.service(item)
@@ -401,7 +398,7 @@ func _build_actions(car: OwnedCar, bill: int) -> void:
 				"Rebuilt" if rebuilt else "New", UiTheme.money(cost)]
 			swap.tooltip_text = ("Starts at 70 000 km and costs less."
 				if rebuilt else "Starts at zero and makes full power.")
-			swap.disabled = cost > profile.money
+			UiTheme.set_disabled(swap, cost > profile.money)
 			swap.pressed.connect(func():
 				if profile.spend(cost):
 					car.swap_engine(rebuilt)
@@ -416,7 +413,7 @@ func _build_actions(car: OwnedCar, bill: int) -> void:
 	var sell := Button.new()
 	sell.text = "Sell  %s" % UiTheme.money(car.sale_value())
 	# Never let a player sell their way out of having something to drive.
-	sell.disabled = profile.garage.size() <= 1
+	UiTheme.set_disabled(sell, profile.garage.size() <= 1)
 	sell.tooltip_text = "You cannot sell your only car." if sell.disabled else ""
 	sell.pressed.connect(func():
 		if profile.sell_car(car.uid) > 0:

@@ -71,8 +71,8 @@ func build(p_spec: TrackSpec, p_samples: Array[Dictionary], p_half_width: float)
 
 func _build_verges() -> void:
 	var ppm := GameConfig.PIXELS_PER_METRE
-	var inner := half_width_px
-	var outer := half_width_px + VERGE_WIDTH * ppm
+	var inner := half_width_px + spec.run_off * ppm
+	var outer := inner + VERGE_WIDTH * ppm
 	_verge_left = _band(-1.0, inner, outer)
 	_verge_right = _band(1.0, inner, outer)
 
@@ -174,8 +174,13 @@ func _scatter_scenery() -> void:
 				var bias := _rng.randf()
 				var out_m: float = lerpf(prop.near_m, prop.far_m, bias * bias)
 				var along := _rng.randf_range(-6.0, 6.0) * ppm
+				# Measured from the last drivable metre, not from the white
+				# line. A stage with run-off has ground beside the road that a
+				# car is meant to be able to use, and a pine tree standing in
+				# the middle of it is not scenery, it is a wall nobody drew.
 				var pos: Vector2 = s["pos"] + s["dir"] * along \
-					+ s["normal"] * (half_width_px + out_m * ppm) * side
+					+ s["normal"] * (half_width_px \
+						+ (spec.run_off + out_m) * ppm) * side
 				var scale := 1.0 + _rng.randf_range(
 					-prop.radius_variance, prop.radius_variance)
 				_items.append({

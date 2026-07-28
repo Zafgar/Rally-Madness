@@ -75,8 +75,7 @@ func refresh() -> void:
 		profile.level, profile.rating, profile.rating_tier_name(),
 		car.display_name() if car != null else "nothing"]
 
-	for child in _list.get_children():
-		child.queue_free()
+	UiTheme.clear(_list)
 
 	var by_series := {}
 	var order: Array[String] = []
@@ -195,7 +194,7 @@ func _event_card(event: EventSpec) -> Control:
 
 	if not enterable:
 		enter.text = "Locked"
-		enter.disabled = true
+		UiTheme.set_disabled(enter, true)
 	enter.custom_minimum_size = Vector2(130, 60)
 	enter.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	enter.pressed.connect(func(): event_chosen.emit(event))

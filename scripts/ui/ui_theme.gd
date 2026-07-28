@@ -236,17 +236,64 @@ static func _grab_first(root: Control) -> void:
 
 ## The first focusable control in a subtree, depth first, which is reading
 ## order for every screen here.
+##
+## A disabled button is skipped. It can still hold focus as far as Godot is
+## concerned, but landing on one is how the opening screen used to greet a pad:
+## the highlight sat on CAREER, CAREER was greyed out because no career existed
+## yet, and pressing the button did nothing — which reads exactly like a dead
+## controller.
 static func first_focusable(node: Node) -> Control:
 	for child in node.get_children():
 		if child is Control:
 			var control := child as Control
-			if control.visible and not control.is_queued_for_deletion() \
-					and control.focus_mode == Control.FOCUS_ALL:
+			var usable := control.visible and not control.is_queued_for_deletion() \
+				and control.focus_mode == Control.FOCUS_ALL
+			if usable and control is BaseButton and (control as BaseButton).disabled:
+				usable = false
+			if usable:
 				return control
 		var deeper := first_focusable(child)
 		if deeper != null:
 			return deeper
 	return null
+
+
+## Disables a button and takes it out of the focus order at the same time.
+##
+## Godot leaves a disabled button focusable, which on a pad is a trap: the
+## directional search is geometric and happily lands on it, the button then
+## ignores the accept press because it is disabled, and a further direction
+## often finds its way straight back. The player is left holding a controller
+## that moves a highlight onto a dead option and refuses to leave. A mouse never
+## noticed, because a mouse does not navigate.
+##
+## Anything that cannot be pressed should not be reachable by pressing
+## directions, so `disabled` and `focus_mode` move together everywhere.
+static func set_disabled(button: BaseButton, disabled: bool) -> void:
+	if button == null:
+		return
+	button.disabled = disabled
+	button.focus_mode = Control.FOCUS_NONE if disabled else Control.FOCUS_ALL
+
+
+## Empties a container, now, rather than at the end of the frame.
+##
+## `queue_free` is deferred, so a list rebuilt with it still contains the old
+## rows for the rest of the frame — including the focused one. Every "put focus
+## back if nothing has it" check downstream then looks at a focus owner that is
+## alive at the instant of the test and deleted a moment later, decides nothing
+## needs doing, and leaves the screen with no focus at all and a pad that has
+## stopped working.
+##
+## Detaching first makes the deletion visible immediately: leaving the tree
+## releases focus synchronously, so by the time the caller has rebuilt the list
+## the question "does anything have focus?" has an honest answer.
+static func clear(container: Node) -> void:
+	if container == null:
+		return
+	for child in container.get_children():
+		container.remove_child(child)
+		child.queue_free()
 
 
 ## Width to keep clear for a vertical scrollbar.

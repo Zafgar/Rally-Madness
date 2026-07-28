@@ -142,8 +142,7 @@ func refresh() -> void:
 # --- Slots ------------------------------------------------------------------
 
 func _rebuild_slots() -> void:
-	for child in _slot_list.get_children():
-		child.queue_free()
+	UiTheme.clear(_slot_list)
 	var spec := car.spec()
 	for slot in PartSpec.SLOTS:
 		var fitted_id: String = car.loadout.get_part(slot)
@@ -187,8 +186,7 @@ func _rebuild_slots() -> void:
 # --- Parts ------------------------------------------------------------------
 
 func _rebuild_parts() -> void:
-	for child in _part_list.get_children():
-		child.queue_free()
+	UiTheme.clear(_part_list)
 	var spec := car.spec()
 	var stats := car.resolved_stats()
 	var fitted_id: String = car.loadout.get_part(_slot)
@@ -267,7 +265,7 @@ func _part_card(part: PartSpec, blocked: String, fitted: bool, baseline: float) 
 		var buy := UiTheme.primary_button("Fit") if affordable else Button.new()
 		if not affordable:
 			buy.text = "Too dear"
-			buy.disabled = true
+			UiTheme.set_disabled(buy, true)
 		buy.pressed.connect(_on_fit.bind(part))
 		right.add_child(buy)
 	return card
@@ -293,8 +291,7 @@ static func _tier_colour(tier: int) -> Color:
 # --- The running total ------------------------------------------------------
 
 func _rebuild_summary() -> void:
-	for child in _summary.get_children():
-		child.queue_free()
+	UiTheme.clear(_summary)
 	var spec := car.spec()
 	var stats := car.resolved_stats()
 	var summary: Dictionary = PerformanceModel.summary(stats)
