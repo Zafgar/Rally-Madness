@@ -2107,6 +2107,35 @@ func _test_audio() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 8181
 
+	# --- The three mixing faults that made the game sound broken -------------
+	# All reported together, all separate causes, all invisible in the waveform
+	# tests below because none of them is about the waveform.
+
+	# A range threshold with no hysteresis is an oscillator. A car near the
+	# boundary — in a race, most of the field most of the time — crossed it
+	# every few frames and had its loops started and stopped over and over,
+	# which is heard as sound swelling, lagging and vanishing.
+	_check(CarAudio.RANGE_HYSTERESIS > 1.05,
+		"a car has to go further to fall silent than it did to be heard (%.2fx)"
+			% CarAudio.RANGE_HYSTERESIS)
+
+	# Lifting off has to be audible as a drop in volume, not only a change of
+	# timbre. At 0.75 the engine stayed loud with the pedal up.
+	_check(CarAudio.OVERRUN_LEVEL < 0.6,
+		"overrun is clearly quieter than pulling (%.2f of it)" % CarAudio.OVERRUN_LEVEL)
+
+	# Losing grip has to make a noise on every surface. It was tarmac only, and
+	# almost every stage in the game is gravel — so the one thing a racing game
+	# must tell you was the one thing it was silent about.
+	for surface in [TireModel.Surface.TARMAC, TireModel.Surface.GRAVEL,
+			TireModel.Surface.DIRT, TireModel.Surface.SNOW, TireModel.Surface.ICE,
+			TireModel.Surface.MUD, TireModel.Surface.GRASS]:
+		_check(float(CarAudio.SQUEAL_BY_SURFACE.get(surface, 0.0)) > 0.0,
+			"a sliding tyre is audible on %s" % TireModel.surface_name(surface))
+	_check(float(CarAudio.SQUEAL_BY_SURFACE[TireModel.Surface.TARMAC])
+			> float(CarAudio.SQUEAL_BY_SURFACE[TireModel.Surface.GRAVEL]),
+		"and it still screams loudest on the surface that actually grips")
+
 	# --- Firing frequency is the whole ball game -----------------------------
 	# If this is wrong every engine in the game is the wrong note, and no amount
 	# of mixing rescues it.

@@ -40,7 +40,7 @@ func _process(delta: float) -> void:
 		_poll_for_joins()
 	for seat in seats:
 		if seat.device != null and seat.car != null and seat.car.is_locally_controlled:
-			seat.car.command = seat.device.poll()
+			seat.car.command = seat.device.poll(delta)
 		if seat.haptics != null:
 			seat.haptics.update(delta)
 

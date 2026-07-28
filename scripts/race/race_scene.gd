@@ -185,14 +185,14 @@ func _return_to_menu() -> void:
 	get_tree().current_scene = scene
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if director == null or split == null:
 		return
 	# Clients send their intent up; the host is the one simulating.
 	if NetManager.state == NetManager.State.CONNECTED:
 		var seat = PlayerManager.get_seat(0)
 		if seat != null and seat.device != null:
-			NetManager.send_local_command(seat.device.poll())
+			NetManager.send_local_command(seat.device.poll(delta))
 
 	for view in split.views:
 		var entrant := director.entrant_for_seat(view["slot"])

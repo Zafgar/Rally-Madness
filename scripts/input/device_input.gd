@@ -18,6 +18,9 @@ const BTN_TRIANGLE := JOY_BUTTON_Y
 const BTN_L1 := JOY_BUTTON_LEFT_SHOULDER
 const BTN_R1 := JOY_BUTTON_RIGHT_SHOULDER
 const BTN_OPTIONS := JOY_BUTTON_START
+const BTN_DPAD_DOWN := JOY_BUTTON_DPAD_DOWN
+## How long respawn has to be held before it fires.
+const RESPAWN_HOLD_SECONDS := 0.8
 ## The sticks, clicked. Nothing else uses them and a horn wants a button you
 ## can lean on without letting go of the wheel — which is exactly where a real
 ## horn is.
@@ -37,6 +40,11 @@ var _prev_shift_down: bool = false
 var _prev_toggle: bool = false
 var _prev_lights: bool = false
 var _prev_respawn: bool = false
+## How long the respawn button has been held, in seconds.
+var _respawn_held: float = 0.0
+## Filled in by the poll so the hold can be timed without threading a delta
+## through every call site.
+var _delta_hint: float = 1.0 / 60.0
 
 var _command := VehicleCommand.new()
 
@@ -55,7 +63,10 @@ func device_name() -> String:
 	return Input.get_joy_name(device_id)
 
 
-func poll() -> VehicleCommand:
+## `delta` is only used to time held buttons; callers that do not have one get
+## a single frame's worth, which is what they were effectively assuming anyway.
+func poll(delta: float = 1.0 / 60.0) -> VehicleCommand:
+	_delta_hint = delta
 	if is_keyboard():
 		_poll_keyboard()
 	else:
@@ -84,7 +95,19 @@ func _poll_pad() -> void:
 	var up := Input.is_joy_button_pressed(device_id, BTN_R1)
 	var down := Input.is_joy_button_pressed(device_id, BTN_L1)
 	var toggle := Input.is_joy_button_pressed(device_id, BTN_TRIANGLE)
-	var respawn := Input.is_joy_button_pressed(device_id, BTN_OPTIONS)
+	# Respawn is held, not tapped, and it is not on Options.
+	#
+	# It used to be a tap on Options — the menu button — so reaching for the
+	# pause screen teleported the car back to the road instead. Nothing about
+	# that is recoverable: by the time you see what happened you have lost the
+	# position you were about to pause to think about. It is now the d-pad down
+	# held for most of a second, which nobody presses by accident and which
+	# leaves Options free to do what a menu button should do.
+	if Input.is_joy_button_pressed(device_id, BTN_DPAD_DOWN):
+		_respawn_held += _delta_hint
+	else:
+		_respawn_held = 0.0
+	var respawn := _respawn_held >= RESPAWN_HOLD_SECONDS
 	var lights := Input.is_joy_button_pressed(device_id, BTN_SQUARE)
 	# The horn is held, not tapped: leaning on it is the point of a horn.
 	c.horn = Input.is_joy_button_pressed(device_id, BTN_L3) \
@@ -94,6 +117,9 @@ func _poll_pad() -> void:
 	c.shift_down = down and not _prev_shift_down
 	c.toggle_gearbox = toggle and not _prev_toggle
 	c.respawn = respawn and not _prev_respawn
+	if respawn:
+		# One respawn per hold, not one per frame for as long as it is down.
+		_respawn_held = 0.0
 	c.toggle_lights = lights and not _prev_lights
 
 	_prev_shift_up = up
@@ -116,7 +142,11 @@ func _poll_keyboard() -> void:
 	var up := Input.is_key_pressed(KEY_E)
 	var down := Input.is_key_pressed(KEY_Q)
 	var toggle := Input.is_key_pressed(KEY_T)
-	var respawn := Input.is_key_pressed(KEY_R)
+	if Input.is_key_pressed(KEY_R):
+		_respawn_held += _delta_hint
+	else:
+		_respawn_held = 0.0
+	var respawn := _respawn_held >= RESPAWN_HOLD_SECONDS
 	var lights := Input.is_key_pressed(KEY_L)
 	c.horn = Input.is_key_pressed(KEY_H)
 
@@ -124,6 +154,9 @@ func _poll_keyboard() -> void:
 	c.shift_down = down and not _prev_shift_down
 	c.toggle_gearbox = toggle and not _prev_toggle
 	c.respawn = respawn and not _prev_respawn
+	if respawn:
+		# One respawn per hold, not one per frame for as long as it is down.
+		_respawn_held = 0.0
 	c.toggle_lights = lights and not _prev_lights
 
 	_prev_shift_up = up

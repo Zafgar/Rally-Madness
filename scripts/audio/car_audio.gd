@@ -18,10 +18,28 @@ const AUDIBLE_RANGE_M := 190.0
 ## Cars further than this get the engine only. The tyres and turbo of a car you
 ## can barely hear are detail nobody will ever pick out.
 const DETAIL_RANGE_M := 70.0
+## How much further a car has to go before it stops being heard than it had to
+## come to start. Anything above 1 turns a threshold that rattles into one that
+## latches.
+const RANGE_HYSTERESIS := 1.18
 
 ## How quickly mixed levels follow the car. Fast enough to feel connected to the
 ## throttle, slow enough not to zipper.
 const LEVEL_SMOOTHING := 18.0
+## How loud the off-throttle layer is against the on-throttle one.
+const OVERRUN_LEVEL := 0.42
+## How well each surface screams. Tarmac squeals properly; loose surfaces make a
+## duller, quieter version of the same sound, and the surface layer carries most
+## of the message there.
+const SQUEAL_BY_SURFACE := {
+	TireModel.Surface.TARMAC: 1.0,
+	TireModel.Surface.ICE: 0.55,
+	TireModel.Surface.SNOW: 0.40,
+	TireModel.Surface.DIRT: 0.38,
+	TireModel.Surface.GRAVEL: 0.34,
+	TireModel.Surface.GRASS: 0.30,
+	TireModel.Surface.MUD: 0.22,
+}
 
 var car: RallyCar
 var voice: EngineVoice
@@ -204,8 +222,16 @@ func _update_horn(delta: float) -> void:
 func _update_audibility() -> void:
 	var listener := AudioDirector.listener_position()
 	var distance := global_position.distance_to(listener) / GameConfig.PIXELS_PER_METRE
-	var audible := distance < AUDIBLE_RANGE_M
-	var detailed := distance < DETAIL_RANGE_M
+	# Hysteresis, because a threshold without it is an oscillator. A car sitting
+	# near the range boundary — which in a race is most of the field, most of
+	# the time — crossed it every few frames, so its loops were started and
+	# stopped over and over. That is heard as sound swelling in and out, lagging
+	# behind what is on screen, and sometimes vanishing altogether, which is
+	# exactly how it was described.
+	var audible := distance < (AUDIBLE_RANGE_M * RANGE_HYSTERESIS if _audible
+		else AUDIBLE_RANGE_M)
+	var detailed := distance < (DETAIL_RANGE_M * RANGE_HYSTERESIS if _detailed
+		else DETAIL_RANGE_M)
 
 	if audible != _audible:
 		_audible = audible
@@ -257,7 +283,11 @@ func _update_engine(delta: float) -> void:
 			band_weight += upper_weight
 		var pitch := voice.pitch_for(band, rpm)
 		_set_voice(_engine_on[band], band_weight * load * master, pitch, delta)
-		_set_voice(_engine_off[band], band_weight * (1.0 - load) * master * 0.75,
+		# Overrun is much quieter than pulling. At 0.75 lifting off changed the
+		# timbre and barely touched the volume, so the engine stayed loud with
+		# the pedal up — which reads as the sound being broken rather than as
+		# the car coasting.
+		_set_voice(_engine_off[band], band_weight * (1.0 - load) * master * OVERRUN_LEVEL,
 			pitch, delta)
 
 
@@ -299,16 +329,21 @@ func _update_tyres(delta: float) -> void:
 	var speed := car.speed_ms
 	var smoothing := clampf(delta * LEVEL_SMOOTHING, 0.0, 1.0)
 
-	# Only surfaces that can grip can squeal. Sliding on gravel throws stones;
-	# it does not scream.
-	var squeal_surface := car.surface == TireModel.Surface.TARMAC
+	# A tyre only screams on something that grips, and that was modelled
+	# correctly and was the wrong thing to model. Almost every stage here is
+	# gravel, so a driver got no sound at all at the moment grip went — which is
+	# the single most important thing a racing game has to tell you, and the one
+	# thing it was silent about. Loose surfaces get a quieter, duller version of
+	# it rather than nothing; the surface layer below carries the rest.
+	var grip_of_surface: float = SQUEAL_BY_SURFACE.get(car.surface, 0.35)
 	var squeal := 0.0
-	if squeal_surface and speed > 4.0:
+	if grip_of_surface > 0.0 and speed > 4.0:
 		squeal = clampf((slide - 0.10) * 2.2, 0.0, 1.0) * clampf(speed / 18.0, 0.0, 1.0)
 		# Locked or spinning wheels scrub just as hard in a straight line.
 		squeal = maxf(squeal, clampf((absf(car.worst_slip_ratio()) - 0.20) * 2.0, 0.0, 1.0)
 			* clampf(speed / 14.0, 0.0, 1.0))
-	_tyre_level = lerpf(_tyre_level, squeal * 0.55, smoothing)
+		squeal *= grip_of_surface
+	_tyre_level = lerpf(_tyre_level, squeal * 0.62, smoothing)
 	_tyre.volume_db = linear_to_db(maxf(_tyre_level, 0.0001))
 	# Harder work, higher note: the stick-slip frequency really does climb.
 	_tyre.pitch_scale = clampf(0.80 + slide * 0.55 + speed / 90.0, 0.6, 1.7)
@@ -320,10 +355,13 @@ func _update_tyres(delta: float) -> void:
 			_surface.play()
 	var roll := clampf(speed / 30.0, 0.0, 1.0)
 	# Sliding on a loose surface throws far more of it about.
-	var scrub := 1.0 + clampf(slide * 1.6, 0.0, 1.4)
+	# On gravel this *is* the sound of losing grip: a car straight-lining is a
+	# hiss and a car sideways is a shower of stones. It was a 1.0-2.4 multiplier
+	# on a quiet layer, which is not a difference anybody notices.
+	var scrub := 1.0 + clampf(slide * 2.6, 0.0, 2.6)
 	if car.airborne:
 		roll = 0.0   # nothing under the wheels to make a noise
-	_surface_level = lerpf(_surface_level, roll * scrub * 0.34, smoothing)
+	_surface_level = lerpf(_surface_level, roll * scrub * 0.30, smoothing)
 	_surface.volume_db = linear_to_db(maxf(_surface_level, 0.0001))
 	_surface.pitch_scale = clampf(0.75 + speed / 55.0, 0.6, 1.6)
 
